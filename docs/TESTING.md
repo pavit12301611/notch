@@ -86,6 +86,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Switch players; previous/play/pause/next respect advertised capabilities.
 - [ ] Seek a long track, change tracks while visible, pause, and seek from another client.
 - [ ] Player volume and system output volume/mute stay synchronized with external changes.
+- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no slider/volume feedback loop, no repeated art downloads.
 - [ ] Local file art, data URI art and HTTPS art render; broken/oversized art falls back safely.
 - [ ] Disabling remote art prevents HTTP(S) art requests.
 - [ ] No position timer remains after leaving Media or collapsing the notch.

@@ -63,7 +63,7 @@ export class NotchView {
         this.clockHidden = false;
         this.options = this.readOptions();
         this.media = new MediaController(this.directory, () => this.updateMedia(), e => this.showError(e));
-        this.audio = new AudioController(() => this.updateAudio());
+        this.audio = new AudioController(() => { if (this.tab === 'media' && this.expanded) this.updateAudio(); });
         this.diagnostics = new Diagnostics(this.directory, () => this.updateSystem());
         this.art = new ArtLoader(this.settings.get_boolean('remote-art'));
         this.actions = new QuickActions(this.settings, () => this.updateActions());
@@ -1299,7 +1299,7 @@ export class NotchView {
                     setIconSource(widget, gicon, 'audio-x-generic-symbolic');
             });
         }
-        this.updateAudio();
+        if (this.tab === 'media') this.updateAudio();
     }
 
     updateAudio() {

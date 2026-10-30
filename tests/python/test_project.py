@@ -194,6 +194,10 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("relayout storm", view)
         self.assertIn("page.y_expand = false", view)
         self.assertIn("query_info_async", (ROOT / "extension/lib/art.js").read_text())
+        media = (ROOT / "extension/lib/media.js").read_text()
+        self.assertIn("scheduleChange", media)
+        self.assertIn("suppressUntil", (ROOT / "extension/lib/widgets.js").read_text())
+        self.assertIn("_loadingUrl", (ROOT / "extension/lib/art.js").read_text())
         self.assertIn("mediaDisplayTitle", view)
         self.assertIn("setIconDirectory", view)
         self.assertTrue((ROOT / "extension/icons/user-home-symbolic.svg").is_file())
@@ -204,7 +208,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-drop-success", helper)
         self.assertIn("gtk-enable-animations", helper)
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 12)
+        self.assertEqual(metadata["version"], 13)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

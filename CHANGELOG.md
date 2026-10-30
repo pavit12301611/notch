@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### v13 — media-tab audio stutter / feedback protection
+
+- Programmatic slider updates now suppress `notify::value` feedback for 150 ms,
+  so updating the seek/volume sliders cannot re-enter `setVolume`/`seekTo`.
+- System and MPRIS volume setters ignore no-op changes, preventing PulseAudio /
+  D-Bus feedback loops when a player or sink reports the same volume back.
+- MPRIS UI updates are coalesced to at most one per 60 ms, instead of rebuilding
+  on every property burst from browsers/YouTube.
+- Audio UI updates only run while the Music page is open.
+- Album-art loading is single-flight per URL and remote art is rate-limited, so a
+  chatty YouTube MPRIS source cannot spawn repeated downloads/decodes.
+
+
 ### v12 — freeze safety for open-notch use
 
 - Geometry animation is now a single-shot Clutter timeline with a hard watchdog

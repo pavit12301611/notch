@@ -12,6 +12,8 @@ export class ArtLoader {
         this.cancellable = new Gio.Cancellable();
         this.generation = 0;
         this.dead = false;
+        this._loadingUrl = null;
+        this._lastRemoteAt = 0;
     }
 
     setAllowRemote(allow) { this.allowRemote = allow; }
@@ -23,6 +25,7 @@ export class ArtLoader {
         };
         deliver(null);
         if (!url) return;
+        if (this._loadingUrl === url) return;
         if (this.cache.has(url)) {
             const icon = this.cache.get(url);
             this.cache.delete(url);
@@ -30,6 +33,7 @@ export class ArtLoader {
             deliver(icon);
             return;
         }
+        this._loadingUrl = url;
         try {
             let bytes;
             if (url.startsWith('file://')) {
@@ -50,6 +54,9 @@ export class ArtLoader {
                     url.length > MAX_ART_BYTES * 4 / 3 + 256) return;
                 bytes = GLib.Bytes.new(GLib.base64_decode(url.slice(comma + 1)));
             } else if (/^https?:\/\//i.test(url) && this.allowRemote) {
+                const now = GLib.get_monotonic_time();
+                if (now - this._lastRemoteAt < 2_000_000) return;
+                this._lastRemoteAt = now;
                 bytes = await this.download(url);
             } else { return; }
             if (!bytes || bytes.get_size() > MAX_ART_BYTES || bytes.get_size() === 0) return;
@@ -58,6 +65,9 @@ export class ArtLoader {
             while (this.cache.size > 12) this.cache.delete(this.cache.keys().next().value);
             deliver(icon);
         } catch { /* Missing art must never interrupt playback or the shell. */ }
+        finally {
+            if (this._loadingUrl === url) this._loadingUrl = null;
+        }
     }
 
     async download(url) {

@@ -25,6 +25,7 @@ export class MediaController {
         this.positionPending = false;
         this.position = {name: '', trackId: '', value: 0, updated: 0};
         this.watch = 0;
+        this._changeTimer = 0;
     }
 
     start() {
@@ -67,11 +68,11 @@ export class MediaController {
                 if ('Metadata' in keys || 'PlaybackStatus' in keys || 'Rate' in keys)
                     this.refreshPosition();
                 if ('Metadata' in keys || 'PlaybackStatus' in keys) this.preferPlaying();
-                this.onChange();
+                this.scheduleChange();
             }, 'g-signal', (_p, _sender, signal, params) => {
                 if (signal === 'Seeked') {
                     this.setPosition(name, params.deepUnpack()[0]);
-                    this.onChange();
+                    this.scheduleChange();
                 }
             }, 'notify::g-name-owner', proxy => {
                 if (!proxy.g_name_owner) this.remove(name);
@@ -82,7 +83,7 @@ export class MediaController {
             if (!this.players.has(this.selected)) this.selected = name;
             this.preferPlaying();
             this.refreshPosition();
-            this.onChange();
+            this.scheduleChange();
         } catch (e) { this.report(e); }
     }
 
@@ -98,7 +99,16 @@ export class MediaController {
             this.preferPlaying();
             this.refreshPosition();
         }
-        this.onChange();
+        this.scheduleChange();
+    }
+
+    scheduleChange() {
+        if (this.dead || this._changeTimer) return;
+        this._changeTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 60, () => {
+            this._changeTimer = 0;
+            if (!this.dead) this.onChange();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     snapshot() {
@@ -125,9 +135,10 @@ export class MediaController {
     setPositionActive(active) {
         if (active && !this.positionTimer) {
             this.refreshPosition();
+            this.scheduleChange();
             this.positionTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
                 this.refreshPosition();
-                this.onChange();
+                this.scheduleChange();
                 return GLib.SOURCE_CONTINUE;
             });
         } else if (!active && this.positionTimer) {
@@ -155,7 +166,7 @@ export class MediaController {
         this.manualSelection = true;
         this.selected = names[(names.indexOf(this.selected) + 1) % names.length];
         this.refreshPosition();
-        this.onChange();
+        this.scheduleChange();
     }
 
     setPosition(name, value) {
@@ -196,14 +207,16 @@ export class MediaController {
         else
             this.command('Seek', new GLib.Variant('(x)', [target - state.positionUs]));
         this.setPosition(this.selected, target);
-        this.onChange();
+        this.scheduleChange();
     }
 
     setVolume(value) {
         const entry = this.players.get(this.selected);
         if (!entry) return;
+        const next = Math.max(0, Math.min(1, value));
+        if (typeof entry.player.Volume === 'number' && Math.abs(entry.player.Volume - next) < 0.002) return;
         const parameters = new GLib.Variant('(ssv)', [PLAYER, 'Volume',
-            new GLib.Variant('d', Math.max(0, Math.min(1, value)))]);
+            new GLib.Variant('d', next)]);
         call(entry.player, 'org.freedesktop.DBus.Properties.Set', parameters)
             .catch(e => this.report(e));
     }
@@ -220,6 +233,8 @@ export class MediaController {
 
     destroy() {
         this.setPositionActive(false);
+        if (this._changeTimer) GLib.source_remove(this._changeTimer);
+        this._changeTimer = 0;
         this.dead = true;
         this.cancellable.cancel();
         if (this.watch) Gio.DBus.session.signal_unsubscribe(this.watch);
