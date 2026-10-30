@@ -8,7 +8,7 @@
 
 ## Notification routing
 
-`extension/lib/notifications.js` wraps the Shell message tray’s banner show/hide/state methods. While routing is enabled and the notch is allowed, the native banner actor is hidden from painting and picking, and the same `MessageTray.Notification` objects are rendered inside the notch with `MessageList.Message`. GNOME still owns notification policy, sounds, queueing, actions, residency and expiry. The bridge restores the original methods and native banner visibility on disable, when routing is turned off, or when fullscreen/overview/lock policy hides the notch. It does not write notification content to disk.
+`extension/lib/notifications.js` uses GNOME's `InjectionManager` to wrap only `MessageTray._showNotification`, after Shell has applied DND, fullscreen and per-app banner policy. Ordinary notifications are acknowledged, played through GNOME's own sound path, removed from the banner queue and shown as compact notch peeks; their original `MessageTray.Notification` objects remain in GNOME's message list. Critical notifications fall through to the native banner path. The bridge restores the original tray method on disable, when routing is turned off, or when fullscreen/overview/lock policy hides the notch. It does not create a second notification store or write notification content to disk.
 
 Bus names are intentionally distinct:
 
@@ -35,7 +35,7 @@ This is the most compositor-sensitive part of the project and must be tested wit
 ## Overlay and input
 
 - `Main.layoutManager.addChrome()` registers the notch with Shell’s input-region tracking.
-- The actor clips its expanding content. Clutter implicit animations change position/size/opacity; no frame clock callback is installed.
+- The actor clips its expanding content. A bounded damped-spring geometry integrator drives a Clutter frame timeline only while moving; content crossfades separately. Reduced motion / disabled animations snap to the final state.
 - A separate, invisible edge actor optionally reserves **collapsed** space. Expanded content never changes struts.
 - Fullscreen and overview visibility are evaluated for the configured monitor. The extension does not fight Shell’s own `trackFullscreen` visibility binding.
 - Escape/outside-click handling does not install a modal grab. Slider grabs postpone pointer-leave/auto-hide collapse.

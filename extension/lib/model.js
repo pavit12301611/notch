@@ -148,3 +148,14 @@ export class ClipboardHistory {
     get(id) { return this.items.find(item => item.id === id); }
     clear() { this.items = []; }
 }
+
+/** Convert GNOME notification markup to safe single-line/plain display text. */
+export function plainText(value) {
+    return String(value ?? '')
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+}

@@ -66,22 +66,33 @@ class ProjectTests(unittest.TestCase):
         ):
             self.assertIn(name, keys)
         self.assertEqual(keys["placement"].find("default").text, "'panel'")
-        self.assertEqual(keys["collapsed-width"].find("default").text, "220")
+        self.assertEqual(keys["collapsed-width"].find("default").text, "185")
+        self.assertEqual(keys["expanded-width"].find("default").text, "640")
+        self.assertEqual(keys["animation-profile"].find("default").text, "'mac-spring'")
+        for name in (
+            "notch-scale",
+            "match-panel-height",
+            "adaptive-corners",
+            "closed-media",
+            "peek-duration-ms",
+        ):
+            self.assertIn(name, keys)
         self.assertEqual(keys["opacity"].find("default").text, "1.0")
         self.assertEqual(keys["notifications-in-notch"].find("default").text, "true")
 
     def test_notification_bridge_is_reversible(self):
         source = (ROOT / "extension/lib/notifications.js").read_text()
-        self.assertIn("MessageList.Message", source)
-        self.assertNotIn("MessageList.NotificationMessage", source)
-        for method in ("_showNotification", "_hideNotificationCompleted", "_updateState"):
-            self.assertIn(method, source)
-        self.assertIn("_restoreNativeBanner", source)
-        self.assertIn("Shell.util_set_hidden_from_pick(bin, false)", source)
+        self.assertIn("overrideMethod(this.tray, '_showNotification'", source)
+        self.assertIn("restoreMethod(this.tray, '_showNotification')", source)
+        self.assertIn("notification.acknowledged = true", source)
+        self.assertNotIn("notification.destroy()", source)
+        self.assertNotIn("_hideNotification", source)
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("GnomeDesktop.WallClock", view)
         self.assertIn("syncPanelClock", view)
         self.assertIn("container.opacity = this.clockOriginal?.opacity ?? 255", view)
+        self.assertIn("new NotchSurface", view)
+        self.assertIn("SpringGeometry", view)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

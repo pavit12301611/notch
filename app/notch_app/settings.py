@@ -126,10 +126,12 @@ class SettingsApplication(Adw.Application):
         preset.set_activatable_widget(preset_button)
         geometry.add(preset)
         self.spin(geometry, "monitor-index", "Monitor", -1, 15, subtitle="−1 = primary monitor")
-        self.spin(geometry, "collapsed-width", "Collapsed width", 160, 520, 10)
+        self.spin(geometry, "collapsed-width", "Collapsed base width", 150, 520, 10)
         self.spin(geometry, "collapsed-height", "Collapsed height", 24, 64)
-        self.spin(geometry, "expanded-width", "Expanded width", 560, 1100, 10)
-        self.spin(geometry, "expanded-height", "Expanded height", 420, 720, 10)
+        self.spin(geometry, "expanded-width", "Maximum page width", 480, 1100, 10)
+        self.spin(geometry, "expanded-height", "Maximum page height", 200, 720, 10)
+        self.switch(geometry, "match-panel-height", "Match panel height when closed")
+        self.switch(geometry, "adaptive-corners", "Adaptive MacBook corners")
         self.spin(geometry, "floating-margin", "Floating top margin", 0, 200)
         self.spin(geometry, "horizontal-offset", "Horizontal offset", -2000, 2000, 10)
         finish = self.group(page, "Finish")
@@ -157,23 +159,52 @@ class SettingsApplication(Adw.Application):
         row.add_suffix(scale)
         row.set_activatable_widget(scale)
         finish.add(row)
+        scale_row = Adw.ActionRow(title="Notch scale")
+        notch_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0.75, 1.5, 0.01)
+        notch_scale.set_value(self.settings.get_double("notch-scale"))
+        notch_scale.set_size_request(240, -1)
+        notch_scale.set_valign(Gtk.Align.CENTER)
+        notch_scale.set_digits(2)
+        notch_scale.set_draw_value(True)
+
+        def notch_scale_changed(widget):
+            self.settings.set_double("notch-scale", round(widget.get_value(), 2))
+
+        def notch_scale_external(*_):
+            notch_scale.set_value(self.settings.get_double("notch-scale"))
+
+        self.bindings.append(
+            (notch_scale, notch_scale.connect("value-changed", notch_scale_changed))
+        )
+        self.bindings.append(
+            (self.settings, self.settings.connect("changed::notch-scale", notch_scale_external))
+        )
+        scale_row.add_suffix(notch_scale)
+        scale_row.set_activatable_widget(notch_scale)
+        finish.add(scale_row)
         return page
 
     def apply_macbook_preset(self):
         self.settings.set_string("placement", "panel")
-        self.settings.set_int("collapsed-width", 220)
-        self.settings.set_int("collapsed-height", 34)
-        self.settings.set_int("expanded-width", 760)
-        self.settings.set_int("expanded-height", 480)
-        self.settings.set_int("corner-radius", 18)
+        self.settings.set_int("collapsed-width", 185)
+        self.settings.set_int("collapsed-height", 32)
+        self.settings.set_int("expanded-width", 640)
+        self.settings.set_int("expanded-height", 320)
+        self.settings.set_int("corner-radius", 24)
+        self.settings.set_double("notch-scale", 1.0)
+        self.settings.set_boolean("match-panel-height", True)
+        self.settings.set_boolean("adaptive-corners", True)
+        self.settings.set_boolean("closed-media", True)
+        self.settings.set_string("animation-profile", "mac-spring")
         self.settings.set_double("opacity", 1.0)
         self.settings.set_boolean("replace-panel-clock", True)
         self.settings.set_boolean("idle-clock", True)
         self.settings.set_boolean("notifications-in-notch", True)
         self.settings.set_boolean("auto-open-notifications", True)
         self.settings.set_boolean("animations", True)
-        self.settings.set_int("open-animation-ms", 360)
-        self.settings.set_int("close-animation-ms", 260)
+        self.settings.set_int("open-animation-ms", 420)
+        self.settings.set_int("close-animation-ms", 450)
+        self.settings.set_int("peek-duration-ms", 5000)
 
     def behavior_page(self):
         page = Adw.PreferencesPage(title="Behavior", icon_name="preferences-system-symbolic")
@@ -185,9 +216,32 @@ class SettingsApplication(Adw.Application):
         self.switch(macbook, "replace-panel-clock", "Replace top-bar date & time")
         self.switch(macbook, "idle-clock", "Show time when idle")
         self.switch(macbook, "notifications-in-notch", "Show notifications in the notch")
-        self.switch(macbook, "auto-open-notifications", "Open notch for new notifications")
-        self.spin(macbook, "open-animation-ms", "Open animation", 0, 1000, 20, "Milliseconds")
-        self.spin(macbook, "close-animation-ms", "Close animation", 0, 1000, 20, "Milliseconds")
+        self.switch(macbook, "auto-open-notifications", "Compact notification peeks")
+        self.spin(macbook, "peek-duration-ms", "Peek duration", 2000, 15000, 500, "Milliseconds")
+        self.switch(macbook, "closed-media", "Closed music wings")
+        profile = Adw.ComboRow(
+            title="Motion profile", model=Gtk.StringList.new(["Mac spring", "Smooth easing"])
+        )
+        profile_values = ["mac-spring", "smooth"]
+        profile.set_selected(profile_values.index(self.settings.get_string("animation-profile")))
+
+        def profile_changed(row, _param):
+            self.settings.set_string("animation-profile", profile_values[row.get_selected()])
+
+        def profile_external(*_):
+            profile.set_selected(
+                profile_values.index(self.settings.get_string("animation-profile"))
+            )
+
+        self.bindings.append((profile, profile.connect("notify::selected", profile_changed)))
+        self.bindings.append(
+            (self.settings, self.settings.connect("changed::animation-profile", profile_external))
+        )
+        macbook.add(profile)
+        self.spin(macbook, "open-animation-ms", "Smooth open duration", 0, 1000, 20, "Milliseconds")
+        self.spin(
+            macbook, "close-animation-ms", "Smooth close duration", 0, 1000, 20, "Milliseconds"
+        )
         behavior = self.group(page, "Opening & hiding")
         self.switch(
             behavior, "open-on-hover", "Open on hover", "Clicking the collapsed notch always works"

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### MacBook-native redesign v2
+
+- Studied pinned native macOS sources from boring.notch, DynamicNotchKit and NotchDrop; recorded findings and licenses in `docs/DESIGN_STUDY.md`.
+- Replaced the rounded-rectangle chrome with a Cairo-flared MacBook silhouette, adaptive 6/14 closed and 19/24 open corners, panel-height closed state and compact music wings.
+- Added a top-anchored damped-spring open/close/resize animation with a smooth-easing fallback, per-page sizes and a compact Home page.
+- Ordinary notifications now peek inside the notch with native actions instead of forcing the full Alerts page open; critical alerts keep the native banner path.
+- Added notch scale, panel-height matching, adaptive corners, closed music wings, motion profile and peek duration settings; migrated untouched earlier presets.
+
 - MacBook-style top-edge notch defaults: replaces the centered top-bar clock, shows idle local time, and expands smoothly from the top edge with configurable open/close durations.
 - GNOME notification banners are routed into an Alerts page with native actions, unread count, calendar shortcut and dismiss-all; routing is reversible and restores native banners on disable/hide.
 - Added a MacBook preset in both Libadwaita settings UIs and a safe migration for untouched 0.1 defaults.

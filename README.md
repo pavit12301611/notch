@@ -36,22 +36,22 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 
 | Area | Included behavior |
 |---|---|
-| Notifications | GNOME notification banners routed into the notch, native actions, unread count, calendar shortcut, dismiss-all; respects GNOME DND/app banner policy and restores native banners when disabled |
+| Notifications | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps unread count, calendar heading and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible |
 | Idle clock | Local time in the collapsed MacBook-style notch when no notification is active |
 | Media | MPRIS player discovery/switching, title/artist/album, local/data/optional HTTP(S) album art, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
 | File shelf | Drag local files near the notch onto a GTK target, or choose files through GTK/portal; open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
-| Appearance | MacBook top-edge default that replaces the centered top-bar clock; collapsed/expanded dimensions, monitor, offset, corner radius, opacity; optional legacy below-panel/floating modes |
-| Behavior | iPhone-like smooth open/close expansion from the top edge, hover dwell, click, keyboard shortcut, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
+| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, per-page sizes, scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
+| Behavior | Mac-style damped-spring opening from the top edge, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
 | Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
 
 ### Important boundaries
 
 - **No physical camera-cutout detection.** Configure the notch geometry for your display. The utility draws a notch-shaped overlay; it does not identify camera hardware.
 - **The default MacBook mode replaces the centered top-bar clock.** The original clock is restored when the notch hides, on other monitors, or when `replace-panel-clock` is off. Legacy below-panel and floating modes remain optional; floating mode is the Dynamic-Island-like layout, not the default.
-- **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
+- **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return for critical alerts and when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel, and Mutter may apply the inset as a top-edge work-area reduction. It is not a pixel-perfect window mask.
 - **The shelf stores references, not copies.** Removing a shelf item never removes the original. Dragging files *out* of the Shell notch is not implemented; use Open, Reveal, or Copy URI.
 - **Clipboard history is text-only and off by default.** Known password-manager hints and mixed-format offers are skipped, but a password manager that exposes plain text without a hint cannot be detected reliably. Keep history off when handling secrets.
@@ -94,7 +94,7 @@ notch-settings
 notch-doctor
 ```
 
-The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, and new notifications open the Alerts page. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings, and ordinary notifications appear as compact peeks. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ### Manual dependency installation
 
@@ -172,7 +172,9 @@ notch/
 │   │   └── io.github.pavit12301611.Notch.gschema.xml
 │   ├── dbus/                            # MPRIS, UPower and private helper interfaces
 │   └── lib/
-│       ├── view.js                      # chrome actor, animation, pages, drag positioning
+│       ├── view.js                      # chrome actor, spring animation, pages, peeks, drag positioning
+│       ├── surface.js                   # Cairo top flares + St bottom-radius body
+│       ├── spring.js                    # bounded damped-spring geometry integrator
 │       ├── widgets.js                   # accessible St controls
 │       ├── geometry.js                  # pure placement/clamping logic
 │       ├── model.js                     # pure parsers, formatters, clipboard ring buffer
@@ -215,17 +217,23 @@ Use **Notch Settings** for the supported UI. Equivalent examples:
 SCHEMA=io.github.pavit12301611.Notch
 
 gsettings set "$SCHEMA" placement 'panel'          # panel = MacBook top edge; top-center/floating are optional legacy modes
-gsettings set "$SCHEMA" collapsed-width 220
-gsettings set "$SCHEMA" collapsed-height 34
-gsettings set "$SCHEMA" expanded-width 760
-gsettings set "$SCHEMA" expanded-height 480
+gsettings set "$SCHEMA" collapsed-width 185
+gsettings set "$SCHEMA" collapsed-height 32
+gsettings set "$SCHEMA" match-panel-height true
+gsettings set "$SCHEMA" expanded-width 640
+gsettings set "$SCHEMA" expanded-height 320
+gsettings set "$SCHEMA" notch-scale 1.0
+gsettings set "$SCHEMA" adaptive-corners true
+gsettings set "$SCHEMA" closed-media true
 gsettings set "$SCHEMA" opacity 1.0
 gsettings set "$SCHEMA" replace-panel-clock true   # hide GNOME clock only while the notch is visible
 gsettings set "$SCHEMA" idle-clock true            # show local time when idle
 gsettings set "$SCHEMA" notifications-in-notch true
-gsettings set "$SCHEMA" auto-open-notifications true
-gsettings set "$SCHEMA" open-animation-ms 360
-gsettings set "$SCHEMA" close-animation-ms 260
+gsettings set "$SCHEMA" auto-open-notifications true   # compact notification peeks
+gsettings set "$SCHEMA" peek-duration-ms 5000
+gsettings set "$SCHEMA" animation-profile mac-spring # or smooth
+gsettings set "$SCHEMA" open-animation-ms 420        # used by smooth profile
+gsettings set "$SCHEMA" close-animation-ms 450
 gsettings set "$SCHEMA" monitor-index -1           # primary monitor
 gsettings set "$SCHEMA" hide-on-fullscreen true
 gsettings set "$SCHEMA" clipboard-enabled false    # privacy-safe default
@@ -244,7 +252,7 @@ Changes are live through GSettings. The schema enforces ranges. For multi-monito
 - Clipboard: automatic capture is off by default; when enabled, one bounded selection transfer per second while unlocked.
 - Album art: optional remote fetches, 2 MiB limit, 10-second session timeout, cancellation, 12-entry cache.
 - Helper: no visible window at startup, lazy GTK import, five-minute idle exit, bus activation on demand.
-- No per-frame JavaScript work. Expansion uses Clutter implicit animations and honors GNOME’s animation setting.
+- No permanent frame loop. A Clutter frame timeline runs only while the notch spring/easing is moving; the closed music indicator ticks at ~4 Hz only while playback is visible. Both honor GNOME’s animation setting.
 - Idle clock uses GnomeDesktop.WallClock signals; notification routing reuses GNOME’s message tray instead of polling a second notification store.
 
 These are design budgets, **not measured performance claims**. Profile on your hardware with the checklist in `docs/TESTING.md` before publishing CPU/RAM numbers.

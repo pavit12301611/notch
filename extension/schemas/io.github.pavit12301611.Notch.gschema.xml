@@ -5,6 +5,10 @@
     <value nick="floating" value="1"/>
     <value nick="panel" value="2"/>
   </enum>
+  <enum id="io.github.pavit12301611.Notch.AnimationProfile">
+    <value nick="mac-spring" value="0"/>
+    <value nick="smooth" value="1"/>
+  </enum>
   <schema id="io.github.pavit12301611.Notch" path="/io/github/pavit12301611/Notch/">
     <key name="monitor-index" type="i">
       <default>-1</default><range min="-1" max="15"/>
@@ -14,19 +18,19 @@
       <default>'panel'</default><summary>Notch placement</summary>
     </key>
     <key name="collapsed-width" type="i">
-      <default>220</default><range min="160" max="520"/>
+      <default>185</default><range min="150" max="520"/>
       <summary>Collapsed width in logical pixels</summary>
     </key>
     <key name="collapsed-height" type="i">
-      <default>34</default><range min="24" max="64"/>
+      <default>32</default><range min="24" max="64"/>
       <summary>Collapsed height in logical pixels</summary>
     </key>
     <key name="expanded-width" type="i">
-      <default>760</default><range min="560" max="1100"/>
+      <default>640</default><range min="480" max="1100"/>
       <summary>Expanded width in logical pixels</summary>
     </key>
     <key name="expanded-height" type="i">
-      <default>480</default><range min="420" max="720"/>
+      <default>320</default><range min="200" max="720"/>
       <summary>Expanded height in logical pixels</summary>
     </key>
     <key name="floating-margin" type="i">
@@ -38,7 +42,7 @@
       <summary>Horizontal offset from the monitor center</summary>
     </key>
     <key name="corner-radius" type="i">
-      <default>18</default><range min="8" max="40"/>
+      <default>24</default><range min="8" max="40"/>
       <summary>Bottom corner radius</summary>
     </key>
     <key name="opacity" type="d">
@@ -55,21 +59,41 @@
       <default>true</default><summary>Route notification banners into the notch instead of the top-center banner</summary>
     </key>
     <key name="auto-open-notifications" type="b">
-      <default>true</default><summary>Expand the notch when a notification arrives</summary>
+      <default>true</default><summary>Show a compact notification peek when an alert arrives</summary>
     </key>
     <key name="open-animation-ms" type="i">
-      <default>360</default><range min="0" max="1000"/>
+      <default>420</default><range min="0" max="1000"/>
       <summary>Opening animation duration in milliseconds</summary>
     </key>
     <key name="close-animation-ms" type="i">
-      <default>260</default><range min="0" max="1000"/>
+      <default>450</default><range min="0" max="1000"/>
       <summary>Closing animation duration in milliseconds</summary>
+    </key>
+    <key name="notch-scale" type="d">
+      <default>1.0</default><range min="0.75" max="1.5"/>
+      <summary>Overall notch scale</summary>
+    </key>
+    <key name="match-panel-height" type="b">
+      <default>true</default><summary>Match the collapsed notch height to the GNOME panel</summary>
+    </key>
+    <key name="adaptive-corners" type="b">
+      <default>true</default><summary>Use smaller closed corners and larger open corners</summary>
+    </key>
+    <key name="closed-media" type="b">
+      <default>true</default><summary>Show compact album-art and playback wings while music plays</summary>
+    </key>
+    <key name="animation-profile" enum="io.github.pavit12301611.Notch.AnimationProfile">
+      <default>'mac-spring'</default><summary>Mac-style damped spring or smooth easing</summary>
+    </key>
+    <key name="peek-duration-ms" type="i">
+      <default>5000</default><range min="2000" max="15000"/>
+      <summary>Notification peek duration in milliseconds</summary>
     </key>
     <key name="open-on-hover" type="b">
       <default>true</default><summary>Expand when the pointer dwells over the notch</summary>
     </key>
     <key name="hover-delay-ms" type="i">
-      <default>180</default><range min="0" max="1500"/>
+      <default>250</default><range min="0" max="1500"/>
       <summary>Hover dwell time in milliseconds</summary>
     </key>
     <key name="auto-hide-ms" type="i">

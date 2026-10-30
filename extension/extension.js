@@ -10,21 +10,30 @@ export default class NotchExtension extends Extension {
     enable() {
         if (this.view) return;
         this.settings = this.getSettings();
-        // Migrate untouched 0.1 defaults to the requested MacBook-style notch.
+        // Migrate untouched earlier presets to the MacBook-native v2 geometry.
         // Customized geometries are left alone; the preset is also available in Settings.
-        if (this.settings.get_string('placement') === 'top-center' &&
+        const untouchedV1 = this.settings.get_string('placement') === 'panel' &&
+            this.settings.get_int('collapsed-width') === 220 &&
+            this.settings.get_int('expanded-width') === 760 &&
+            this.settings.get_int('expanded-height') === 480;
+        const untouchedLegacy = this.settings.get_string('placement') === 'top-center' &&
             this.settings.get_int('collapsed-width') === 240 &&
-            this.settings.get_int('expanded-width') === 720) {
+            this.settings.get_int('expanded-width') === 720;
+        if (untouchedV1 || untouchedLegacy) {
             this.settings.set_string('placement', 'panel');
-            this.settings.set_int('collapsed-width', 220);
-            this.settings.set_int('expanded-width', 760);
-            this.settings.set_int('expanded-height', 480);
-            this.settings.set_int('corner-radius', 18);
-            this.settings.set_double('opacity', 1.0);
-            this.settings.set_boolean('replace-panel-clock', true);
-            this.settings.set_boolean('idle-clock', true);
-            this.settings.set_boolean('notifications-in-notch', true);
-            this.settings.set_boolean('auto-open-notifications', true);
+            this.settings.set_int('collapsed-width', 185);
+            this.settings.set_int('collapsed-height', 32);
+            this.settings.set_int('expanded-width', 640);
+            this.settings.set_int('expanded-height', 320);
+            this.settings.set_int('corner-radius', 24);
+            this.settings.set_double('notch-scale', 1.0);
+            this.settings.set_boolean('match-panel-height', true);
+            this.settings.set_boolean('adaptive-corners', true);
+            this.settings.set_boolean('closed-media', true);
+            this.settings.set_string('animation-profile', 'mac-spring');
+            this.settings.set_int('open-animation-ms', 420);
+            this.settings.set_int('close-animation-ms', 450);
+            this.settings.set_int('peek-duration-ms', 5000);
         }
         this.view = new NotchView(this);
         this.keybindingAdded = Main.wm.addKeybinding('toggle-notch', this.settings,

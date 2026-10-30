@@ -67,29 +67,37 @@ export default class NotchPreferences extends ExtensionPreferences {
         const presetButton = new Gtk.Button({label: 'Apply', valign: Gtk.Align.CENTER});
         presetButton.connect('clicked', () => {
             settings.set_string('placement', 'panel');
-            settings.set_int('collapsed-width', 220);
-            settings.set_int('collapsed-height', 34);
-            settings.set_int('expanded-width', 760);
-            settings.set_int('expanded-height', 480);
-            settings.set_int('corner-radius', 18);
+            settings.set_int('collapsed-width', 185);
+            settings.set_int('collapsed-height', 32);
+            settings.set_int('expanded-width', 640);
+            settings.set_int('expanded-height', 320);
+            settings.set_int('corner-radius', 24);
+            settings.set_double('notch-scale', 1.0);
+            settings.set_boolean('match-panel-height', true);
+            settings.set_boolean('adaptive-corners', true);
+            settings.set_boolean('closed-media', true);
+            settings.set_string('animation-profile', 'mac-spring');
             settings.set_double('opacity', 1.0);
             settings.set_boolean('replace-panel-clock', true);
             settings.set_boolean('idle-clock', true);
             settings.set_boolean('notifications-in-notch', true);
             settings.set_boolean('auto-open-notifications', true);
             settings.set_boolean('animations', true);
-            settings.set_int('open-animation-ms', 360);
-            settings.set_int('close-animation-ms', 260);
+            settings.set_int('open-animation-ms', 420);
+            settings.set_int('close-animation-ms', 450);
+            settings.set_int('peek-duration-ms', 5000);
             window.add_toast(new Adw.Toast({title: 'MacBook preset applied'}));
         });
         preset.add_suffix(presetButton);
         preset.set_activatable_widget(presetButton);
         shape.add(preset);
         addSpin(shape, 'monitor-index', 'Monitor', -1, 15, 1, '-1 = primary monitor');
-        addSpin(shape, 'collapsed-width', 'Collapsed width', 160, 520, 10);
+        addSpin(shape, 'collapsed-width', 'Collapsed base width', 150, 520, 10);
         addSpin(shape, 'collapsed-height', 'Collapsed height', 24, 64);
-        addSpin(shape, 'expanded-width', 'Expanded width', 560, 1100, 10);
-        addSpin(shape, 'expanded-height', 'Expanded height', 420, 720, 10);
+        addSpin(shape, 'expanded-width', 'Maximum page width', 480, 1100, 10);
+        addSpin(shape, 'expanded-height', 'Maximum page height', 200, 720, 10);
+        addSwitch(shape, 'match-panel-height', 'Match panel height when closed');
+        addSwitch(shape, 'adaptive-corners', 'Adaptive MacBook corners');
         addSpin(shape, 'floating-margin', 'Floating top margin', 0, 200);
         addSpin(shape, 'horizontal-offset', 'Horizontal offset', -2000, 2000, 10);
         const finish = group(appearance, 'Finish');
@@ -110,6 +118,19 @@ export default class NotchPreferences extends ExtensionPreferences {
         opacityRow.add_suffix(opacity);
         opacityRow.set_activatable_widget(opacity);
         finish.add(opacityRow);
+        const scaleRow = new Adw.ActionRow({title: 'Notch scale'});
+        const notchScale = new Gtk.Scale({orientation: Gtk.Orientation.HORIZONTAL, hexpand: true, digits: 2, draw_value: true});
+        notchScale.set_range(0.75, 1.5);
+        notchScale.set_size_request(220, -1);
+        notchScale.set_value(settings.get_double('notch-scale'));
+        track(notchScale, notchScale.connect('value-changed', () => settings.set_double('notch-scale', Math.round(notchScale.get_value() * 100) / 100)));
+        track(settings, settings.connect('changed::notch-scale', () => {
+            const value = settings.get_double('notch-scale');
+            if (Math.abs(notchScale.get_value() - value) > 0.001) notchScale.set_value(value);
+        }));
+        scaleRow.add_suffix(notchScale);
+        scaleRow.set_activatable_widget(notchScale);
+        finish.add(scaleRow);
         window.add(appearance);
 
         const behavior = new Adw.PreferencesPage({title: 'Behavior',
@@ -119,9 +140,22 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(macbook, 'replace-panel-clock', 'Replace top-bar date & time');
         addSwitch(macbook, 'idle-clock', 'Show time when idle');
         addSwitch(macbook, 'notifications-in-notch', 'Show notifications in the notch');
-        addSwitch(macbook, 'auto-open-notifications', 'Open notch for new notifications');
-        addSpin(macbook, 'open-animation-ms', 'Open animation (ms)', 0, 1000, 20);
-        addSpin(macbook, 'close-animation-ms', 'Close animation (ms)', 0, 1000, 20);
+        addSwitch(macbook, 'auto-open-notifications', 'Compact notification peeks');
+        addSpin(macbook, 'peek-duration-ms', 'Peek duration (ms)', 2000, 15000, 500);
+        addSwitch(macbook, 'closed-media', 'Closed music wings');
+        const profileValues = ['mac-spring', 'smooth'];
+        const profileModel = new Gtk.StringList();
+        ['Mac spring', 'Smooth easing'].forEach(s => profileModel.append(s));
+        const profile = new Adw.ComboRow({title: 'Motion profile', model: profileModel,
+            selected: Math.max(0, profileValues.indexOf(settings.get_string('animation-profile')))});
+        track(profile, profile.connect('notify::selected', () => settings.set_string('animation-profile', profileValues[profile.selected])));
+        track(settings, settings.connect('changed::animation-profile', () => {
+            const index = profileValues.indexOf(settings.get_string('animation-profile'));
+            if (index >= 0 && profile.selected !== index) profile.selected = index;
+        }));
+        macbook.add(profile);
+        addSpin(macbook, 'open-animation-ms', 'Smooth open duration (ms)', 0, 1000, 20);
+        addSpin(macbook, 'close-animation-ms', 'Smooth close duration (ms)', 0, 1000, 20);
         const opening = group(behavior, 'Opening & hiding');
         addSwitch(opening, 'open-on-hover', 'Open on hover');
         addSpin(opening, 'hover-delay-ms', 'Hover delay (ms)', 0, 1500, 50);

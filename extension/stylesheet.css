@@ -1,47 +1,89 @@
-/* Shell (St/CSS) styling. GTK4/Libadwaita styling lives in the Python app. */
+/* MacBook-inspired notch chrome. GTK4/Libadwaita settings keep native styling. */
 .notch-shell {
-  background-color: #000000;
+  background-color: transparent;
+  color: #f5f5f7;
+  font-size: 10.5pt;
+}
+.notch-surface { background-color: transparent; }
+.notch-body { background-color: #000000; }
+.notch-flare { background-color: transparent; }
+.notch-closed { background-color: transparent; }
+.notch-closed-button {
+  background-color: transparent;
   border: 0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  box-shadow: none;
+  padding: 0 14px;
   color: #f5f5f7;
 }
-.notch-pill { background: transparent; border: 0; padding: 0 14px; color: #f5f5f7; }
-.notch-summary { spacing: 8px; }
-.notch-clock { font-weight: 600; font-size: 0.95em; color: #f5f5f7; }
-.notch-badge { background-color: #a5f0ce; color: #14271f; border-radius: 999px; padding: 0 6px; font-size: 0.75em; font-weight: 700; }
-.notch-notification { background-color: #1b1d23; border-radius: 14px; padding: 4px; }
-.notch-pill:hover, .notch-pill:focus { background: rgba(255,255,255,0.05); }
-.notch-title { font-weight: 700; font-size: 1em; }
-.notch-muted { color: #a9abb5; font-size: 0.9em; }
-.notch-accent { color: #8ee4c0; }
-.notch-content { padding: 4px 18px 16px; spacing: 12px; }
-.notch-tabs { spacing: 6px; }
-.notch-tab, .notch-button, .notch-action {
-  border-radius: 12px;
-  padding: 8px 12px;
-  color: #e8e8ed;
-  background-color: #25272e;
+.notch-closed-button:hover, .notch-closed-button:focus { background-color: rgba(255,255,255,0.04); }
+.notch-closed-row { spacing: 8px; }
+.notch-clock-box { spacing: 5px; }
+.notch-summary-clock { font-size: 1em; font-weight: 600; color: #f5f5f7; }
+.notch-unread-dot { width: 5px; height: 5px; border-radius: 3px; background-color: #f5f5f7; }
+.notch-live-art { border-radius: 4px; background-color: #1c1c1e; }
+.notch-live-bars { spacing: 2px; height: 16px; }
+.notch-live-bar { width: 3px; border-radius: 2px; background-color: #30d158; transition-duration: 180ms; }
+
+.notch-content { background-color: transparent; padding: 0; spacing: 0; }
+.notch-header { spacing: 4px; padding: 0 0 6px; }
+.notch-tab, .notch-button, .notch-action, .notch-icon-button, .notch-small-button, .notch-peek-action {
+  border-radius: 9px;
   border: 1px solid transparent;
-  transition-duration: 140ms;
+  color: #e5e5ea;
+  background-color: #2c2c2e;
+  transition-duration: 130ms;
 }
-.notch-tab { background-color: transparent; color: #a9abb5; }
-.notch-tab:hover, .notch-button:hover, .notch-action:hover,
-.notch-tab:focus, .notch-button:focus, .notch-action:focus {
-  background-color: #363942;
-  border-color: rgba(255,255,255,0.12);
+.notch-tab { padding: 5px 8px; background-color: transparent; color: #98989d; font-weight: 600; }
+.notch-button { padding: 7px 11px; }
+.notch-action { padding: 8px 10px; }
+.notch-icon-button { padding: 6px; background-color: transparent; color: #98989d; }
+.notch-small-button { padding: 4px 8px; font-size: 0.9em; }
+.notch-peek-action { padding: 5px 10px; font-size: 0.9em; background-color: #3a3a3c; }
+.notch-tab:hover, .notch-button:hover, .notch-action:hover, .notch-icon-button:hover,
+.notch-small-button:hover, .notch-peek-action:hover,
+.notch-tab:focus, .notch-button:focus, .notch-action:focus, .notch-icon-button:focus,
+.notch-small-button:focus, .notch-peek-action:focus {
+  background-color: #3a3a3c;
+  border-color: rgba(255,255,255,0.10);
 }
-.notch-tab:checked { background-color: #303a38; color: #a5f0ce; }
-.notch-button:insensitive, .notch-action:insensitive { color: #666976; background-color: #1b1d23; }
-.notch-button:active, .notch-action:active { background-color: #454a56; }
-.notch-action-active { background-color: #29483d; color: #a5f0ce; }
-.notch-play { background-color: #a5f0ce; color: #14271f; border-radius: 22px; padding: 10px 16px; }
-.notch-play:hover, .notch-play:focus { background-color: #c3f8df; }
-.notch-art { border-radius: 14px; background-color: #292c35; padding: 8px; }
-.notch-card { background-color: #1b1d23; border: 1px solid #30323b; border-radius: 14px; padding: 12px; spacing: 6px; }
-.notch-value { font-size: 1.65em; font-weight: 700; }
-.notch-row { background-color: #202229; border-radius: 10px; padding: 6px 8px; spacing: 8px; }
-.notch-row:hover { background-color: #2a2d36; }
+.notch-tab-active { background-color: rgba(255,255,255,0.14); color: #ffffff; }
+.notch-button:insensitive, .notch-action:insensitive, .notch-icon-button:insensitive { color: #636366; background-color: #1c1c1e; }
+.notch-button:active, .notch-action:active { background-color: #48484a; }
+.notch-action-active { background-color: #f5f5f7; color: #000000; }
+.notch-play { background-color: #f5f5f7; color: #000000; border-radius: 18px; padding: 7px 14px; }
+.notch-play:hover, .notch-play:focus { background-color: #ffffff; }
+.notch-link { background-color: transparent; color: #98989d; padding: 4px 6px; font-size: 0.9em; }
+.notch-link:hover { color: #f5f5f7; }
+
+.notch-title { font-weight: 700; font-size: 1em; color: #f5f5f7; }
+.notch-muted { color: #98989d; font-size: 0.9em; }
+.notch-status { color: #ff9f0a; font-size: 0.8em; }
+.notch-home-title { font-size: 1.2em; font-weight: 700; color: #f5f5f7; }
+.notch-home-clock { font-size: 2.5em; font-weight: 700; color: #f5f5f7; }
+.notch-home-date { color: #98989d; font-size: 1em; }
+.notch-home-media { spacing: 14px; }
+.notch-home-idle { spacing: 18px; }
+.notch-art { border-radius: 13px; background-color: #1c1c1e; padding: 6px; }
+.notch-card { background-color: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 13px; padding: 10px; spacing: 5px; }
+.notch-value { font-size: 1.5em; font-weight: 700; color: #f5f5f7; }
+.notch-row { background-color: #1c1c1e; border-radius: 10px; padding: 6px 8px; spacing: 8px; }
+.notch-row:hover { background-color: #2c2c2e; }
 .notch-scroll { padding-right: 4px; }
-.notch-error { color: #ffb4ab; }
-.notch-drop { border: 1px dashed #648777; border-radius: 12px; padding: 12px; color: #a5f0ce; background-color: #192a24; }
-.notch-slider { -barlevel-height: 4px; -barlevel-background-color: #424650; -barlevel-active-background-color: #a5f0ce; -slider-height: 12px; -slider-width: 12px; -slider-border-width: 0; -slider-background-color: #a5f0ce; -slider-border-color: transparent; -slider-handle-radius: 6px; }
+.notch-drop { border: 2px dashed #48484a; border-radius: 13px; padding: 10px; color: #98989d; background-color: #111112; }
+.notch-notification { background-color: #1c1c1e; border-radius: 12px; padding: 8px; spacing: 8px; }
+.notch-slider {
+  -barlevel-height: 4px;
+  -barlevel-background-color: #3a3a3c;
+  -barlevel-active-background-color: #f5f5f7;
+  -slider-height: 12px;
+  -slider-width: 12px;
+  -slider-border-width: 0;
+  -slider-background-color: #f5f5f7;
+  -slider-border-color: transparent;
+  -slider-handle-radius: 6px;
+}
+
+.notch-peek { background-color: transparent; spacing: 6px; padding: 4px 0; }
+.notch-peek-icon { border-radius: 8px; }
+.notch-peek-title { font-weight: 700; font-size: 1em; color: #f5f5f7; }
+.notch-peek-body { color: #c7c7cc; font-size: 0.9em; }

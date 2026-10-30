@@ -2,7 +2,7 @@
 
 ## What is automated
 
-- JavaScript syntax/lint and pure model/geometry tests.
+- JavaScript syntax/lint and pure model/geometry/spring/notification-bridge tests.
 - Python compilation, shelf storage integrity/permissions/bounds, schema-key references and install-template substitution tests.
 - GSettings schema compilation and a GJS/GLib smoke test in the Fedora CI recipe.
 - Desktop-entry validation and a noarch RPM build in the Fedora CI recipe.
@@ -64,11 +64,14 @@ journalctl --user -b -t gnome-shell -f
 
 - [ ] Default placement is the top edge; the centered GNOME clock is hidden only while the notch is visible on that monitor.
 - [ ] Idle notch shows local time and respects 12/24-hour and timezone changes.
-- [ ] New notifications appear in Alerts instead of the top-center banner; native actions and default activation work.
+- [ ] Ordinary notifications appear as compact notch peeks instead of top-center banners; peek actions, Open and the full Alerts page work.
+- [ ] Critical notifications still use the native banner path.
 - [ ] DND/app banner settings still suppress normal previews; critical notifications still behave as GNOME intends.
 - [ ] Disabling routing or the extension restores native banners, including an active banner.
 - [ ] Fullscreen/overview/lock does not leave the clock hidden or expose notification content through the notch.
-- [ ] Open/close animation is smooth, honors configurable durations and GNOME Enable Animations, and does not overshoot the monitor.
+- [ ] Closed notch matches panel height, shows idle clock, and grows music wings only while a player is active.
+- [ ] Open/close/page-resize spring animation is smooth, honors GNOME Enable Animations, and does not overshoot the monitor.
+- [ ] Smooth motion profile honors the configured open/close durations.
 
 ### Media/audio
 

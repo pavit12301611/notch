@@ -119,6 +119,20 @@ export class MediaController {
             canGoNext: !!p.CanGoNext, canGoPrevious: !!p.CanGoPrevious};
     }
 
+    setPositionActive(active) {
+        if (active && !this.positionTimer) {
+            this.refreshPosition();
+            this.positionTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+                this.refreshPosition();
+                this.onChange();
+                return GLib.SOURCE_CONTINUE;
+            });
+        } else if (!active && this.positionTimer) {
+            GLib.source_remove(this.positionTimer);
+            this.positionTimer = 0;
+        }
+    }
+
     cyclePlayer() {
         const names = [...this.players.keys()];
         if (!names.length) return;
@@ -186,6 +200,7 @@ export class MediaController {
     }
 
     destroy() {
+        this.setPositionActive(false);
         this.dead = true;
         this.cancellable.cancel();
         if (this.watch) Gio.DBus.session.signal_unsubscribe(this.watch);

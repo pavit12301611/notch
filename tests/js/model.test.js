@@ -1,15 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clamp, notchGeometry, containsPoint} from '../../extension/lib/geometry.js';
+import {clamp, notchGeometry, containsPoint, PAGE_SIZES, surfaceRadii} from '../../extension/lib/geometry.js';
+import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../extension/lib/spring.js';
+import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
-    formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory} from '../../extension/lib/model.js';
+    formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
     placement: 'top-center', floatingMargin: 12, horizontalOffset: 0, panelHeight: 32};
 
 test('geometry uses logical pixels, centers and clamps to the monitor', () => {
-    assert.deepEqual(notchGeometry(monitor, options), {x: 840, y: 38, width: 240, height: 34});
+    const legacy = notchGeometry(monitor, options);
+    assert.equal(legacy.x, 840);
+    assert.equal(legacy.y, 38);
+    assert.equal(legacy.width, 240);
+    assert.equal(legacy.height, 34);
     assert.deepEqual(notchGeometry({...monitor, x: 1920}, options).x, 2760);
     assert.equal(notchGeometry(monitor, {...options, placement: 'panel'}).y, 0);
     assert.equal(notchGeometry(monitor, {...options, placement: 'floating'}).y, 12);
@@ -96,13 +102,84 @@ test('formatting is stable for missing values and boundaries', () => {
 
 
 test('MacBook notch attaches to the top edge and expands around the same center', () => {
-    const mac = {...options, placement: 'panel', collapsedWidth: 220, collapsedHeight: 34,
-        expandedWidth: 760, expandedHeight: 480};
+    const mac = {...options, placement: 'panel', collapsedWidth: 185, collapsedHeight: 32,
+        expandedWidth: 640, expandedHeight: 320, matchPanelHeight: true, tab: 'home'};
     const closed = notchGeometry(monitor, mac, false);
     const open = notchGeometry(monitor, mac, true);
     assert.equal(closed.y, 0);
     assert.equal(open.y, 0);
-    assert.equal(closed.x + closed.width / 2, open.x + open.width / 2);
-    assert.equal(closed.width, 220);
-    assert.equal(open.width, 760);
+    assert.ok(Math.abs((closed.x + closed.width / 2) - (open.x + open.width / 2)) <= 0.5);
+    assert.equal(closed.width, 185);
+    assert.equal(open.width, 640);
+    assert.equal(open.height, PAGE_SIZES.home.height);
+    assert.equal(closed.topRadius, 6);
+    assert.equal(open.topRadius, 19);
+    assert.equal(closed.bottomRadius, 14);
+    assert.equal(open.bottomRadius, 24);
+    const wings = notchGeometry(monitor, {...mac, mediaWings: true}, false);
+    assert.equal(wings.width, closed.width + 64);
+    assert.equal(wings.height, closed.height);
+    const hover = notchGeometry(monitor, {...mac, hovered: true}, false);
+    assert.equal(hover.width, closed.width + 12);
+    assert.equal(hover.height, closed.height + 4);
+    const peek = notchGeometry(monitor, mac, false, 'peek');
+    assert.equal(peek.width, 440);
+    assert.equal(peek.height, 32 + 112);
+    const hidpi = notchGeometry(monitor, {...mac, cssScale: 2}, false);
+    assert.equal(hidpi.width, 370);
+    assert.equal(hidpi.topRadius, 12);
+});
+
+
+test('spring converges, survives retargeting and snaps for reduced motion', () => {
+    const spring = new SpringValue(0, SPRING_PROFILES.open);
+    spring.setTarget(100);
+    let overshoot = 0;
+    for (let i = 0; i < 240; i++) overshoot = Math.max(overshoot, spring.step(1 / 60));
+    assert.ok(overshoot > 100 && overshoot < 115);
+    assert.ok(spring.settled);
+    assert.equal(spring.value, 100);
+    spring.setTarget(0, SPRING_PROFILES.close);
+    spring.step(0.2);
+    assert.ok(Number.isFinite(spring.value));
+    spring.snap(42);
+    assert.equal(spring.velocity, 0);
+    const geometry = new SpringGeometry({x: 0, y: 0, width: 185, height: 32, topRadius: 6, bottomRadius: 14});
+    geometry.setTarget({x: 0, y: 0, width: 640, height: 210, topRadius: 19, bottomRadius: 24}, SPRING_PROFILES.open);
+    for (let i = 0; i < 240; i++) geometry.step(1 / 60);
+    assert.ok(geometry.settled);
+    assert.equal(easeOutCubic(0), 0);
+    assert.equal(easeOutCubic(1), 1);
+    assert.deepEqual(surfaceRadii('closed', {adaptiveCorners: false, cornerRadius: 20}).bottomRadius, 20);
+});
+
+test('notification bridge intercepts only ordinary banners and restores the tray', () => {
+    const original = () => { fallback++; };
+    let fallback = 0;
+    const tray = {_notificationQueue: [], connectObject() {}, disconnectObject() {},
+        getSources: () => [], emit() {}, count: 0, _showNotification: original};
+    const injections = {overrideMethod(object, name, create) { object[name] = create(original); },
+        restoreMethod(object, name) { object[name] = original; }};
+    const seen = [];
+    const bridge = new NotificationBridge({tray, injections, canHandle: () => true,
+        onActive: n => seen.push(n), onFallback: () => {}});
+    bridge.configure(true, true);
+    const ordinary = {urgency: 1, acknowledged: false, playSound() { this.sounded = true; }};
+    tray._notificationQueue.push(ordinary);
+    tray._showNotification();
+    assert.equal(ordinary.acknowledged, true);
+    assert.equal(ordinary.sounded, true);
+    assert.equal(tray._notificationQueue.length, 0);
+    assert.equal(seen.at(-1), ordinary);
+    const critical = {urgency: 2};
+    tray._notificationQueue.push(critical);
+    tray._showNotification();
+    assert.equal(fallback, 1);
+    bridge.destroy();
+    assert.equal(tray._showNotification, original);
+});
+
+test('notification markup is rendered as plain text', () => {
+    assert.equal(plainText('<b>Hello</b> &amp; <i>world</i><br/>next'), 'Hello & world next');
+    assert.equal(plainText(null), '');
 });
