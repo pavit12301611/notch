@@ -19,7 +19,7 @@ import {QuickActions} from './actions.js';
 import {ShelfController} from './shelf.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
-import {box, button, icon, sourceIcon, setIconSource, label, wrapLabel, setText, slider} from './widgets.js';
+import {box, button, icon, sourceIcon, setIconSource, emptyState, label, wrapLabel, setText, slider} from './widgets.js';
 import {formatBytes, formatTime, plainText} from './model.js';
 
 const TABS = [
@@ -183,7 +183,7 @@ export class NotchView {
         this.content.visible = false;
         this.content.opacity = 0;
         this.header = box(false, 'notch-header', 6);
-        this.tabsScroll = new St.ScrollView({style_class: 'notch-tabs-scroll', x_expand: true,
+        this.tabsScroll = new St.ScrollView({style_class: 'notch-tabs-scroll', x_expand: true, y_align: Clutter.ActorAlign.CENTER,
             hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.NEVER});
         this.tabsBox = box(false, 'notch-tabs', 4);
         this.tabButtons = new Map();
@@ -199,9 +199,9 @@ export class NotchView {
         }
         this.tabsScroll.add_child(this.tabsBox);
         this.header.add_child(this.tabsScroll);
-        this.header.add_child(button({iconName: 'emblem-system-symbolic', style: 'notch-icon-button',
+        this.header.add_child(button({iconName: 'emblem-system-symbolic', style: 'notch-icon-button notch-header-button',
             accessibleName: 'Notch settings', onClick: () => this.extension.openPreferences()}));
-        this.header.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button',
+        this.header.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button notch-header-button',
             accessibleName: 'Close notch', onClick: () => this.setExpanded(false)}));
         this.content.add_child(this.header);
         this.pageStack = new St.Widget({layout_manager: new Clutter.BinLayout(), y_expand: true});
@@ -313,18 +313,20 @@ export class NotchView {
     }
 
     buildNotifications() {
-        const page = box(true, '', 8);
-        const header = box(false, '', 8);
+        const page = box(true, 'notch-page', 10);
+        const header = box(false, 'notch-page-header', 10);
+        header.y_align = Clutter.ActorAlign.CENTER;
         this.notificationCount = label('0 notifications', 'notch-title', true);
         header.add_child(this.notificationCount);
         this.notificationClear = button({text: 'Clear all', iconName: 'edit-clear-all-symbolic',
             onClick: () => this.clearNotifications()});
         header.add_child(this.notificationClear);
         page.add_child(header);
-        this.calendarLabel = label(new Date().toLocaleDateString([], {weekday: 'long', month: 'long', day: 'numeric'}), 'notch-muted');
+        this.calendarLabel = label(new Date().toLocaleDateString([], {weekday: 'long', month: 'long', day: 'numeric'}), 'notch-page-subtitle');
         page.add_child(this.calendarLabel);
-        this.notificationList = box(true, '', 6);
+        this.notificationList = box(true, 'notch-list', 8);
         this.notificationList.x_expand = true;
+        this.notificationList.y_expand = true;
         page.add_child(this.notificationList);
         return page;
     }
@@ -443,8 +445,8 @@ export class NotchView {
         for (const source of sources) {
             for (const notification of source.notifications) {
                 total++;
-                const card = box(true, 'notch-notification', 6);
-                const top = box(false, '', 8);
+                const card = box(true, 'notch-notification', 8);
+                const top = box(false, '', 10);
                 const gicon = notification.gicon ?? source.icon ?? null;
                 top.add_child(sourceIcon(gicon, 'application-x-executable-symbolic', 22));
                 top.add_child(label(plainText(notification.title || source.title), 'notch-title', true));
@@ -452,10 +454,10 @@ export class NotchView {
                     accessibleName: 'Dismiss notification', onClick: () => notification.destroy()}));
                 card.add_child(top);
                 const body = plainText(notification.body || '');
-                if (body) card.add_child(wrapLabel(body));
+                if (body) card.add_child(wrapLabel(body, 'notch-notification-body'));
                 const nativeActions = (notification.actions ?? []).slice(0, 2);
                 if (nativeActions.length) {
-                    const actions = box(!this._layout?.compact, '', 6);
+                    const actions = box(!this._layout?.compact, 'notch-notification-actions', 8);
                     for (const action of nativeActions) {
                         const actionButton = button({text: plainText(action.label), style: 'notch-small-button',
                             onClick: () => action.activate()});
@@ -467,7 +469,8 @@ export class NotchView {
                 this.notificationList.add_child(card);
             }
         }
-        if (!total) this.notificationList.add_child(wrapLabel('No notifications. New alerts will peek here.'));
+        if (!total) this.notificationList.add_child(emptyState('preferences-system-notifications-symbolic',
+            'No notifications', 'New alerts will peek here.'));
     }
 
     updateClock() {
@@ -783,11 +786,12 @@ export class NotchView {
             this.content.set_position(Math.round((rect.width - contentWidth) / 2),
                 panelHeight + layout.paddingTop * scale);
         }
-        const peekWidth = Math.max(120, rect.width / scale - 32);
+        const gutter = layout?.paddingX ?? 16;
+        const peekWidth = Math.max(120, rect.width / scale - 2 * gutter);
         const peekHeight = Math.max(48, (rect.height - panelHeight) / scale - 12);
         this.peek.set_scale(contentScale, contentScale);
         this.peek.set_size(peekWidth * css, peekHeight * css);
-        this.peek.set_position(16 * scale, panelHeight + 4 * scale);
+        this.peek.set_position(gutter * scale, panelHeight + (layout?.paddingTop ?? 4) * scale);
     }
 
     connectEnvironment() {
@@ -978,7 +982,7 @@ export class NotchView {
     }
 
     buildMedia() {
-        const page = box(true, '', 10);
+        const page = box(true, 'notch-page', 12);
         this.mediaRow = box(false, '', 14);
         this.mediaArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 72,
             style_class: 'notch-art', y_align: Clutter.ActorAlign.CENTER});
@@ -1089,7 +1093,7 @@ export class NotchView {
     }
 
     buildSystem() {
-        const page = box(true, '', 12);
+        const page = box(true, 'notch-page', 12);
         this.statsGrid = box(true, '', 8);
         this.stats = {};
         this.statCards = {};
@@ -1111,7 +1115,7 @@ export class NotchView {
             this.stats[id] = {value, detail};
         }
         page.add_child(this.statsGrid);
-        page.add_child(label('QUICK ACTIONS', 'notch-muted'));
+        page.add_child(label('QUICK ACTIONS', 'notch-section-label'));
         this.actionsRow = box(false, '', 8);
         page.add_child(this.actionsRow);
         page.add_child(wrapLabel('Sampling runs only while this page is visible. Network uses the default IPv4 interface.'));
@@ -1194,8 +1198,9 @@ export class NotchView {
     }
 
     buildShelf() {
-        const page = box(true, '', 8);
-        const header = box(false, '', 8);
+        const page = box(true, 'notch-page', 10);
+        const header = box(false, 'notch-page-header', 8);
+        header.y_align = Clutter.ActorAlign.CENTER;
         header.add_child(label('Quick stash', 'notch-title', true));
         this.shelfAdd = button({text: 'Add files', iconName: 'list-add-symbolic',
             onClick: () => this.shelf.choose()});
@@ -1211,7 +1216,7 @@ export class NotchView {
         page.add_child(header);
         this.shelfStatus = wrapLabel('Drop files near the notch, or add them here. Originals stay in place.');
         page.add_child(this.shelfStatus);
-        this.shelfList = box(true, '', 6);
+        this.shelfList = box(true, 'notch-list', 8);
         this.shelfList.x_expand = true;
         page.add_child(this.shelfList);
         page.add_child(wrapLabel('Drop files when the GTK target appears. Only references are saved.', 'notch-drop'));
@@ -1242,9 +1247,9 @@ export class NotchView {
         this.shelfRetry.reactive = state !== 'starting';
         this.shelfClear.reactive = state === 'ready' && this.shelf.items.length > 0;
         if (!this.shelf.items.length) {
-            this.shelfList.add_child(wrapLabel(state === 'ready' ?
-                'Your shelf is empty. Stash a few files for later.' :
-                'Shelf files appear here once the helper is connected.'));
+            this.shelfList.add_child(emptyState('folder-symbolic', 'Shelf is empty',
+                state === 'ready' ? 'Stash a few files for later. Originals stay in place.' :
+                    'Files appear here once the helper is connected.'));
             return;
         }
         for (const item of this.shelf.items) {
@@ -1269,8 +1274,9 @@ export class NotchView {
     }
 
     buildClipboard() {
-        const page = box(true, '', 8);
-        const header = box(false, '', 8);
+        const page = box(true, 'notch-page', 10);
+        const header = box(false, 'notch-page-header', 8);
+        header.y_align = Clutter.ActorAlign.CENTER;
         this.clipboardStatus = label('Clipboard history is off', 'notch-title', true);
         header.add_child(this.clipboardStatus);
         this.clipboardCapture = button({text: 'Capture now', iconName: 'edit-paste-symbolic',
@@ -1287,7 +1293,7 @@ export class NotchView {
         header.add_child(this.clipboardClear);
         page.add_child(header);
         page.add_child(wrapLabel('RAM only. Cleared on lock/logout. Mixed-format and known password-manager clips are skipped.'));
-        this.clipboardList = box(true, '', 6);
+        this.clipboardList = box(true, 'notch-list', 8);
         this.clipboardList.x_expand = true;
         page.add_child(this.clipboardList);
         return page;
@@ -1300,8 +1306,9 @@ export class NotchView {
         this.clipboardClear.reactive = this.clipboard.history.items.length > 0;
         this.clipboardList.destroy_all_children();
         if (!this.clipboard.history.items.length) {
-            this.clipboardList.add_child(wrapLabel(enabled ? 'Copy plain text to begin.' :
-                'Enable automatic history in Settings, or capture the current text explicitly.'));
+            this.clipboardList.add_child(emptyState('edit-paste-symbolic', 'No clipboard history',
+                enabled ? 'Copy plain text to begin.' :
+                    'Enable automatic history in Settings, or capture the current text explicitly.'));
             return;
         }
         const narrow = this._layout?.narrow;

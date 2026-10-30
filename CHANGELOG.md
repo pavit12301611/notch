@@ -4,6 +4,8 @@
 
 ### Adaptive layout and action reliability
 
+- Design/spacing polish: 20px content gutters, 44px header, consistent page/list/card spacing, centered empty-state cards, and monochrome symbolic control icons (album art stays full-color).
+
 - Fixed GNOME 50 `No property icon_type on StIcon`: removed the nonexistent property entirely from icon construction and artwork updates. St derives symbolic rendering from the icon source; `is_symbolic` is read-only. Added strict St.Icon constructor/write regression tests.
 - Fixed artwork source switching so clearing `icon_name` cannot erase the newly assigned album-art `gicon`.
 - `notch-doctor` now compares the loaded extension build with installed metadata and warns when Wayland still has old code loaded.

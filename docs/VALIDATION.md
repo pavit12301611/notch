@@ -8,8 +8,8 @@
 ## Checks executed successfully
 
 - ESLint over extension and JavaScript tests.
-- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **16 passed**.
-- Python compilation and unittest suite: **27 passed**.
+- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **17 passed**.
+- Python compilation and unittest suite: **28 passed**.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.
 - Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.

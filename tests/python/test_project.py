@@ -94,6 +94,18 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("new NotchSurface", view)
         self.assertIn("SpringGeometry", view)
 
+    def test_design_spacing_and_symbolic_icons(self):
+        layout = (ROOT / "extension/lib/layout.js").read_text()
+        self.assertIn("paddingX: 20", layout)
+        self.assertIn("headerHeight: 44", layout)
+        css = (ROOT / "extension/stylesheet.css").read_text()
+        self.assertIn("-st-icon-style: symbolic", css)
+        self.assertIn(".notch-page", css)
+        self.assertIn(".notch-empty", css)
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("emptyState(", view)
+        self.assertIn("notch-page-header", view)
+
     def test_st_icon_uses_real_gnome50_properties(self):
         for source in (ROOT / "extension").rglob("*.js"):
             text = source.read_text()

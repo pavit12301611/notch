@@ -45,6 +45,23 @@ export function sourceIcon(gicon, fallbackName, size = 16) {
     return widget;
 }
 
+export function emptyState(iconName, title, body) {
+    const widget = box(true, 'notch-empty', 8);
+    widget.x_align = Clutter.ActorAlign.CENTER;
+    widget.y_align = Clutter.ActorAlign.CENTER;
+    widget.y_expand = true;
+    const image = icon(iconName, 32);
+    image.x_align = Clutter.ActorAlign.CENTER;
+    const heading = label(title, 'notch-empty-title');
+    heading.x_align = Clutter.ActorAlign.CENTER;
+    const detail = wrapLabel(body, 'notch-empty-body', false);
+    detail.x_align = Clutter.ActorAlign.CENTER;
+    widget.add_child(image);
+    widget.add_child(heading);
+    widget.add_child(detail);
+    return widget;
+}
+
 export function box(vertical = false, style = '', spacing = 8) {
     // St.BoxLayout has no GObject "spacing" property; spacing is an St CSS style.
     return new St.BoxLayout({vertical, style_class: style,

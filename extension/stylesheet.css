@@ -20,24 +20,40 @@
 .notch-clock-box { spacing: 5px; }
 .notch-summary-clock { font-size: 1em; font-weight: 600; color: #f5f5f7; }
 .notch-unread-dot { width: 5px; height: 5px; border-radius: 3px; background-color: #f5f5f7; }
-.notch-live-art { border-radius: 4px; background-color: #1c1c1e; }
+.notch-live-art { -st-icon-style: regular; border-radius: 4px; background-color: #1c1c1e; }
 .notch-live-bars { spacing: 2px; height: 16px; }
 .notch-live-bar { width: 3px; border-radius: 2px; background-color: #30d158; transition-duration: 180ms; }
 
+/* Open chrome: fixed gutters live in layout.js; pages share one vertical rhythm. */
 .notch-content { background-color: transparent; padding: 0; spacing: 0; }
-.notch-header { spacing: 4px; padding: 0 0 6px; }
-.notch-tab, .notch-button, .notch-action, .notch-icon-button, .notch-small-button, .notch-peek-action {
-  border-radius: 9px;
+.notch-header { spacing: 6px; padding: 0 0 8px; }
+.notch-tabs-scroll { padding: 0; }
+.notch-tabs { spacing: 4px; }
+.notch-page-scroll { padding: 0 4px 0 0; }
+.notch-page { spacing: 10px; padding: 2px 2px 6px; }
+.notch-page-header { spacing: 8px; padding: 0 0 2px; }
+.notch-page-subtitle { color: #98989d; font-size: 0.9em; }
+.notch-section-label { color: #8e8e93; font-size: 0.8em; font-weight: 700; }
+.notch-list { spacing: 8px; }
+
+/* Controls. Force symbolic rendering so icons inherit the control color instead
+   of loading blue full-color theme icons. Album art explicitly stays regular. */
+.notch-tab, .notch-button, .notch-action, .notch-icon-button, .notch-small-button,
+.notch-peek-action, .notch-link, .notch-empty {
+  -st-icon-style: symbolic;
+  border-radius: 10px;
   border: 1px solid transparent;
   color: #e5e5ea;
   background-color: #2c2c2e;
   transition-duration: 130ms;
 }
-.notch-tab { padding: 5px 8px; background-color: transparent; color: #98989d; font-weight: 600; }
-.notch-button { padding: 7px 11px; }
-.notch-action { padding: 8px 10px; }
-.notch-icon-button { padding: 6px; background-color: transparent; color: #98989d; }
-.notch-small-button { padding: 4px 8px; font-size: 0.9em; }
+.notch-tab { padding: 6px 10px; background-color: transparent; color: #a1a1a6; font-weight: 600; }
+.notch-tab-icon { padding: 6px 8px; }
+.notch-button { padding: 7px 12px; }
+.notch-action { padding: 8px 12px; }
+.notch-icon-button { padding: 7px; background-color: transparent; color: #a1a1a6; }
+.notch-header-button { padding: 8px; }
+.notch-small-button { padding: 5px 10px; font-size: 0.9em; }
 .notch-peek-action { padding: 5px 10px; font-size: 0.9em; background-color: #3a3a3c; }
 .notch-tab:hover, .notch-button:hover, .notch-action:hover, .notch-icon-button:hover,
 .notch-small-button:hover, .notch-peek-action:hover,
@@ -46,31 +62,73 @@
   background-color: #3a3a3c;
   border-color: rgba(255,255,255,0.10);
 }
-.notch-tab-active { background-color: rgba(255,255,255,0.14); color: #ffffff; }
-.notch-button:insensitive, .notch-action:insensitive, .notch-icon-button:insensitive { color: #636366; background-color: #1c1c1e; }
+.notch-tab-active, .notch-tab-active:hover, .notch-tab-active:focus {
+  background-color: rgba(255,255,255,0.16);
+  color: #ffffff;
+}
+.notch-button:insensitive, .notch-action:insensitive, .notch-icon-button:insensitive {
+  color: #636366;
+  background-color: #1c1c1e;
+}
 .notch-button:active, .notch-action:active { background-color: #48484a; }
-.notch-action-active { background-color: #f5f5f7; color: #000000; }
 .notch-play { background-color: #f5f5f7; color: #000000; border-radius: 18px; padding: 7px 14px; }
 .notch-play:hover, .notch-play:focus { background-color: #ffffff; }
-.notch-link { background-color: transparent; color: #98989d; padding: 4px 6px; font-size: 0.9em; }
+.notch-link { background-color: transparent; color: #a1a1a6; padding: 4px 6px; font-size: 0.9em; }
 .notch-link:hover { color: #f5f5f7; }
+.notch-action-active, .notch-action-active:hover, .notch-action-active:focus {
+  background-color: #f5f5f7;
+  color: #000000;
+  border-color: transparent;
+}
+.notch-action-compact { padding: 7px 10px; font-size: 0.9em; }
 
-.notch-title { font-weight: 700; font-size: 1em; color: #f5f5f7; }
+/* Typography and cards. */
+.notch-title { font-weight: 700; font-size: 1.05em; color: #f5f5f7; }
 .notch-muted { color: #98989d; font-size: 0.9em; }
-.notch-status { color: #ff9f0a; font-size: 0.8em; }
 .notch-home-title { font-size: 1.2em; font-weight: 700; color: #f5f5f7; }
-.notch-home-clock { font-size: 2.5em; font-weight: 700; color: #f5f5f7; }
+.notch-home-clock { font-size: 2.4em; font-weight: 700; color: #f5f5f7; }
 .notch-home-date { color: #98989d; font-size: 1em; }
 .notch-home-media { spacing: 14px; }
 .notch-home-idle { spacing: 18px; }
-.notch-art { border-radius: 13px; background-color: #1c1c1e; padding: 6px; }
-.notch-card { background-color: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 13px; padding: 10px; spacing: 5px; }
-.notch-value { font-size: 1.5em; font-weight: 700; color: #f5f5f7; }
-.notch-row { background-color: #1c1c1e; border-radius: 10px; padding: 6px 8px; spacing: 8px; }
+.notch-art { -st-icon-style: regular; border-radius: 14px; background-color: #1c1c1e; padding: 6px; }
+.notch-card {
+  background-color: #1c1c1e;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 12px;
+  spacing: 6px;
+}
+.notch-value { font-size: 1.45em; font-weight: 700; color: #f5f5f7; }
+.notch-row { background-color: #1c1c1e; border-radius: 12px; padding: 8px 10px; spacing: 8px; }
 .notch-row:hover { background-color: #2c2c2e; }
 .notch-scroll { padding-right: 4px; }
-.notch-drop { border: 2px dashed #48484a; border-radius: 13px; padding: 10px; color: #98989d; background-color: #111112; }
-.notch-notification { background-color: #1c1c1e; border-radius: 12px; padding: 8px; spacing: 8px; }
+.notch-drop {
+  border: 2px dashed #48484a;
+  border-radius: 14px;
+  padding: 12px;
+  color: #98989d;
+  background-color: #111112;
+  font-size: 0.9em;
+}
+.notch-notification {
+  background-color: #1c1c1e;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 10px;
+  spacing: 8px;
+}
+.notch-notification-body { color: #c7c7cc; font-size: 0.95em; }
+.notch-notification-actions { spacing: 8px; }
+.notch-empty {
+  background-color: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 18px 14px;
+  spacing: 8px;
+  color: #8e8e93;
+}
+.notch-empty-title { font-weight: 700; font-size: 1em; color: #f5f5f7; }
+.notch-empty-body { color: #98989d; font-size: 0.9em; }
 .notch-slider {
   -barlevel-height: 4px;
   -barlevel-background-color: #3a3a3c;
@@ -83,25 +141,11 @@
   -slider-handle-radius: 6px;
 }
 
+/* Compact notification peek and status footer. */
 .notch-peek { background-color: transparent; spacing: 6px; padding: 4px 0; }
-.notch-peek-icon { border-radius: 8px; }
+.notch-peek-icon { -st-icon-style: regular; border-radius: 8px; }
 .notch-peek-title { font-weight: 700; font-size: 1em; color: #f5f5f7; }
 .notch-peek-body { color: #c7c7cc; font-size: 0.9em; }
-
-/* Adaptive chrome: labels collapse before they truncate; pages scroll instead of clipping. */
-.notch-tabs-scroll { padding: 0; }
-.notch-tabs { spacing: 4px; }
-.notch-tab-icon { padding: 5px 7px; }
-.notch-page-scroll { padding: 0 2px 0 0; }
-.notch-status-bar { spacing: 6px; padding: 4px 0 0; }
+.notch-status-bar { spacing: 8px; padding: 8px 0 0; }
 .notch-status { color: #ffd60a; font-size: 0.85em; }
 .notch-status-error { color: #ff9f0a; }
-.notch-action-compact { padding: 7px 9px; font-size: 0.9em; }
-.notch-action-active, .notch-action-active:hover, .notch-action-active:focus {
-  background-color: #f5f5f7;
-  color: #000000;
-  border-color: transparent;
-}
-.notch-action:insensitive { color: #636366; background-color: #1c1c1e; }
-.notch-notification { spacing: 6px; }
-.notch-drop { font-size: 0.9em; }

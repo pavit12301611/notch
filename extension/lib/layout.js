@@ -2,10 +2,10 @@ export const clamp = (value, lower, upper) => Math.max(lower, Math.min(upper, va
 
 /** Adaptive layout decisions are pure so they can be tested without GNOME Shell. */
 export const LAYOUT_LIMITS = Object.freeze({
-    paddingX: 16,
-    paddingTop: 4,
-    paddingBottom: 12,
-    headerHeight: 36,
+    paddingX: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    headerHeight: 44,
     minContentWidth: 120,
     minContentHeight: 80,
     edgeMargin: 12,
@@ -29,7 +29,7 @@ export function statusHeight(text, width) {
     if (!text) return 0;
     const charsPerLine = Math.max(18, Math.floor(width / 7));
     const lines = clamp(Math.ceil(String(text).length / charsPerLine), 1, 3);
-    return lines * 16 + 8;
+    return lines * 18 + 10;
 }
 
 /**

@@ -140,3 +140,12 @@ test('button, label and box helpers use valid St construction properties', () =>
     assert.equal(container.vertical, true);
     assert.match(container.style, /spacing: 6px/);
 });
+
+test('empty states are centered symbolic cards with title and body', () => {
+    const widget = widgets.emptyState('folder-symbolic', 'Shelf is empty', 'Stash files for later.');
+    assert.equal(widget.vertical, true);
+    assert.equal(widget.children.length, 3);
+    assert.equal(widget.children[0].icon_name, 'folder-symbolic');
+    assert.equal(widget.children[1].text, 'Shelf is empty');
+    assert.equal(widget.children[2].clutter_text.line_wrap, true);
+});
