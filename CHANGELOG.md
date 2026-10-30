@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### v10 — visible Quick stash, reliable drop/save, real song titles
+
+- Home now uses a compact 640×360 dashboard: clock/date + quick actions, a one-row player card with wrapped song title, and a Quick stash card that stays inside the default viewport. The old 320px preset is migrated to 360px.
+- Fixed MPRIS metadata parsing for nested GLib variants, so `xesam:title`, artists, duration and track id are read correctly from browsers/players. Active players with empty metadata show “Playing in …” instead of a misleading “Nothing playing”; disabled controls look disabled.
+- Direct file drop now hides the Shell chrome while the GTK drop surface is mapped over the notch, so the drop actually reaches GTK instead of being painted over by the extension. The helper window is reused, positioned again after map, and accepts both `GdkFileList` and URI-list/text drops.
+- Document-portal `/run/user/.../doc/...` paths are resolved back to stable host paths when possible. Shelf writes fsync the directory as well as the file.
+- Added `notch-shelf add/list/remove/clear/info` as a drag-independent way to stash files and inspect storage; added helper `GetInfo` and doctor build/storage checks.
+- Bundled original monochrome chrome icons so third-party Shell/icon themes cannot turn notch controls blue. Album art and notification app icons remain full-color.
+
+
 ### v9 — Home dashboard, direct notch drop, coordinated motion
 
 - Rebuilt Home as a real scrollable page instead of a visibility-switched stack. The clock/date block is always present; Quick stash shows count, Add/Open actions and recent files, so Home cannot render as an empty black body.

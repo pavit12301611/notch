@@ -1,6 +1,7 @@
 <node>
   <interface name="io.github.pavit12301611.Notch.Helper">
     <method name="Ping"><arg name="version" type="s" direction="out"/></method>
+    <method name="GetInfo"><arg name="json" type="s" direction="out"/></method>
     <method name="PrepareDropTarget"/>
     <method name="ShowDropTarget">
       <arg name="x" type="i" direction="in"/><arg name="y" type="i" direction="in"/>

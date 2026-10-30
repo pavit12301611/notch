@@ -168,7 +168,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("showStatus", view)
         self.assertNotIn("Main.notify('Notch', message)", view)
 
-    def test_v9_home_direct_drop_and_motion_contracts(self):
+    def test_v10_home_direct_drop_media_and_stash_contracts(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("notch-home-page", view)
         self.assertIn("this.homeIdle.visible = true", view)
@@ -183,11 +183,19 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('name="PrepareDropTarget"', xml)
         self.assertIn('name="DropCompleted"', xml)
         self.assertIn('name="DropFailed"', xml)
+        self.assertIn('name="GetInfo"', xml)
+        self.assertIn("setDropOverlay", view)
+        self.assertIn("mediaDisplayTitle", view)
+        self.assertIn("setIconDirectory", view)
+        self.assertTrue((ROOT / "extension/icons/user-home-symbolic.svg").is_file())
+        self.assertTrue((ROOT / "data/notch-shelf.in").is_file())
         helper = (ROOT / "app/notch_app/helper.py").read_text()
+        self.assertIn("set_gtypes", helper)
+        self.assertIn("_persistent_uri", helper)
         self.assertIn("notch-drop-success", helper)
         self.assertIn("gtk-enable-animations", helper)
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 9)
+        self.assertEqual(metadata["version"], 10)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

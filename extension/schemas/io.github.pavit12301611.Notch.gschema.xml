@@ -30,7 +30,7 @@
       <summary>Expanded width in logical pixels</summary>
     </key>
     <key name="expanded-height" type="i">
-      <default>320</default><range min="200" max="720"/>
+      <default>360</default><range min="200" max="720"/>
       <summary>Expanded height in logical pixels</summary>
     </key>
     <key name="floating-margin" type="i">

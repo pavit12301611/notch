@@ -70,7 +70,7 @@ export default class NotchPreferences extends ExtensionPreferences {
             settings.set_int('collapsed-width', 185);
             settings.set_int('collapsed-height', 32);
             settings.set_int('expanded-width', 640);
-            settings.set_int('expanded-height', 320);
+            settings.set_int('expanded-height', 360);
             settings.set_int('corner-radius', 24);
             settings.set_double('notch-scale', 1.0);
             settings.set_boolean('match-panel-height', true);

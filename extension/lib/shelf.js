@@ -128,13 +128,19 @@ export class ShelfController {
     copy(uri) { return this.command('CopyUri', new GLib.Variant('(s)', [uri])); }
 
     async showDropTarget(rect) {
-        if (this.dead || this.dropVisible || this._dropPending) return false;
+        if (this.dead) return false;
         this._dropRect = rect;
+        if (this.dropVisible) {
+            this.updateDropTarget(rect);
+            return true;
+        }
+        if (this._dropPending) return false;
         this._dropPending = true;
         try {
             const ok = this.ready || await this.start();
             if (!ok || this.dead || !this.ready) return false;
             this.dropVisible = true;
+            this._dropRectKey = `${rect.x},${rect.y},${rect.width},${rect.height}`;
             await call(this.proxy, 'ShowDropTarget', new GLib.Variant('(iiii)',
                 [Math.round(rect.x), Math.round(rect.y), Math.round(rect.width), Math.round(rect.height)]), 4000);
             return true;
@@ -150,6 +156,9 @@ export class ShelfController {
     updateDropTarget(rect) {
         this._dropRect = rect;
         if (!this.dropVisible || !this.ready || this.dead) return;
+        const key = `${rect.x},${rect.y},${rect.width},${rect.height}`;
+        if (key === this._dropRectKey) return;
+        this._dropRectKey = key;
         call(this.proxy, 'ShowDropTarget', new GLib.Variant('(iiii)',
             [Math.round(rect.x), Math.round(rect.y), Math.round(rect.width), Math.round(rect.height)]), 4000).catch(e => this.report(e));
     }
@@ -157,6 +166,7 @@ export class ShelfController {
     hideDropTarget() {
         if (!this.dropVisible) return;
         this.dropVisible = false;
+        this._dropRectKey = null;
         if (this.ready) call(this.proxy, 'HideDropTarget').catch(() => {});
     }
 

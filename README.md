@@ -41,7 +41,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 | Media | MPRIS player discovery/switching, title/artist/album, local/data/optional HTTP(S) album art, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
-| File shelf | Drag local files directly onto the closed/open notch (or its drop target), or choose files through GTK/portal; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
+| File shelf | Drag local files directly onto the closed/open notch, choose files through GTK/portal, or use `notch-shelf add`; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
 | Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, label collapse, scrollable pages, scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
 | Behavior | Mac-style damped-spring opening from the top edge, animated page/status/peek transitions, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
@@ -95,7 +95,7 @@ notch-settings
 notch-doctor
 ```
 
-The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings, and ordinary notifications appear as compact peeks. Home always shows the clock/date, quick actions and a Quick stash card; drag files directly onto the notch to stash them. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings, and ordinary notifications appear as compact peeks. Home always shows the clock/date, quick actions, the current song title and a Quick stash card; drag files directly onto the notch to stash them. If a player exposes empty MPRIS metadata, Notch shows “Playing in <player>” instead of a blank title. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ### Manual dependency installation
 
@@ -137,6 +137,14 @@ systemctl --user daemon-reload
 systemctl --user enable notch-helper.service
 systemctl --user restart notch-helper.service
 systemctl --user status notch-helper.service
+```
+
+You can also stash files without drag-and-drop:
+
+```bash
+notch-shelf add ~/Downloads/example.pdf
+notch-shelf list
+notch-shelf info
 ```
 
 The helper also has a D-Bus activation file. It does not open a window at login, imports GTK only when needed, and exits after five idle minutes. **Inactive after idle is normal**; the next shelf/drop request can reactivate it. The notch itself lives inside GNOME Shell and does not need a second permanent UI daemon.
@@ -223,7 +231,7 @@ gsettings set "$SCHEMA" collapsed-width 185
 gsettings set "$SCHEMA" collapsed-height 32
 gsettings set "$SCHEMA" match-panel-height true
 gsettings set "$SCHEMA" expanded-width 640
-gsettings set "$SCHEMA" expanded-height 320
+gsettings set "$SCHEMA" expanded-height 360
 gsettings set "$SCHEMA" notch-scale 1.0
 gsettings set "$SCHEMA" adaptive-corners true
 gsettings set "$SCHEMA" closed-media true

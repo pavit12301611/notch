@@ -19,12 +19,17 @@ export default class NotchExtension extends Extension {
         const untouchedLegacy = this.settings.get_string('placement') === 'top-center' &&
             this.settings.get_int('collapsed-width') === 240 &&
             this.settings.get_int('expanded-width') === 720;
-        if (untouchedV1 || untouchedLegacy) {
+        // v10: the old 320px maximum pushed Quick stash below the Home viewport.
+        const untouchedV9 = this.settings.get_string('placement') === 'panel' &&
+            this.settings.get_int('collapsed-width') === 185 &&
+            this.settings.get_int('expanded-width') === 640 &&
+            this.settings.get_int('expanded-height') === 320;
+        if (untouchedV1 || untouchedLegacy || untouchedV9) {
             this.settings.set_string('placement', 'panel');
             this.settings.set_int('collapsed-width', 185);
             this.settings.set_int('collapsed-height', 32);
             this.settings.set_int('expanded-width', 640);
-            this.settings.set_int('expanded-height', 320);
+            this.settings.set_int('expanded-height', 360);
             this.settings.set_int('corner-radius', 24);
             this.settings.set_double('notch-scale', 1.0);
             this.settings.set_boolean('match-panel-height', true);

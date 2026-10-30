@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import types
@@ -128,6 +129,17 @@ class Value:
         return FileList(self.files) if self.files is not None else None
 
 
+class StringValue:
+    def __init__(self, text):
+        self.text = text
+
+    def get_boxed(self):
+        raise TypeError("not boxed")
+
+    def get_string(self):
+        return self.text
+
+
 class HelperDropTests(unittest.TestCase):
     def make_helper(self, root):
         app = HelperApplication.__new__(HelperApplication)
@@ -165,6 +177,47 @@ class HelperDropTests(unittest.TestCase):
             self.assertEqual(app.store.items, [])
             self.assertIn("notch-drop-error", app.drop_card.classes)
             self.assertEqual(app.connection.signals[-1][0], "DropFailed")
+
+    def test_uri_list_and_plain_path_drops_are_accepted(self):
+        with tempfile.TemporaryDirectory() as root:
+            app = self.make_helper(root)
+            first = Path(root) / "one.txt"
+            second = Path(root) / "two.txt"
+            first.write_text("1")
+            second.write_text("2")
+            ok = app._on_drop(
+                None, StringValue(f"# comment\r\n{first.as_uri()}\r\n{second}\r\n"), 0, 0
+            )
+            self.assertTrue(ok)
+            self.assertEqual([item["name"] for item in app.store.items], ["one.txt", "two.txt"])
+            self.assertEqual(ShelfStore(app.store.path).items[0]["name"], "one.txt")
+
+    def test_empty_text_drop_fails_without_saving(self):
+        with tempfile.TemporaryDirectory() as root:
+            app = self.make_helper(root)
+            self.assertFalse(app._on_drop(None, StringValue("just some text"), 0, 0))
+            self.assertEqual(app.store.items, [])
+            self.assertEqual(app.connection.signals[-1][0], "DropFailed")
+
+    def test_prepare_drop_target_reuses_existing_window(self):
+        with tempfile.TemporaryDirectory() as root:
+            app = self.make_helper(root)
+            existing = app.window
+
+            def fail():
+                raise AssertionError("GTK must not be reinitialized")
+
+            app._load_gtk = fail
+            app._make_window()
+            self.assertIs(app.window, existing)
+
+    def test_helper_info_reports_storage_and_build(self):
+        with tempfile.TemporaryDirectory() as root:
+            app = self.make_helper(root)
+            info = json.loads(app.info_json())
+            self.assertEqual(info["itemCount"], 0)
+            self.assertEqual(info["shelfPath"], str(app.store.path))
+            self.assertIn("text/uri-list", info["dropFormats"])
 
     def test_drop_target_is_clamped_and_reset(self):
         with tempfile.TemporaryDirectory() as root:

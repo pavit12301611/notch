@@ -83,3 +83,7 @@ written to `.cache/` and are not part of the deck.
 ## v9 implementation note
 
 The user explicitly requested code changes after this deck: a non-empty Home dashboard, direct file drop onto the notch, and coordinated iPhone-like motion. Those v9 code changes supersede the older Home/drop/motion mockups in this baseline deck. The deck remains the review reference for pages not explicitly changed by that request.
+
+## v10 implementation note
+
+A later user screenshot showed Quick stash below the Home viewport, blue theme icons and missing song titles. v10 supersedes the v9 Home/drop/icon/media mockups: Home is 640×360 with a compact player + stash card, chrome icons are bundled monochrome SVGs, MPRIS titles are parsed recursively, and the GTK drop surface receives the drop by temporarily replacing the Shell chrome over the notch.

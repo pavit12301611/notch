@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from notch_app.doctor import extension_revision_result
+from notch_app.doctor import extension_revision_result, helper_revision_result
 
 
 class ExtensionRevisionTests(unittest.TestCase):
@@ -34,6 +34,33 @@ class ExtensionRevisionTests(unittest.TestCase):
     def test_missing_installed_version_warns(self):
         level, _, _ = extension_revision_result(json.dumps({"extensionVersion": 7}), None)
         self.assertEqual(level, "WARN")
+
+
+class HelperRevisionTests(unittest.TestCase):
+    def test_matching_helper_build_passes(self):
+        level, name, detail = helper_revision_result(
+            json.dumps({"build": 10, "itemCount": 2, "shelfPath": "/tmp/shelf.json"}), 10
+        )
+        self.assertEqual(level, "PASS")
+        self.assertEqual(name, "Helper build")
+        self.assertIn("2 stashed", detail)
+
+    def test_old_helper_warns_to_restart(self):
+        level, _, detail = helper_revision_result(json.dumps({"build": 9}), 10)
+        self.assertEqual(level, "WARN")
+        self.assertIn("Restart", detail)
+
+    def test_legacy_helper_without_build_warns(self):
+        level, _, detail = helper_revision_result("{}", 10)
+        self.assertEqual(level, "WARN")
+        self.assertIn("Older helper", detail)
+
+    def test_corrupt_shelf_fails(self):
+        level, _, detail = helper_revision_result(
+            json.dumps({"build": 10, "loadError": "bad json"}), 10
+        )
+        self.assertEqual(level, "FAIL")
+        self.assertIn("repair", detail)
 
 
 if __name__ == "__main__":

@@ -100,8 +100,10 @@ journalctl --user -b -t gnome-shell -f
 
 ### Shelf and external drag (highest-risk integration)
 
-- [ ] Home is never blank: clock/date, quick actions and Quick stash render with and without MPRIS players.
-- [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; the drop surface covers the notch and stashes on release.
+- [ ] Home is never blank and does not require scrolling at the default 640×360: clock/date, quick actions, player title and Quick stash are visible with and without MPRIS players.
+- [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title.
+- [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; Shell chrome yields to the GTK drop surface and the file is stashed on release.
+- [ ] Repeat from an XWayland app / URI-list source; `notch-shelf add <path>` works as a drag-independent fallback.
 - [ ] Repeat with the notch already open on Home/Music/Shelf; successful drop opens Shelf and shows confirmation.
 - [ ] Repeat from an XWayland file manager.
 - [ ] Repeat on secondary monitor and fractional scaling; target aligns with the collapsed notch.

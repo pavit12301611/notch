@@ -1,26 +1,53 @@
 /** Dependency-free models, also exercised by Node and GJS tests. */
-export function unwrap(value) {
-    return value?.deepUnpack ? value.deepUnpack() : value;
+export function unwrap(value, depth = 0) {
+    if (depth > 8 || value === null || value === undefined) return value;
+    if (typeof value?.deepUnpack === 'function') return unwrap(value.deepUnpack(), depth + 1);
+    if (Array.isArray(value)) return value.map(item => unwrap(item, depth + 1));
+    if (typeof value === 'object') {
+        const result = {};
+        for (const [key, item] of Object.entries(value)) result[key] = unwrap(item, depth + 1);
+        return result;
+    }
+    return value;
 }
 
 export function mediaMetadata(raw) {
     const metadata = unwrap(raw) ?? {};
-    const string = (key, fallback = '') =>
-        typeof metadata[key] === 'string' ? metadata[key] : fallback;
+    const string = (key, fallback = '') => {
+        const value = metadata[key];
+        return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    };
     const artists = metadata['xesam:artist'];
+    const artistList = Array.isArray(artists) ? artists : typeof artists === 'string' ? [artists] : [];
     const number = (key, fallback = 0) => {
         const n = Number(metadata[key] ?? fallback);
         return Number.isFinite(n) && n >= 0 ? n : fallback;
     };
     const trackId = string('mpris:trackid');
     return {
-        title: string('xesam:title', 'Nothing playing'),
-        artist: Array.isArray(artists) ? artists.filter(x => typeof x === 'string').join(', ') : '',
+        title: string('xesam:title'),
+        artist: artistList.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()).join(', '),
         album: string('xesam:album'),
         artUrl: string('mpris:artUrl'),
         lengthUs: number('mpris:length'),
         trackId: /^\/[A-Za-z0-9_/.]*$/.test(trackId) ? trackId : '',
     };
+}
+
+/** Never show a blank/“Nothing playing” title while a player is actually active. */
+export function mediaDisplayTitle(state) {
+    if (state?.title) return state.title;
+    if (state?.names?.length && state.status === 'Playing')
+        return `Playing in ${state.identity || 'media player'}`;
+    if (state?.names?.length && state.status === 'Paused')
+        return `Paused in ${state.identity || 'media player'}`;
+    return 'Nothing playing';
+}
+
+export function mediaDisplayArtist(state) {
+    if (state?.artist) return state.artist;
+    if (state?.names?.length) return state.identity || 'Media player';
+    return 'No media player connected';
 }
 
 export function seekTarget(lengthUs, fraction) {

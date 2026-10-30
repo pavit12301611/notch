@@ -1,15 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {notchGeometry, notchDropGeometry, nearDropTarget, PAGE_SIZES} from '../../extension/lib/geometry.js';
+import {contentLayout} from '../../extension/lib/layout.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080, index: 0};
 const options = {placement: 'panel', collapsedWidth: 185, collapsedHeight: 32, expandedWidth: 640,
-    expandedHeight: 320, panelHeight: 32, cssScale: 1, layoutScale: 1, horizontalOffset: 0, tab: 'home'};
+    expandedHeight: 360, panelHeight: 32, cssScale: 1, layoutScale: 1, horizontalOffset: 0, tab: 'home'};
 
-test('Home has enough room for a non-empty dashboard', () => {
-    assert.equal(PAGE_SIZES.home.height, 320);
+test('Home keeps clock, player and Quick stash in the default viewport', () => {
+    assert.equal(PAGE_SIZES.home.height, 360);
     const rect = notchGeometry(monitor, options, true);
-    assert.equal(rect.height, 320);
+    assert.equal(rect.height, 360);
+    const layout = contentLayout(rect, {...options, contentScale: 1, textScale: 1});
+    assert.ok(layout.pageHeight >= 240, `Home page height ${layout.pageHeight} is too small`);
 });
 
 test('drop target covers the closed notch itself, not only a window below the panel', () => {

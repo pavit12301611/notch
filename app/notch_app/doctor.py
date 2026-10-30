@@ -9,7 +9,15 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .config import APP_ID, EXTENSION_ID, HELPER_ID, HELPER_PATH, OBJECT_PATH, extension_dir
+from .config import (
+    APP_ID,
+    EXTENSION_ID,
+    HELPER_ID,
+    HELPER_PATH,
+    OBJECT_PATH,
+    extension_dir,
+    state_dir,
+)
 
 
 def _data_dirs() -> list[Path]:
@@ -196,6 +204,40 @@ def extension_revision_result(payload: str, installed_version: object) -> tuple[
     return ("PASS", name, f"Loaded and installed build {installed_version}")
 
 
+def helper_revision_result(payload: str, installed_version: object) -> tuple[str, str, str]:
+    name = "Helper build"
+    try:
+        state = json.loads(payload)
+        if not isinstance(state, dict):
+            raise ValueError("state is not an object")
+    except (TypeError, ValueError):
+        return (
+            "WARN",
+            name,
+            "The running helper returned invalid state; restart notch-helper.service",
+        )
+    loaded = state.get("build")
+    if loaded is None:
+        return (
+            "WARN",
+            name,
+            "Older helper is running; run: systemctl --user restart notch-helper.service",
+        )
+    if installed_version is not None and str(loaded) != str(installed_version):
+        return (
+            "WARN",
+            name,
+            f"Loaded build {loaded}, installed build {installed_version}. Restart notch-helper.service.",
+        )
+    shelf = state.get("shelfPath") or str(state_dir() / "shelf.json")
+    count = state.get("itemCount", 0)
+    error = state.get("loadError")
+    detail = f"Build {loaded}; {count} stashed file(s); {shelf}"
+    if error:
+        return ("FAIL", name, f"Shelf storage needs repair: {error}")
+    return ("PASS", name, detail)
+
+
 def inspect_bus() -> list[tuple[str, str, str]]:
     results = []
     try:
@@ -233,6 +275,24 @@ def inspect_bus() -> list[tuple[str, str, str]]:
                 results.append(("PASS", name, detail))
                 if name == EXTENSION_ID:
                     results.append(extension_revision_result(detail, installed_version))
+                elif name == HELPER_ID:
+                    try:
+                        info = bus.call_sync(
+                            name,
+                            path,
+                            interface,
+                            "GetInfo",
+                            None,
+                            None,
+                            Gio.DBusCallFlags.NONE,
+                            2000,
+                            None,
+                        )
+                        results.append(
+                            helper_revision_result(str(info.unpack()[0]), installed_version)
+                        )
+                    except GLib.Error:
+                        results.append(helper_revision_result("{}", installed_version))
             except GLib.Error as exc:
                 results.append(
                     ("WARN", name, f"Not running (the helper may be idle): {exc.message}")

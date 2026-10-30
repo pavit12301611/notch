@@ -19,8 +19,9 @@ import {QuickActions} from './actions.js';
 import {ShelfController} from './shelf.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
-import {box, button, icon, sourceIcon, setIconSource, emptyState, label, wrapLabel, setText, slider} from './widgets.js';
-import {formatBytes, formatTime, plainText} from './model.js';
+import {box, button, icon, sourceIcon, setIconSource, emptyState, label, wrapLabel, setText, slider, setSensitive} from './widgets.js';
+import {setIconDirectory, iconGicon, setNotchIcon} from './icons.js';
+import {formatBytes, formatTime, plainText, mediaDisplayTitle, mediaDisplayArtist} from './model.js';
 
 const TABS = [
     ['home', 'Home', 'user-home-symbolic'],
@@ -36,6 +37,7 @@ export class NotchView {
         this.extension = extension;
         this.settings = extension.settings;
         this.directory = extension.dir;
+        setIconDirectory(this.directory.get_child('icons'));
         this.interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         this.dead = false;
         this.mode = 'closed';
@@ -146,7 +148,7 @@ export class NotchView {
         leftWing.set_size(32, -1);
         const rightWing = box(false, '', 0);
         rightWing.set_size(32, -1);
-        this.liveArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 20,
+        this.liveArt = new St.Icon({gicon: iconGicon('audio-x-generic-symbolic'), icon_size: 20,
             style_class: 'notch-live-art', y_align: Clutter.ActorAlign.CENTER});
         this.liveBars = box(false, 'notch-live-bars', 2);
         this.liveBars.y_align = Clutter.ActorAlign.CENTER;
@@ -264,59 +266,55 @@ export class NotchView {
     }
 
     buildHome() {
-        // Home is a real vertical page, not a visibility-switched BinLayout stack.
-        // The clock/date block is always present, so Home can never render blank.
-        const page = box(true, 'notch-page notch-home-page', 10);
+        // Compact dashboard: clock/actions, one-line player, Quick stash. The
+        // default 360px page keeps all three cards visible without scrolling.
+        const page = box(true, 'notch-page notch-home-page', 8);
         page.x_expand = true;
         page.y_expand = true;
-        this.homeIdle = box(false, 'notch-home-idle', 12);
+        this.homeIdle = box(false, 'notch-home-idle', 10);
         this.homeIdle.x_expand = true;
-        const timeBox = box(true, '', 2);
+        const timeBox = box(true, '', 0);
         timeBox.x_expand = true;
         timeBox.y_align = Clutter.ActorAlign.CENTER;
         this.homeClock = label('', 'notch-home-clock');
         this.homeDate = label('', 'notch-home-date');
         timeBox.add_child(this.homeClock);
         timeBox.add_child(this.homeDate);
-        this.homeActions = box(false, 'notch-home-actions', 8);
+        this.homeActions = box(false, 'notch-home-actions', 6);
         this.homeActions.x_align = Clutter.ActorAlign.END;
         this.homeActions.y_align = Clutter.ActorAlign.CENTER;
         this.homeIdle.add_child(timeBox);
         this.homeIdle.add_child(this.homeActions);
         page.add_child(this.homeIdle);
 
-        this.homeMedia = box(false, 'notch-home-media notch-card', 12);
-        this.homeMedia.visible = false;
-        this.homeArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 56,
-            style_class: 'notch-art', y_align: Clutter.ActorAlign.CENTER});
-        const info = box(true, '', 4);
+        this.homeMedia = box(false, 'notch-card notch-home-media', 10);
+        this.homeMedia.x_expand = true;
+        this.homeArt = new St.Icon({gicon: iconGicon('audio-x-generic-symbolic'), icon_size: 44,
+            style_class: 'notch-art notch-home-art', y_align: Clutter.ActorAlign.CENTER});
+        const info = box(true, '', 2);
         info.x_expand = true;
         info.y_align = Clutter.ActorAlign.CENTER;
-        this.homeTitle = label('Nothing playing', 'notch-home-title', true);
-        this.homeArtist = label('Start a song in an MPRIS-compatible player');
-        const controls = box(false, '', 8);
-        this.homePrevious = button({iconName: 'media-skip-backward-symbolic', style: 'notch-icon-button',
-            accessibleName: 'Previous track', onClick: () => this.media.previous()});
-        this.homePlay = button({iconName: 'media-playback-start-symbolic', style: 'notch-button notch-play',
-            accessibleName: 'Play or pause', onClick: () => this.media.playPause()});
-        this.homeNext = button({iconName: 'media-skip-forward-symbolic', style: 'notch-icon-button',
-            accessibleName: 'Next track', onClick: () => this.media.next()});
-        this.homeFullPlayer = button({text: 'Full player', style: 'notch-link',
-            onClick: () => this.selectTab('media')});
-        controls.add_child(this.homePrevious);
-        controls.add_child(this.homePlay);
-        controls.add_child(this.homeNext);
-        controls.add_child(this.homeFullPlayer);
+        this.homeTitle = wrapLabel('Nothing playing', 'notch-home-title', true);
+        this.homeArtist = wrapLabel('No media player connected', 'notch-home-artist', true);
         info.add_child(this.homeTitle);
         info.add_child(this.homeArtist);
-        info.add_child(controls);
+        const controls = box(false, 'notch-home-controls', 4);
+        controls.y_align = Clutter.ActorAlign.CENTER;
+        this.homePlay = button({iconName: 'media-playback-start-symbolic', style: 'notch-button notch-play notch-home-play',
+            accessibleName: 'Play or pause', onClick: () => this.media.playPause()});
+        this.homeFullPlayer = button({iconName: 'view-reveal-symbolic', style: 'notch-icon-button',
+            accessibleName: 'Open full player', onClick: () => this.selectTab('media')});
+        controls.add_child(this.homePlay);
+        controls.add_child(this.homeFullPlayer);
         this.homeMedia.add_child(this.homeArt);
         this.homeMedia.add_child(info);
+        this.homeMedia.add_child(controls);
         page.add_child(this.homeMedia);
 
-        this.homeStashCard = box(true, 'notch-card notch-home-stash', 8);
+        this.homeStashCard = box(true, 'notch-card notch-home-stash', 6);
+        this.homeStashCard.x_expand = true;
         const stashHeader = box(false, '', 8);
-        stashHeader.add_child(icon('folder-symbolic', 18));
+        stashHeader.add_child(icon('folder-symbolic', 16));
         stashHeader.add_child(label('Quick stash', 'notch-title', true));
         this.homeStashCount = label('0 files');
         stashHeader.add_child(this.homeStashCount);
@@ -325,9 +323,9 @@ export class NotchView {
         stashHeader.add_child(button({text: 'Open', iconName: 'view-reveal-symbolic', style: 'notch-small-button',
             accessibleName: 'Open quick stash', onClick: () => this.selectTab('shelf')}));
         this.homeStashCard.add_child(stashHeader);
-        this.homeStashHint = wrapLabel('Drop files directly on the notch. Originals stay where they are.', 'notch-drop');
+        this.homeStashHint = label('Drop files on the notch to stash them.', 'notch-muted notch-home-stash-hint');
         this.homeStashCard.add_child(this.homeStashHint);
-        this.homeRecent = box(true, 'notch-home-recent', 6);
+        this.homeRecent = box(true, 'notch-home-recent', 4);
         this.homeStashCard.add_child(this.homeRecent);
         page.add_child(this.homeStashCard);
         return page;
@@ -512,17 +510,17 @@ export class NotchView {
     }
 
     updateHome(state) {
-        const playing = state.names.length > 0;
-        this.homeMedia.visible = playing;
+        const hasPlayer = state.names.length > 0;
+        this.homeMedia.visible = true;
         this.homeIdle.visible = true;
-        if (!playing) return;
-        setText(this.homeTitle, state.title);
-        setText(this.homeArtist, state.artist || state.identity);
-        this.homePrevious.reactive = state.canGoPrevious;
-        this.homeNext.reactive = state.canGoNext;
-        this.homePlay.reactive = state.canControl && (state.canPlay || state.canPause);
-        this.homePlay._notchIcon.icon_name = state.status === 'Playing' ?
-            'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
+        const title = mediaDisplayTitle(state);
+        setText(this.homeTitle, title);
+        this.homeTitle.accessible_name = title;
+        setText(this.homeArtist, mediaDisplayArtist(state));
+        setSensitive(this.homePlay, hasPlayer && state.canControl && (state.canPlay || state.canPause));
+        setNotchIcon(this.homePlay._notchIcon, state.status === 'Playing' ?
+            'media-playback-pause-symbolic' : 'media-playback-start-symbolic');
+        this.homePlay.accessible_name = state.status === 'Playing' ? 'Pause' : 'Play';
     }
 
     updateSummary() {
@@ -539,10 +537,8 @@ export class NotchView {
                 this.liveArtKey = key;
                 this.art.load(state.artUrl, gicon => {
                     if (this.dead) return;
-                    this.liveArt.gicon = gicon;
-                    this.liveArt.icon_name = gicon ? null : 'audio-x-generic-symbolic';
-                    this.homeArt.gicon = gicon;
-                    this.homeArt.icon_name = gicon ? null : 'audio-x-generic-symbolic';
+                    setIconSource(this.liveArt, gicon, 'audio-x-generic-symbolic');
+                    setIconSource(this.homeArt, gicon, 'audio-x-generic-symbolic');
                 });
             }
         }
@@ -706,11 +702,10 @@ export class NotchView {
             else tab.remove_style_class_name('notch-tab-icon');
         }
         if (this.homeIdle) {
-            this.homeIdle.vertical = layout.compact;
-            this.homeIdle.x_align = layout.compact ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.FILL;
-            this.homeActions.x_align = layout.compact ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.END;
-            this.homeFullPlayer.visible = !layout.narrow;
-            this.homeArt.icon_size = layout.compact ? 48 : 56;
+            this.homeIdle.vertical = layout.narrow;
+            this.homeIdle.x_align = layout.narrow ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.FILL;
+            this.homeActions.x_align = layout.narrow ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.END;
+            this.homeArt.icon_size = layout.narrow ? 36 : 44;
             this.homeMedia.vertical = layout.narrow;
         }
         if (this.mediaRow) {
@@ -878,9 +873,13 @@ export class NotchView {
             'dnd-position-change', (_dnd, x, y) => this.dragPosition(x, y),
             'dnd-leave', () => { this._dropHandled = false; this.endDrag(); }, this);
         global.display.connectObject('window-created', (_display, window) => {
-            if (this.isHelper(window)) this.helperWindow = window;
+            if (this.isHelper(window)) {
+                this.helperWindow = window;
+                this.watchHelperWindow(window);
+            }
         }, this);
         this.helperWindow = global.get_window_actors().map(a => a.meta_window).find(w => this.isHelper(w));
+        if (this.helperWindow) this.watchHelperWindow(this.helperWindow);
         this.screenSignal = Gio.DBus.session.signal_subscribe('org.gnome.ScreenSaver',
             'org.gnome.ScreenSaver', 'ActiveChanged', '/org/gnome/ScreenSaver', null,
             Gio.DBusSignalFlags.NONE, (_connection, _sender, _path, _iface, _signal, params) => {
@@ -923,21 +922,56 @@ export class NotchView {
         return notchDropGeometry(this.monitor(), this.options);
     }
 
-    placeHelper() {
+    watchHelperWindow(window) {
+        if (this._helperWatched === window) return;
+        this._helperActor?.disconnectObject(this);
+        this._helperWatched?.disconnectObject(this);
+        this._helperWatched = window;
+        this._helperActor = null;
+        if (!window) return;
+        window.connectObject('unmanaged', () => {
+            if (this.helperWindow === window) this.helperWindow = null;
+            this._helperActor?.disconnectObject(this);
+            this._helperActor = null;
+            this._helperWatched = null;
+            this.setDropOverlay(false);
+        }, this);
+        const actor = window.get_compositor_private();
+        if (actor) {
+            this._helperActor = actor;
+            actor.connectObject('notify::mapped', () => {
+                if (!this.dead && this.shelf.dropVisible) this.placeHelper(true);
+            }, this);
+        }
+    }
+
+    setDropOverlay(active) {
+        this._dropOverlay = !!active;
+        if (!this.actor) return;
+        this.actor.visible = this.allowed && !this._dropOverlay;
+        this.actor.reactive = this.allowed && !this._dropOverlay;
+    }
+
+    placeHelper(force = false) {
         const window = this.helperWindow ??
             global.get_window_actors().map(a => a.meta_window).find(w => this.isHelper(w));
         if (!window || !this.shelf.dropVisible) return;
         this.helperWindow = window;
+        this.watchHelperWindow(window);
         const rect = this.dropRectangle();
-        const mapped = !!window.get_compositor_private()?.visible;
+        const actor = window.get_compositor_private();
+        const mapped = !!actor?.mapped;
         const key = `${rect.x},${rect.y},${rect.width},${rect.height},${mapped}`;
-        if (this.placedHelperKey === key) return;
+        if (!force && this.placedHelperKey === key) return;
         this.placedHelperKey = key;
         // Mutter, not the unprivileged GTK client, positions this temporary surface.
         window.make_above();
         window.stick();
         window.move_frame(true, rect.x, rect.y);
         window.raise();
+        // Shell chrome paints above application windows. Hide it while the GTK
+        // drop surface occupies the notch, otherwise the drop never reaches GTK.
+        if (mapped) this.setDropOverlay(true);
     }
 
     dropCompleted(count) {
@@ -968,6 +1002,7 @@ export class NotchView {
         this._dragReturn = null;
         this.externalDrag = false;
         this.placedHelperKey = null;
+        this.setDropOverlay(false);
         this.shelf?.hideDropTarget();
         if (this.helperWindow) {
             this.helperWindow.unmake_above();
@@ -1054,7 +1089,8 @@ export class NotchView {
             !(this.settings.get_boolean('hide-on-fullscreen') &&
               global.display.get_monitor_in_fullscreen(monitor.index)) &&
             !(this.settings.get_boolean('hide-in-overview') && Main.overview.visible);
-        this.actor.visible = this.allowed;
+        this.actor.visible = this.allowed && !this._dropOverlay;
+        this.actor.reactive = this.allowed && !this._dropOverlay;
         if (this.reserve) this.reserve.visible = this.allowed;
         this.clipboard.setPaused(locked);
         this.notifications?.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
@@ -1071,7 +1107,7 @@ export class NotchView {
     buildMedia() {
         const page = box(true, 'notch-page', 12);
         this.mediaRow = box(false, '', 14);
-        this.mediaArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 72,
+        this.mediaArt = new St.Icon({gicon: iconGicon('audio-x-generic-symbolic'), icon_size: 72,
             style_class: 'notch-art', y_align: Clutter.ActorAlign.CENTER});
         this.mediaRow.add_child(this.mediaArt);
         const info = box(true, '', 4);
@@ -1133,26 +1169,27 @@ export class NotchView {
     updateMedia() {
         if (this.dead || !this.mediaTitle) return;
         const state = this.media.snapshot();
-        setText(this.mediaTitle, state.title);
-        this.mediaTitle.accessible_name = state.title;
+        const title = mediaDisplayTitle(state);
+        setText(this.mediaTitle, title);
+        this.mediaTitle.accessible_name = title;
         this.updateHome(state);
         this.updateSummary();
-        setText(this.mediaArtist, state.artist || state.identity);
+        setText(this.mediaArtist, mediaDisplayArtist(state));
         setText(this.mediaAlbum, state.album);
         setText(this.mediaElapsed, formatTime(state.positionUs));
         setText(this.mediaDuration, formatTime(state.lengthUs));
         this.mediaSeek._notchSet(state.lengthUs ? state.positionUs / state.lengthUs : 0);
         this.mediaSeek.reactive = state.canSeek && state.lengthUs > 0;
         this.mediaSeek.can_focus = this.mediaSeek.reactive;
-        this.mediaPrevious.reactive = state.canGoPrevious;
-        this.mediaNext.reactive = state.canGoNext;
-        this.mediaPlay.reactive = state.canControl && (state.canPlay || state.canPause);
-        this.mediaPlay._notchIcon.icon_name = state.status === 'Playing' ?
-            'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
+        setSensitive(this.mediaPrevious, state.canGoPrevious);
+        setSensitive(this.mediaNext, state.canGoNext);
+        setSensitive(this.mediaPlay, state.canControl && (state.canPlay || state.canPause));
+        setNotchIcon(this.mediaPlay._notchIcon, state.status === 'Playing' ?
+            'media-playback-pause-symbolic' : 'media-playback-start-symbolic');
         this.mediaPlay.accessible_name = state.status === 'Playing' ? 'Pause' : 'Play';
         setText(this.mediaPlayer._notchLabel, state.names.length > 1 ?
             `${state.identity}  ·  ${state.names.length} players ›` : state.identity);
-        this.mediaPlayer.reactive = state.names.length > 1;
+        setSensitive(this.mediaPlayer, state.names.length > 1);
         this.playerVolume._notchSet(state.volume);
         this.playerVolume.reactive = state.canControl;
         setText(this.playerVolumeLabel, `${Math.round(state.volume * 100)}%`);
@@ -1174,8 +1211,8 @@ export class NotchView {
         this.outputVolume._notchSet(state.volume);
         this.outputVolume.reactive = state.available;
         this.outputMute.reactive = state.available;
-        this.outputMute._notchIcon.icon_name = state.muted || state.volume === 0 ?
-            'audio-volume-muted-symbolic' : 'audio-volume-high-symbolic';
+        setNotchIcon(this.outputMute._notchIcon, state.muted || state.volume === 0 ?
+            'audio-volume-muted-symbolic' : 'audio-volume-high-symbolic');
         this.outputMute.accessible_name = state.muted ? 'Unmute system output' : 'Mute system output';
     }
 
@@ -1365,14 +1402,16 @@ export class NotchView {
         if (!this.homeStashCount) return;
         const items = this.shelf.items;
         setText(this.homeStashCount, `${items.length} file${items.length === 1 ? '' : 's'}`);
-        setText(this.homeStashHint, items.length ? 'Recent stash' :
-            'Drop files directly on the notch. Originals stay where they are.');
+        setText(this.homeStashHint, items.length ? 'Drop more files on the notch.' :
+            'Drop files on the notch to stash them.');
         this.homeRecent.destroy_all_children();
-        for (const item of items.slice(0, 2)) {
+        for (const item of items.slice(0, 1)) {
             const row = button({text: item.name, iconName: 'text-x-generic-symbolic', style: 'notch-row notch-home-file',
                 accessibleName: `Open ${item.name}`, onClick: () => this.shelf.open(item.uri)});
             row.x_expand = true;
             row.child.x_align = Clutter.ActorAlign.START;
+            row._notchLabel.clutter_text.line_wrap = true;
+            row._notchLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
             this.homeRecent.add_child(row);
         }
     }
@@ -1543,6 +1582,10 @@ export class NotchView {
         }
         this.pages = null;
         this.stats = null;
+        this._helperActor?.disconnectObject(this);
+        this._helperWatched?.disconnectObject(this);
+        this._helperActor = null;
+        this._helperWatched = null;
         this.helperWindow = null;
     }
 }

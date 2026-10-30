@@ -68,5 +68,6 @@ IMPORTANT: log out and back in on Wayland to load/reload Shell extension code.
 Then run: gnome-extensions enable $UUID
 Open settings: $PREFIX/bin/notch-settings
 Check installation: $PREFIX/bin/notch-doctor
+Add files without drag-and-drop: $PREFIX/bin/notch-shelf add ~/Downloads/example.pdf
 Toggle: Super + \` (or click the notch).
 EOF

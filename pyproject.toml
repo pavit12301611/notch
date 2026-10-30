@@ -14,6 +14,7 @@ dependencies = []
 notch-settings = "notch_app.settings:main"
 notch-helper = "notch_app.helper:main"
 notch-doctor = "notch_app.doctor:main"
+notch-shelf = "notch_app.shelf_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "app"}

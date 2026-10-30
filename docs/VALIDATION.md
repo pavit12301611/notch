@@ -8,8 +8,8 @@
 ## Checks executed successfully
 
 - ESLint over extension and JavaScript tests.
-- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **20 passed**.
-- Python compilation and unittest suite: **32 passed**.
+- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **21 passed**.
+- Python compilation and unittest suite: **40 passed**.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.
 - Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.
@@ -20,7 +20,8 @@
 - Strict St.Icon constructor/write tests against the GNOME 50.6 property contract, including artwork source switching.
 - Doctor tests for loaded-vs-installed extension build detection.
 - v9 drop-target geometry tests: closed-notch coverage, placement, HiDPI and monitor clamping.
-- Helper drop tests with stubbed GIO/GTK contracts: reference-only stash, completion/failure signals and target reset/clamping.
+- Helper drop tests with stubbed GIO/GTK contracts: file-list and URI-list drops, reference-only stash, completion/failure signals, target reset/clamping, window reuse and helper info.
+- Doctor helper-build/storage checks and nested MPRIS variant/title tests.
 - MacBook v2 default/schema checks, spring convergence/retargeting tests and reversible notification-bridge tests.
 - GNOME 46/50 source compatibility check for `InjectionManager` and the message-tray banner queue path.
 - Staged `make install` / `make uninstall` with `/usr` prefix, including the RPM user-unit directory override.

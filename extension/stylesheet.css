@@ -86,18 +86,22 @@
 /* Typography and cards. */
 .notch-title { font-weight: 700; font-size: 1.05em; color: #f5f5f7; }
 .notch-muted { color: #98989d; font-size: 0.9em; }
-.notch-home-title { font-size: 1.2em; font-weight: 700; color: #f5f5f7; }
-.notch-home-clock { font-size: 2.4em; font-weight: 700; color: #f5f5f7; }
-.notch-home-date { color: #98989d; font-size: 1em; }
-.notch-home-media { spacing: 14px; }
-.notch-home-page { spacing: 10px; }
-.notch-home-idle { spacing: 12px; }
-.notch-home-actions { spacing: 8px; }
-.notch-home-media { spacing: 12px; }
-.notch-home-stash { spacing: 8px; }
+.notch-home-page { spacing: 8px; padding: 0 2px 2px; }
+.notch-home-idle { spacing: 10px; }
+.notch-home-clock { font-size: 2em; font-weight: 700; color: #f5f5f7; }
+.notch-home-date { color: #98989d; font-size: 0.95em; }
+.notch-home-actions { spacing: 6px; }
+.notch-home-media { spacing: 10px; padding: 10px; }
+.notch-home-art { border-radius: 10px; padding: 4px; }
+.notch-home-title { font-size: 1.05em; font-weight: 700; color: #f5f5f7; }
+.notch-home-artist { color: #98989d; font-size: 0.85em; }
+.notch-home-controls { spacing: 4px; }
+.notch-home-play { padding: 7px 12px; }
+.notch-home-stash { spacing: 6px; padding: 10px; }
 .notch-home-stash:hover { border-color: rgba(255,255,255,0.14); }
-.notch-home-recent { spacing: 6px; }
-.notch-home-file { background-color: rgba(255,255,255,0.04); padding: 6px 8px; }
+.notch-home-stash-hint { color: #8e8e93; font-size: 0.85em; }
+.notch-home-recent { spacing: 4px; }
+.notch-home-file { background-color: rgba(255,255,255,0.04); padding: 5px 8px; font-size: 0.9em; }
 .notch-home-file:hover { background-color: rgba(255,255,255,0.09); }
 .notch-art { -st-icon-style: regular; border-radius: 14px; background-color: #1c1c1e; padding: 6px; }
 .notch-card, .notch-row, .notch-notification { transition-duration: 150ms; }

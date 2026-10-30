@@ -3,7 +3,7 @@ export {clamp};
 
 /** Logical page sizes inspired by native MacBook notch apps; never one giant window. */
 export const PAGE_SIZES = Object.freeze({
-    home: {width: 640, height: 320},
+    home: {width: 640, height: 360},
     media: {width: 640, height: 300},
     notifications: {width: 560, height: 320},
     system: {width: 640, height: 260},

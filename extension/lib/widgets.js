@@ -2,6 +2,7 @@ import St from 'gi://St';
 import Pango from 'gi://Pango';
 import Clutter from 'gi://Clutter';
 import * as Slider from 'resource:///org/gnome/shell/ui/slider.js';
+import {iconGicon} from './icons.js';
 
 export function label(text = '', style = 'notch-muted', expand = false) {
     const widget = new St.Label({text, style_class: style, x_expand: expand,
@@ -22,7 +23,7 @@ export function wrapLabel(text = '', style = 'notch-muted', expand = true) {
 export function icon(name, size = 16) {
     // St.Icon has no icon_type property. St selects symbolic rendering from the
     // icon source; is_symbolic is a read-only result, not a construction option.
-    return new St.Icon({icon_name: name, icon_size: size,
+    return new St.Icon({gicon: iconGicon(name), icon_size: size,
         y_align: Clutter.ActorAlign.CENTER});
 }
 
@@ -34,8 +35,8 @@ export function setIconSource(widget, gicon, fallbackName) {
         widget.icon_name = null;
         widget.gicon = gicon;
     } else {
-        widget.gicon = null;
-        widget.icon_name = fallbackName;
+        widget.icon_name = null;
+        widget.gicon = iconGicon(fallbackName);
     }
 }
 
@@ -107,4 +108,12 @@ export function slider(value, onInput, accessibleName) {
 
 export function setText(widget, text) {
     if (widget && widget.text !== text) widget.text = text;
+}
+
+/** Disabled controls must look disabled and must not keep keyboard focus. */
+export function setSensitive(widget, enabled) {
+    if (!widget) return;
+    widget.reactive = !!enabled;
+    widget.can_focus = !!enabled;
+    widget.opacity = enabled ? 255 : 110;
 }

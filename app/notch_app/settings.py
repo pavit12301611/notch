@@ -189,7 +189,7 @@ class SettingsApplication(Adw.Application):
         self.settings.set_int("collapsed-width", 185)
         self.settings.set_int("collapsed-height", 32)
         self.settings.set_int("expanded-width", 640)
-        self.settings.set_int("expanded-height", 320)
+        self.settings.set_int("expanded-height", 360)
         self.settings.set_int("corner-radius", 24)
         self.settings.set_double("notch-scale", 1.0)
         self.settings.set_boolean("match-panel-height", True)

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import sys
 import time
+from urllib.parse import unquote, urlsplit
 
 import gi
 
@@ -10,7 +12,14 @@ gi.require_version("GLib", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
 from . import __version__  # noqa: E402
-from .config import DROP_TITLE, HELPER_ID, HELPER_PATH, interface_xml, state_dir  # noqa: E402
+from .config import (  # noqa: E402
+    DROP_TITLE,
+    HELPER_ID,
+    HELPER_PATH,
+    extension_dir,
+    interface_xml,
+    state_dir,
+)
 from .storage import ShelfStore  # noqa: E402
 
 DBUS_ERROR = "org.freedesktop.DBus.Error.InvalidArgs"
@@ -100,6 +109,8 @@ class HelperApplication(Gio.Application):
             result = None
             if method == "Ping":
                 result = (__version__,)
+            elif method == "GetInfo":
+                result = (self.info_json(),)
             elif method == "List":
                 result = (self.store.to_json(),)
             elif method == "Add":
@@ -143,6 +154,22 @@ class HelperApplication(Gio.Application):
         except GLib.Error as exc:
             invocation.return_dbus_error(DBUS_ERROR, exc.message)
 
+    def info_json(self) -> str:
+        try:
+            build = json.loads((extension_dir() / "metadata.json").read_text()).get("version")
+        except (OSError, ValueError, AttributeError):
+            build = None
+        return json.dumps(
+            {
+                "version": __version__,
+                "build": build,
+                "shelfPath": str(self.store.path),
+                "itemCount": len(self.store.items),
+                "loadError": self.store.load_error,
+                "dropFormats": ["GdkFileList", "text/uri-list", "UTF8_STRING"],
+            }
+        )
+
     def _load_gtk(self):
         if self.gtk is not None:
             return
@@ -174,8 +201,10 @@ class HelperApplication(Gio.Application):
         )
 
     def _make_window(self):
+        if self.window is not None:
+            return
         self._load_gtk()
-        Gtk, Gdk = self.gtk, self.gdk
+        Gtk, Gdk, GObject = self.gtk, self.gdk, self.gobject
         # This is a Gio.Application (not Gtk.Application), so the window is
         # managed explicitly and the application hold controls process lifetime.
         self.window = Gtk.Window(
@@ -211,7 +240,11 @@ class HelperApplication(Gio.Application):
         )
         self.drop_card.append(self.drop_detail)
         self.window.set_child(self.drop_card)
-        target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        # Accept both native file lists and URI-list/text drops (XWayland apps,
+        # archive managers, download shelves). One GType-only target silently
+        # rejected many real file drags.
+        target = Gtk.DropTarget.new(GObject.TYPE_INVALID, Gdk.DragAction.COPY)
+        target.set_gtypes([Gdk.FileList, GObject.TYPE_STRING])
         target.connect("drop", self._on_drop)
         target.connect("enter", self._on_drag_enter)
         target.connect("leave", self._on_drag_leave)
@@ -241,18 +274,66 @@ class HelperApplication(Gio.Application):
             GLib.source_remove(self._hide_source)
             self._hide_source = None
         self._reset_drop_card()
-        width = max(160, min(2000, int(width)))
-        height = max(120, min(1400, int(height)))
+        width = max(160, min(4096, int(width)))
+        height = max(120, min(4096, int(height)))
         self.window.set_size_request(width, height)
         self.window.set_default_size(width, height)
         # The extension (compositor) owns positioning; this client never calls localhost/X11.
         self.window.show()
 
-    def _on_drop(self, target, value, x, y):
-        file_list = value.get_boxed()
-        files = file_list.get_files() if file_list else []
+    def _drop_uris(self, value) -> list[str]:
+        uris: list[str] = []
         try:
-            uris = [file.get_uri() for file in files]
+            boxed = value.get_boxed()
+        except (TypeError, ValueError):
+            boxed = None
+        if boxed is not None:
+            if hasattr(boxed, "get_files"):
+                uris.extend(file.get_uri() for file in boxed.get_files())
+            elif hasattr(boxed, "get_uri"):
+                uris.append(boxed.get_uri())
+        if not uris:
+            try:
+                text = value.get_string()
+            except (TypeError, ValueError):
+                text = None
+            if text:
+                from pathlib import Path
+
+                for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if line.startswith("file://"):
+                        uris.append(line)
+                    elif line.startswith("/"):
+                        uris.append(Path(line).as_uri())
+        return [self._persistent_uri(uri) for uri in uris]
+
+    def _persistent_uri(self, uri: str) -> str:
+        """Resolve ephemeral document-portal paths back to stable host paths."""
+        if not uri.startswith("file://"):
+            return uri
+        try:
+            path = unquote(urlsplit(uri).path)
+            if "/doc/" not in path:
+                return uri
+            file = Gio.File.new_for_uri(uri)
+            info = file.query_info(
+                "xattr::user.document-portal.host-path", Gio.FileQueryInfoFlags.NONE, None
+            )
+            host_path = info.get_attribute_as_string("xattr::user.document-portal.host-path")
+            if host_path and host_path.startswith("/"):
+                return Gio.File.new_for_path(host_path).get_uri()
+        except (GLib.Error, OSError, ValueError):
+            pass
+        return uri
+
+    def _on_drop(self, target, value, x, y):
+        try:
+            uris = self._drop_uris(value)
+            if not uris:
+                raise ValueError("No local files were found in the drop")
             count = self.store.add(uris)
             self._emit_shelf()
             self._emit_signal("DropCompleted", "(si)", (self.store.to_json(), count))
@@ -299,8 +380,10 @@ class HelperApplication(Gio.Application):
                 self._emit_shelf()
         except GLib.Error as exc:
             if not exc.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED):
+                self._emit_signal("DropFailed", "(s)", (exc.message,))
                 print(f"Notch shelf: {exc.message}", file=sys.stderr)
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError, OSError) as exc:
+            self._emit_signal("DropFailed", "(s)", (str(exc),))
             print(f"Notch shelf: {exc}", file=sys.stderr)
         finally:
             self.dialog = None
