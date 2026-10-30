@@ -194,7 +194,7 @@ def inspect_bus() -> list[tuple[str, str, str]]:
                     8000 if is_helper else 1500,
                     None,
                 )
-                results.append(("PASS", name, str(value.deepUnpack()[0])))
+                results.append(("PASS", name, str(value.unpack()[0])))
             except GLib.Error as exc:
                 results.append(
                     ("WARN", name, f"Not running (the helper may be idle): {exc.message}")
@@ -210,7 +210,7 @@ def inspect_bus() -> list[tuple[str, str, str]]:
             1000,
             None,
         )
-        players = [n for n in value.deepUnpack()[0] if n.startswith("org.mpris.MediaPlayer2.")]
+        players = [n for n in value.unpack()[0] if n.startswith("org.mpris.MediaPlayer2.")]
         results.append(
             (
                 "PASS" if players else "WARN",

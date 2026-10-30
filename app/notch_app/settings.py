@@ -439,7 +439,7 @@ class SettingsApplication(Adw.Application):
                 self.extension_status.set_subtitle(f"Not running · {error}")
                 return
             try:
-                data = json.loads(value.deepUnpack()[0])
+                data = json.loads(value.unpack()[0])
                 self.extension_status.set_subtitle(
                     f"Running · {data.get('clipboardCount', 0)} clips · {data.get('shelfCount', 0)} files"
                 )
@@ -456,7 +456,7 @@ class SettingsApplication(Adw.Application):
 
         def ping_done(proxy, result, _data):
             try:
-                version = proxy.call_finish(result).deepUnpack()[0]
+                version = proxy.call_finish(result).unpack()[0]
                 self.helper_status.set_subtitle(f"Ready · version {version}")
             except GLib.Error as exc:
                 self.helper_status.set_subtitle(f"Offline · {exc.message}")

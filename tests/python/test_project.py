@@ -94,6 +94,17 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("new NotchSurface", view)
         self.assertIn("SpringGeometry", view)
 
+    def test_pyobject_dbus_apis_match_gio(self):
+        helper = (ROOT / "app/notch_app/helper.py").read_text()
+        self.assertIn("connection.register_object(", helper)
+        self.assertIn("connection.unregister_object(self.registration)", helper)
+        self.assertNotIn("register_object_path", helper)
+        self.assertNotIn("unregister_object_path", helper)
+        for name in ("doctor.py", "settings.py"):
+            source = (ROOT / "app/notch_app" / name).read_text()
+            self.assertNotIn("deepUnpack", source)
+            self.assertIn(".unpack()", source)
+
     def test_helper_activation_is_not_blocked_by_desktop_condition(self):
         unit = (ROOT / "data/notch-helper.service.in").read_text()
         self.assertNotIn("ConditionEnvironment", unit)

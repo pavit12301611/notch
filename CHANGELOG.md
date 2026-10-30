@@ -4,6 +4,9 @@
 
 ### Adaptive layout and action reliability
 
+- Fixed Fedora 44 / PyGObject helper startup crash: use `Gio.DBusConnection.register_object/unregister_object`, not nonexistent `*_object_path` methods.
+- Fixed `notch-doctor` and companion settings status calls: PyGObject `Variant` results use `unpack()`, not GJS-style `deepUnpack()`.
+
 - Replaced fixed content sizing with monitor-aware geometry and a pure adaptive layout resolver. Header labels collapse to active-only/icon-only before truncating; every page scrolls instead of clipping.
 - Added a wrapping, dismissible status bar with actionable helper Retry, replacing clipped raw D-Bus errors.
 - Quick actions now keep stable button actors, expose on/off/locked state, and report success/failure instead of silently rebuilding during clicks.

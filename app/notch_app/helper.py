@@ -61,14 +61,19 @@ class HelperApplication(Gio.Application):
         except (OSError, GLib.Error) as exc:
             print(f"Notch helper: cannot load D-Bus interface: {exc}", file=sys.stderr)
             return False
-        self.registration = connection.register_object_path(
-            HELPER_PATH, node.interfaces[0], self._method_call, None, None
-        )
-        return self.registration is not None
+        try:
+            self.registration = connection.register_object(
+                HELPER_PATH, node.interfaces[0], self._method_call, None, None
+            )
+        except (GLib.Error, TypeError) as exc:
+            print(f"Notch helper: cannot register D-Bus object: {exc}", file=sys.stderr)
+            self.registration = None
+            return False
+        return self.registration is not None and self.registration > 0
 
     def do_dbus_unregister(self, connection, object_path):
         if self.registration is not None:
-            connection.unregister_object_path(self.registration)
+            connection.unregister_object(self.registration)
             self.registration = None
         self.connection = None
         Gio.Application.do_dbus_unregister(self, connection, object_path)
