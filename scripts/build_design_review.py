@@ -587,10 +587,11 @@ def ui_button(c, x, y, w, h, text="", ic=None, kind="button", z=1.0, active=Fals
     if ic and text:
         iw = px(16, z)
         gap = px(6, z)
-        total = iw + gap + len(text) * fs / 72 * 0.70
+        total = iw + gap + len(text) * fs / 72 * 0.60
         sx = x + (w - total) / 2 if align == "center" else x + px(10, z)
+        sx = max(sx, x + px(4, z))
         icon(c, ic, sx, y + (h - iw) / 2, iw, color, z)
-        c.text(sx + iw + gap, y, max(px(20, z), w - (sx - x) - iw - gap - px(4, z)), h, text, size=fs, color=color, bold=kind in ("tab", "action"), align="left", wrap=False)
+        c.text(sx + iw + gap, y, max(px(20, z), w - (sx - x) - iw - gap - px(2, z)), h, text, size=fs, color=color, bold=kind in ("tab", "action"), align="left", wrap=False)
     elif ic:
         iw = px(16, z)
         icon(c, ic, x + (w - iw) / 2, y + (h - iw) / 2, iw, color, z)
