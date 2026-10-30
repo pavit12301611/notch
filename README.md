@@ -69,7 +69,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/71fe92f9-notch/scripts/bootstrap.sh | NOTCH_REF=arena/71fe92f9-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/71fe92f9-notch` v9 development branch. `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/71fe92f9-notch` development branch (build 14+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
@@ -128,6 +128,8 @@ Default user installation:
 
 It enables the extension and helper when a session bus is available. Use `./install.sh --no-enable` to install files without changing activation state. Settings and shelf references are retained across upgrades.
 
+The extension payload is staged and validated before publication, so GNOME Shell never has to read a half-written `metadata.json`. User installs honor `XDG_DATA_HOME`. GNOME Shell discovers newly installed extensions at login; if `gnome-extensions info` says the extension does not exist immediately after installing, log out/in once rather than reinstalling repeatedly.
+
 ### systemd user service
 
 The installer sets this up. To manage it explicitly:
@@ -168,6 +170,7 @@ notch/
 ├── Makefile                             # stage/install/uninstall/check/dist/rpm
 ├── install.sh / uninstall.sh
 ├── scripts/bootstrap.sh                 # curl-based remote user installer
+├── scripts/install_extension.py         # validated staging-directory extension publisher
 ├── pyproject.toml                       # optional editable Python development install
 ├── package.json / package-lock.json     # development-only JS checks
 ├── eslint.config.js
@@ -315,7 +318,8 @@ busctl --user list | grep -E 'Notch|mpris'
 
 | Symptom | Check |
 |---|---|
-| Extension not listed after install | Log out/in; confirm the directory name exactly matches the UUID |
+| Extension not listed after install | Log out/in; confirm the directory name exactly matches the UUID. `notch-doctor` reports “Shell registration” separately from installed files |
+| Log says `Failed to parse metadata.json` at login but doctor now reads a build | The session started while/ before the files were complete. Log out/in once with the current installer; build 14+ publishes a validated staging directory |
 | Extension shows OUT_OF_DATE | Use the intended GNOME version; do not disable version validation as a fix |
 | Extension error after update | Log out/in; `notch-doctor` compares the loaded extension build with installed metadata and warns if Wayland still has old code |
 | Settings reports missing schema | Re-run the installer; run `notch-doctor`; avoid mixing user/system copies |

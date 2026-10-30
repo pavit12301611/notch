@@ -15,6 +15,7 @@ from .config import (
     HELPER_ID,
     HELPER_PATH,
     OBJECT_PATH,
+    UUID,
     extension_dir,
     state_dir,
 )
@@ -177,6 +178,87 @@ def inspect_project() -> list[tuple[str, str, str]]:
     return results
 
 
+def extension_registration_result(info: object, installed_version: object) -> tuple[str, str, str]:
+    """Interpret org.gnome.Shell.Extensions.GetExtensionInfo for this UUID."""
+    name = "Shell registration"
+    if not isinstance(info, dict) or info.get("uuid") != UUID:
+        return (
+            "FAIL",
+            name,
+            "Files may be installed, but this GNOME session has not discovered the extension. "
+            "Log out/in, then enable it; do not keep reinstalling.",
+        )
+    state = info.get("state")
+    error = info.get("error") or ""
+    if state == 3:
+        return (
+            "FAIL",
+            name,
+            f"Extension load error: {error or 'see journalctl -b _COMM=gnome-shell'}",
+        )
+    if state == 4:
+        return ("FAIL", name, "Extension is OUT_OF_DATE for this GNOME Shell version")
+    loaded = info.get("version")
+    if installed_version is not None and loaded is not None:
+        try:
+            mismatch = float(loaded) != float(installed_version)
+        except (TypeError, ValueError):
+            mismatch = str(loaded) != str(installed_version)
+        if mismatch:
+            return (
+                "WARN",
+                name,
+                f"Shell knows build {loaded}, installed build {installed_version}. Log out/in.",
+            )
+    if state == 1:
+        return ("PASS", name, f"Discovered and active (build {loaded})")
+    if state in (2, 6):
+        return ("WARN", name, "Discovered but inactive; run gnome-extensions enable " + UUID)
+    return ("WARN", name, f"Discovered, state={state}; {error}".strip())
+
+
+def inspect_shell_registration() -> list[tuple[str, str, str]]:
+    results = []
+    try:
+        installed_version = json.loads((extension_dir() / "metadata.json").read_text()).get(
+            "version"
+        )
+    except (OSError, ValueError, AttributeError):
+        installed_version = None
+    try:
+        import gi
+
+        gi.require_version("Gio", "2.0")
+        gi.require_version("GLib", "2.0")
+        from gi.repository import Gio, GLib
+
+        shell_settings = Gio.Settings.new("org.gnome.shell")
+        if not shell_settings.get_boolean("allow-extension-installation"):
+            results.append(
+                ("FAIL", "Extension installation", "GNOME allow-extension-installation is false")
+            )
+        if shell_settings.get_boolean("disable-user-extensions"):
+            results.append(
+                ("WARN", "User extensions", "All user extensions are disabled in GNOME settings")
+            )
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        value = bus.call_sync(
+            "org.gnome.Shell.Extensions",
+            "/org/gnome/Shell/Extensions",
+            "org.gnome.Shell.Extensions",
+            "GetExtensionInfo",
+            GLib.Variant.new("(s)", (UUID,)),
+            None,
+            Gio.DBusCallFlags.NO_AUTO_START,
+            1500,
+            None,
+        )
+        results.append(extension_registration_result(value.unpack()[0], installed_version))
+    except Exception as exc:  # diagnostics must not crash when the session bus is absent
+        results.append(("WARN", "Shell registration", f"Could not query GNOME Shell: {exc}"))
+    return results
+
+
 def extension_revision_result(payload: str, installed_version: object) -> tuple[str, str, str]:
     """Compare the running Shell module with the installed metadata build."""
     name = "Extension build"
@@ -294,9 +376,12 @@ def inspect_bus() -> list[tuple[str, str, str]]:
                     except GLib.Error:
                         results.append(helper_revision_result("{}", installed_version))
             except GLib.Error as exc:
-                results.append(
-                    ("WARN", name, f"Not running (the helper may be idle): {exc.message}")
+                detail = (
+                    "Not running; if files were installed/updated in this session, log out/in and enable it"
+                    if name == EXTENSION_ID
+                    else f"Not running (the helper may be idle): {exc.message}"
                 )
+                results.append(("WARN", name, detail))
         value = bus.call_sync(
             "org.freedesktop.DBus",
             "/org/freedesktop/DBus",
@@ -330,6 +415,7 @@ def main(argv=None):
     results = inspect_project()
     results += inspect_helper_service()
     if not args.offline:
+        results += inspect_shell_registration()
         results += inspect_bus()
     for level, name, detail in results:
         print(f"[{level}] {name}: {detail}")

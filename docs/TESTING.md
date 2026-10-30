@@ -40,6 +40,8 @@ journalctl --user -b -t gnome-shell -f
 ### Installation and lifetime
 
 - [ ] Fresh user install succeeds without root except optional dependency installation.
+- [ ] Upgrade while logged in never exposes partial `metadata.json`; after logout/login GNOME discovers the extension and doctor reports matching Shell registration/build.
+- [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and helper paths consistently.
 - [ ] Logout/login discovers the extension; enable succeeds without OUT_OF_DATE.
 - [ ] Settings launches from the app grid and from the extension’s preferences action.
 - [ ] Helper is enabled for graphical login and can be bus-activated after idle exit.

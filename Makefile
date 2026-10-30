@@ -12,6 +12,8 @@ PKGDATA := $(DESTDIR)$(DATADIR)/notch
 SCHEMADIR := $(DESTDIR)$(DATADIR)/glib-2.0/schemas
 SYSTEMDUSERDIR ?= $(DESTDIR)$(SYSCONFDIR)/systemd/user
 STAGE := .generated
+# RPM/buildroot installs compile schemas in the spec; live installs compile here.
+EXTENSION_SCHEMA_COMPILE := $(if $(DESTDIR),,--compile-schemas)
 
 .PHONY: all stage install uninstall check check-python lint test dist rpm clean
 
@@ -29,15 +31,11 @@ stage:
 	sed 's|@bindir@|$(BINDIR)|g' data/notch-helper.service.in > $(STAGE)/notch-helper.service
 
 install: stage
-	install -d $(EXTDIR)/schemas $(EXTDIR)/lib $(EXTDIR)/dbus $(EXTDIR)/icons $(PKGDATA)/python/notch_app
+	install -d $(PKGDATA)/python/notch_app
 	install -d $(DESTDIR)$(BINDIR) $(SCHEMADIR) $(DESTDIR)$(DATADIR)/applications
 	install -d $(DESTDIR)$(DATADIR)/dbus-1/services $(SYSTEMDUSERDIR)
 	install -d $(DESTDIR)$(DATADIR)/icons/hicolor/scalable/apps
-	install -m644 extension/extension.js extension/prefs.js extension/metadata.json extension/stylesheet.css $(EXTDIR)/
-	install -m644 extension/lib/*.js $(EXTDIR)/lib/
-	install -m644 extension/dbus/*.xml $(EXTDIR)/dbus/
-	install -m644 extension/icons/*.svg $(EXTDIR)/icons/
-	install -m644 extension/schemas/*.gschema.xml $(EXTDIR)/schemas/
+	$(PYTHON) scripts/install_extension.py --source extension --data-dir "$(DESTDIR)$(DATADIR)" --uuid "$(UUID)" $(EXTENSION_SCHEMA_COMPILE)
 	install -m644 extension/schemas/*.gschema.xml $(SCHEMADIR)/
 	install -m644 app/notch_app/*.py $(PKGDATA)/python/notch_app/
 	install -m755 $(STAGE)/notch-settings $(STAGE)/notch-helper $(STAGE)/notch-doctor $(STAGE)/notch-shelf $(DESTDIR)$(BINDIR)/
@@ -47,7 +45,6 @@ install: stage
 	install -m644 data/$(APP_ID).svg $(DESTDIR)$(DATADIR)/icons/hicolor/scalable/apps/
 	install -m644 README.md LICENSE $(PKGDATA)/
 ifeq ($(DESTDIR),)
-	glib-compile-schemas $(EXTDIR)/schemas
 	glib-compile-schemas $(SCHEMADIR)
 	-update-desktop-database -q $(DATADIR)/applications
 endif

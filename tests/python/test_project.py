@@ -208,7 +208,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-drop-success", helper)
         self.assertIn("gtk-enable-animations", helper)
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 13)
+        self.assertEqual(metadata["version"], 14)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

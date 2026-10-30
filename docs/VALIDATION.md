@@ -9,7 +9,9 @@
 
 - ESLint over extension and JavaScript tests.
 - Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **22 passed**.
-- Python compilation and unittest suite: **40 passed**.
+- Python compilation and unittest suite: **50 passed**.
+- Atomic extension publication tests: fresh install, upgrade/stale-file removal, invalid-source rollback, interrupted-transaction recovery and Makefile/installer wiring.
+- Doctor Shell-registration tests: undiscovered extension, active build, D-Bus double build numbers, load errors and stale session registration.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.
 - Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.

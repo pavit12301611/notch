@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### v14 — atomic extension installation and discovery diagnostics
+
+- Publish the extension from a validated staging directory instead of writing
+  `metadata.json` and JS files in place. GNOME can no longer observe a zero-byte
+  metadata file during an upgrade; failed final publication restores the previous
+  complete directory.
+- Honor `XDG_DATA_HOME` for user installs/uninstalls and keep launcher paths in sync.
+- `notch-doctor` now distinguishes installed files from GNOME Shell registration,
+  reports load errors/out-of-date state, and tells the user to log out/in when a
+  newly installed extension has not been discovered by the current session.
+- Build 14 changes installation/diagnostics only; it is not a claimed fix for the
+  reported media freeze.
+
 ### v13 — media-tab audio stutter / feedback protection
 
 - Programmatic slider updates now suppress `notify::value` feedback for 150 ms,

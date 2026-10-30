@@ -41,15 +41,16 @@ PY
 UUID='notch@pavit12301611.github.io'
 if [[ $MODE == user ]]; then
   PREFIX="$HOME/.local"; SYSCONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}"
+  DATADIR="${XDG_DATA_HOME:-$HOME/.local/share}"
   # Stop an old instance before replacing its files. Settings and shelf data are retained.
   if $ENABLE && command -v gnome-extensions >/dev/null && [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} ]]; then
     gnome-extensions disable "$UUID" 2>/dev/null || true
     systemctl --user stop notch-helper.service 2>/dev/null || true
   fi
-  make -C "$ROOT" install PREFIX="$PREFIX" SYSCONFDIR="$SYSCONFDIR"
+  make -C "$ROOT" install PREFIX="$PREFIX" DATADIR="$DATADIR" SYSCONFDIR="$SYSCONFDIR"
 else
-  PREFIX=/usr; SYSCONFDIR=/etc
-  make -C "$ROOT" install PREFIX="$PREFIX" SYSCONFDIR="$SYSCONFDIR"
+  PREFIX=/usr; SYSCONFDIR=/etc; DATADIR=/usr/share
+  make -C "$ROOT" install PREFIX="$PREFIX" DATADIR="$DATADIR" SYSCONFDIR="$SYSCONFDIR"
 fi
 if $ENABLE && [[ $MODE == user ]]; then
   if [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} || -S ${XDG_RUNTIME_DIR:-/run/user/$UID}/bus ]]; then
@@ -58,7 +59,12 @@ if $ENABLE && [[ $MODE == user ]]; then
     systemctl --user reset-failed notch-helper.service 2>/dev/null || true
     systemctl --user enable notch-helper.service
     systemctl --user restart notch-helper.service || echo "Helper will start on first use; if Shelf stays offline run: journalctl --user -u notch-helper.service -b"
-    gnome-extensions enable "$UUID" 2>/dev/null || echo "Extension will be discovered after you log out and back in."
+    if command -v gnome-extensions >/dev/null && gnome-extensions enable "$UUID"; then
+      echo "Extension enable requested. If this is a new install or update, log out/in to load it."
+    else
+      echo "Files are installed, but this GNOME session has not discovered the extension yet."
+      echo "Log out and back in, then run: gnome-extensions enable $UUID"
+    fi
   fi
 fi
 cat <<EOF
@@ -70,4 +76,7 @@ Open settings: $PREFIX/bin/notch-settings
 Check installation: $PREFIX/bin/notch-doctor
 Add files without drag-and-drop: $PREFIX/bin/notch-shelf add ~/Downloads/example.pdf
 Toggle: Super + \` (or click the notch).
+
+If GNOME says the extension does not exist even though notch-doctor sees build files,
+log out/in once: GNOME Shell discovers newly installed extensions at session start.
 EOF
