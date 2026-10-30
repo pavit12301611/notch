@@ -2,7 +2,7 @@
 
 ## What is automated
 
-- JavaScript syntax/lint and pure model/geometry/spring/notification-bridge tests.
+- JavaScript syntax/lint, pure model/geometry/spring/notification-bridge tests, and strict St.Icon/BoxLayout widget-construction contract tests.
 - Python compilation, shelf storage integrity/permissions/bounds, schema-key references and install-template substitution tests.
 - GSettings schema compilation and a GJS/GLib smoke test in the Fedora CI recipe.
 - Desktop-entry validation and a noarch RPM build in the Fedora CI recipe.
@@ -44,7 +44,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Settings launches from the app grid and from the extension’s preferences action.
 - [ ] Helper is enabled for graphical login and can be bus-activated after idle exit.
 - [ ] Disable/re-enable the extension 20 times: no duplicate actors, shortcuts, timers or bus names.
-- [ ] Logout/login after upgrade loads the new module code.
+- [ ] Logout/login after upgrade loads the new module code; `notch-doctor` reports matching loaded/installed extension builds.
 - [ ] Uninstall removes installed files but retains settings/shelf until explicitly purged.
 - [ ] RPM install/upgrade/remove works without file conflicts or unpackaged schema artifacts.
 

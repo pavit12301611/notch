@@ -4,7 +4,10 @@
 
 ### Adaptive layout and action reliability
 
-- Fixed GNOME 50 extension startup error `St.IconType is undefined`: guard St enum access with stable integer fallbacks (icon type, scroll policy, clipboard type).
+- Fixed GNOME 50 `No property icon_type on StIcon`: removed the nonexistent property entirely from icon construction and artwork updates. St derives symbolic rendering from the icon source; `is_symbolic` is read-only. Added strict St.Icon constructor/write regression tests.
+- Fixed artwork source switching so clearing `icon_name` cannot erase the newly assigned album-art `gicon`.
+- `notch-doctor` now compares the loaded extension build with installed metadata and warns when Wayland still has old code loaded.
+- Superseded the incomplete version 6 enum guard; version 7 removes the invalid icon property instead of masking the first error.
 
 - Fixed Shelf/Media D-Bus result handling: GJS `call_finish()` returns a `GLib.Variant`; unpack it instead of destructuring it as an array (`{} is not iterable`).
 - Header labels now collapse to active-only/icon modes before they can ellipsize; tab labels no longer truncate.

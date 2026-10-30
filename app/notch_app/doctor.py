@@ -135,7 +135,9 @@ def inspect_project() -> list[tuple[str, str, str]]:
     metadata_file = directory / "metadata.json"
     try:
         metadata = json.loads(metadata_file.read_text())
-        check("PASS", "Extension files", str(directory))
+        check(
+            "PASS", "Extension files", f"{directory} (build {metadata.get('version', 'unknown')})"
+        )
         check("PASS", "Extension UUID", metadata["uuid"])
     except (OSError, ValueError, KeyError) as exc:
         check("FAIL", "Extension files", f"{metadata_file}: {exc}")
@@ -167,8 +169,41 @@ def inspect_project() -> list[tuple[str, str, str]]:
     return results
 
 
+def extension_revision_result(payload: str, installed_version: object) -> tuple[str, str, str]:
+    """Compare the running Shell module with the installed metadata build."""
+    name = "Extension build"
+    try:
+        state = json.loads(payload)
+        if not isinstance(state, dict):
+            raise ValueError("state is not an object")
+    except (TypeError, ValueError):
+        return ("WARN", name, "The running extension returned invalid state; log out and back in")
+    loaded = state.get("extensionVersion")
+    if installed_version is None:
+        return ("WARN", name, "Installed metadata has no build version")
+    if loaded is None:
+        return (
+            "WARN",
+            name,
+            f"Older Notch code is loaded; installed build {installed_version}. Log out and back in.",
+        )
+    if str(loaded) != str(installed_version):
+        return (
+            "WARN",
+            name,
+            f"Loaded build {loaded}, installed build {installed_version}. Log out and back in.",
+        )
+    return ("PASS", name, f"Loaded and installed build {installed_version}")
+
+
 def inspect_bus() -> list[tuple[str, str, str]]:
     results = []
+    try:
+        installed_version = json.loads((extension_dir() / "metadata.json").read_text()).get(
+            "version"
+        )
+    except (OSError, ValueError, AttributeError):
+        installed_version = None
     try:
         import gi
 
@@ -194,7 +229,10 @@ def inspect_bus() -> list[tuple[str, str, str]]:
                     8000 if is_helper else 1500,
                     None,
                 )
-                results.append(("PASS", name, str(value.unpack()[0])))
+                detail = str(value.unpack()[0])
+                results.append(("PASS", name, detail))
+                if name == EXTENSION_ID:
+                    results.append(extension_revision_result(detail, installed_version))
             except GLib.Error as exc:
                 results.append(
                     ("WARN", name, f"Not running (the helper may be idle): {exc.message}")

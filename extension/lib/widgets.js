@@ -20,9 +20,29 @@ export function wrapLabel(text = '', style = 'notch-muted', expand = true) {
 }
 
 export function icon(name, size = 16) {
+    // St.Icon has no icon_type property. St selects symbolic rendering from the
+    // icon source; is_symbolic is a read-only result, not a construction option.
     return new St.Icon({icon_name: name, icon_size: size,
-        icon_type: name.endsWith('-symbolic') ? (St.IconType?.SYMBOLIC ?? 0) : (St.IconType?.FULLCOLOR ?? 1),
         y_align: Clutter.ActorAlign.CENTER});
+}
+
+/** Switch between a loaded GIcon and a themed fallback without clearing the new source. */
+export function setIconSource(widget, gicon, fallbackName) {
+    widget.fallback_gicon = null;
+    if (gicon) {
+        // icon_name is a convenience setter for gicon. Clear it first, never last.
+        widget.icon_name = null;
+        widget.gicon = gicon;
+    } else {
+        widget.gicon = null;
+        widget.icon_name = fallbackName;
+    }
+}
+
+export function sourceIcon(gicon, fallbackName, size = 16) {
+    const widget = icon(fallbackName, size);
+    setIconSource(widget, gicon, fallbackName);
+    return widget;
 }
 
 export function box(vertical = false, style = '', spacing = 8) {

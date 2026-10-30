@@ -19,7 +19,7 @@ import {QuickActions} from './actions.js';
 import {ShelfController} from './shelf.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
-import {box, button, icon, label, wrapLabel, setText, slider} from './widgets.js';
+import {box, button, icon, sourceIcon, setIconSource, label, wrapLabel, setText, slider} from './widgets.js';
 import {formatBytes, formatTime, plainText} from './model.js';
 
 const TABS = [
@@ -184,7 +184,7 @@ export class NotchView {
         this.content.opacity = 0;
         this.header = box(false, 'notch-header', 6);
         this.tabsScroll = new St.ScrollView({style_class: 'notch-tabs-scroll', x_expand: true,
-            hscrollbar_policy: (St.PolicyType?.NEVER ?? 2), vscrollbar_policy: (St.PolicyType?.NEVER ?? 2)});
+            hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.NEVER});
         this.tabsBox = box(false, 'notch-tabs', 4);
         this.tabButtons = new Map();
         for (const [id, title, iconName] of TABS) {
@@ -217,7 +217,7 @@ export class NotchView {
         for (const [id, page] of Object.entries(this.pages)) {
             page.x_expand = true;
             const scroll = new St.ScrollView({style_class: 'notch-page-scroll', x_expand: true, y_expand: true,
-                hscrollbar_policy: (St.PolicyType?.NEVER ?? 2), vscrollbar_policy: (St.PolicyType?.AUTOMATIC ?? 1)});
+                hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC});
             scroll.add_child(page);
             this.pageScrolls[id] = scroll;
             this.pageStack.add_child(scroll);
@@ -359,8 +359,9 @@ export class NotchView {
         this.peek.destroy_all_children();
         const row = box(false, '', 10);
         const gicon = notification.gicon ?? notification.source?.icon ?? null;
-        const image = new St.Icon({gicon, icon_name: gicon ? null : 'preferences-system-notifications-symbolic',
-            icon_size: 32, style_class: 'notch-peek-icon', y_align: Clutter.ActorAlign.START});
+        const image = sourceIcon(gicon, 'preferences-system-notifications-symbolic', 32);
+        image.style_class = 'notch-peek-icon';
+        image.y_align = Clutter.ActorAlign.START;
         const text = box(true, '', 2);
         text.x_expand = true;
         const title = label(plainText(notification.title || notification.source?.title || 'Notification'),
@@ -445,8 +446,7 @@ export class NotchView {
                 const card = box(true, 'notch-notification', 6);
                 const top = box(false, '', 8);
                 const gicon = notification.gicon ?? source.icon ?? null;
-                top.add_child(new St.Icon({gicon, icon_name: gicon ? null : 'application-x-executable-symbolic',
-                    icon_size: 22, y_align: Clutter.ActorAlign.CENTER}));
+                top.add_child(sourceIcon(gicon, 'application-x-executable-symbolic', 22));
                 top.add_child(label(plainText(notification.title || source.title), 'notch-title', true));
                 top.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button',
                     accessibleName: 'Dismiss notification', onClick: () => notification.destroy()}));
@@ -1070,12 +1070,8 @@ export class NotchView {
             this.artKey = artKey;
             this.art.load(state.artUrl, gicon => {
                 if (this.dead) return;
-                for (const widget of [this.mediaArt, this.homeArt]) {
-                    widget.gicon = gicon;
-                    widget.icon_name = gicon ? null : 'audio-x-generic-symbolic';
-                    widget.icon_type = gicon ? (St.IconType?.FULLCOLOR ?? 1) : (St.IconType?.SYMBOLIC ?? 0);
-                    widget.fallback_gicon = null;
-                }
+                for (const widget of [this.mediaArt, this.homeArt])
+                    setIconSource(widget, gicon, 'audio-x-generic-symbolic');
             });
         }
         this.updateAudio();
@@ -1354,7 +1350,7 @@ export class NotchView {
     }
 
     state() {
-        return JSON.stringify({version: '0.1.0', mode: this.mode, expanded: this.expanded, visible: this.allowed,
+        return JSON.stringify({version: '0.1.0', extensionVersion: this.extension.metadata.version, mode: this.mode, expanded: this.expanded, visible: this.allowed,
             media: this.media.snapshot().identity, clipboardCount: this.clipboard.history.items.length,
             shelfCount: this.shelf.items.length, shelfState: this.shelf.state, notificationCount: this.notifications?.count ?? 0,
             activeNotification: !!this.notifications?.active});

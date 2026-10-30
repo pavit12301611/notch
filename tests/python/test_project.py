@@ -94,11 +94,20 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("new NotchSurface", view)
         self.assertIn("SpringGeometry", view)
 
-    def test_st_enums_are_guarded_for_gnome50_gjs(self):
-        for name in ("widgets.js", "view.js", "clipboard.js"):
-            source = (ROOT / "extension/lib" / name).read_text()
-            self.assertNotRegex(source, r"St\.(IconType|PolicyType|ClipboardType)\.[A-Z]")
-        self.assertIn("St.IconType?.SYMBOLIC ?? 0", (ROOT / "extension/lib/widgets.js").read_text())
+    def test_st_icon_uses_real_gnome50_properties(self):
+        for source in (ROOT / "extension").rglob("*.js"):
+            text = source.read_text()
+            self.assertNotRegex(text, r"\bicon_type\s*[:=]", str(source))
+            self.assertNotIn("St.IconType", text, str(source))
+        widgets = (ROOT / "extension/lib/widgets.js").read_text()
+        self.assertIn("export function setIconSource", widgets)
+        self.assertIn("widget.icon_name = null;\n        widget.gicon = gicon;", widgets)
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("setIconSource(widget, gicon", view)
+        self.assertIn("sourceIcon(gicon", view)
+        clipboard = (ROOT / "extension/lib/clipboard.js").read_text()
+        self.assertIn("St.ClipboardType.CLIPBOARD", clipboard)
+        self.assertNotIn("ClipboardType?.CLIPBOARD ?? 0", clipboard)
 
     def test_gjs_dbus_results_are_unpacked_not_destructured(self):
         shelf = (ROOT / "extension/lib/shelf.js").read_text()

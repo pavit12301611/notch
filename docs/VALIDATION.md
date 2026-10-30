@@ -8,8 +8,8 @@
 ## Checks executed successfully
 
 - ESLint over extension and JavaScript tests.
-- Node model/geometry/layout/spring/notification-bridge suite: **13 passed**.
-- Python compilation and unittest suite: **22 passed**.
+- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **16 passed**.
+- Python compilation and unittest suite: **27 passed**.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.
 - Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.
@@ -17,6 +17,8 @@
 - Regression check for the separate GNOME Extensions prefs resource import path.
 - Regression check that extension preferences are inline Libadwaita pages, not a launcher placeholder.
 - Regression check that St.BoxLayout spacing uses St CSS, not a nonexistent GObject property.
+- Strict St.Icon constructor/write tests against the GNOME 50.6 property contract, including artwork source switching.
+- Doctor tests for loaded-vs-installed extension build detection.
 - MacBook v2 default/schema checks, spring convergence/retargeting tests and reversible notification-bridge tests.
 - GNOME 46/50 source compatibility check for `InjectionManager` and the message-tray banner queue path.
 - Staged `make install` / `make uninstall` with `/usr` prefix, including the RPM user-unit directory override.

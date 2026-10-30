@@ -309,6 +309,7 @@ busctl --user list | grep -E 'Notch|mpris'
 |---|---|
 | Extension not listed after install | Log out/in; confirm the directory name exactly matches the UUID |
 | Extension shows OUT_OF_DATE | Use the intended GNOME version; do not disable version validation as a fix |
+| Extension error after update | Log out/in; `notch-doctor` compares the loaded extension build with installed metadata and warns if Wayland still has old code |
 | Settings reports missing schema | Re-run the installer; run `notch-doctor`; avoid mixing user/system copies |
 | No media | Start playback and inspect `busctl --user list` for MPRIS names; Firefox may need media-key/MPRIS support enabled |
 | No seek | The current player may not expose `CanSeek`, length or track ID |
