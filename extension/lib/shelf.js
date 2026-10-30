@@ -5,10 +5,11 @@ import {helperErrorMessage} from './model.js';
 
 /** Thin client for the GTK drop helper. Only file references, never file contents. */
 export class ShelfController {
-    constructor(directory, onChange, onError) {
+    constructor(directory, onChange, onError, onDrop = null) {
         this.directory = directory;
         this.onChange = onChange;
         this.onError = onError;
+        this.onDrop = onDrop;
         this.items = [];
         this.ready = false;
         this.state = 'offline';
@@ -41,6 +42,13 @@ export class ShelfController {
             this.proxy = proxy;
             proxy.connectObject('g-signal', (_p, _sender, signal, params) => {
                 if (signal === 'ShelfChanged') this.acceptState(params.deepUnpack()[0]);
+                else if (signal === 'DropCompleted') {
+                    const [json, count] = params.deepUnpack();
+                    this.acceptState(json);
+                    this.onDrop?.(count);
+                } else if (signal === 'DropFailed') {
+                    this.onError(helperErrorMessage(params.deepUnpack()[0]));
+                }
             }, 'notify::g-name-owner', p => {
                 this.ready = !!p.g_name_owner;
                 this.state = this.ready ? 'ready' : 'offline';
@@ -114,12 +122,14 @@ export class ShelfController {
     remove(uri) { return this.command('Remove', new GLib.Variant('(s)', [uri])); }
     clear() { return this.command('Clear'); }
     choose() { return this.command('ChooseFiles'); }
+    prepareDropTarget() { return this.command('PrepareDropTarget'); }
     open(uri) { return this.command('Open', new GLib.Variant('(s)', [uri])); }
     reveal(uri) { return this.command('Reveal', new GLib.Variant('(s)', [uri])); }
     copy(uri) { return this.command('CopyUri', new GLib.Variant('(s)', [uri])); }
 
     async showDropTarget(rect) {
         if (this.dead || this.dropVisible || this._dropPending) return false;
+        this._dropRect = rect;
         this._dropPending = true;
         try {
             const ok = this.ready || await this.start();
@@ -135,6 +145,13 @@ export class ShelfController {
         } finally {
             this._dropPending = false;
         }
+    }
+
+    updateDropTarget(rect) {
+        this._dropRect = rect;
+        if (!this.dropVisible || !this.ready || this.dead) return;
+        call(this.proxy, 'ShowDropTarget', new GLib.Variant('(iiii)',
+            [Math.round(rect.x), Math.round(rect.y), Math.round(rect.width), Math.round(rect.height)]), 4000).catch(e => this.report(e));
     }
 
     hideDropTarget() {

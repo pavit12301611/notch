@@ -30,6 +30,7 @@ class HelperApplication(Gio.Application):
         self.idle_source = None
         self.gtk = None
         self.gdk = None
+        self._hide_source = None
 
     def do_startup(self):
         Gio.Application.do_startup(self)
@@ -83,15 +84,14 @@ class HelperApplication(Gio.Application):
         self.connection = None
         Gio.Application.do_dbus_unregister(self, connection, object_path)
 
-    def _emit_shelf(self):
+    def _emit_signal(self, name, signature, args):
         if self.connection:
             self.connection.emit_signal(
-                None,
-                HELPER_PATH,
-                HELPER_ID,
-                "ShelfChanged",
-                GLib.Variant("(s)", (self.store.to_json(),)),
+                None, HELPER_PATH, HELPER_ID, name, GLib.Variant(signature, args)
             )
+
+    def _emit_shelf(self):
+        self._emit_signal("ShelfChanged", "(s)", (self.store.to_json(),))
 
     def _method_call(self, connection, sender, path, interface, method, params, invocation):
         self.last_use = time.monotonic()
@@ -114,6 +114,8 @@ class HelperApplication(Gio.Application):
                 self.store.clear()
                 self._emit_shelf()
                 result = (self.store.to_json(),)
+            elif method == "PrepareDropTarget":
+                self._make_window()
             elif method == "ShowDropTarget":
                 self.show_drop_target(*args)
             elif method == "HideDropTarget":
@@ -153,10 +155,18 @@ class HelperApplication(Gio.Application):
         css = Gtk.CssProvider()
         css.load_from_data(
             """
-            .notch-drop-window { background: #14231d; color: #e4fff1; border: 2px dashed #8ee4c0;
-              border-radius: 22px; box-shadow: none; }
+            .notch-drop-window { background: #000000; color: #f5f5f7; border-radius: 24px; }
+            .notch-drop-card { background: #101815; color: #e4fff1; border: 2px dashed #5a8a70;
+              border-radius: 18px; padding: 20px; transition: background-color 160ms ease, border-color 160ms ease; }
+            .notch-drop-card.notch-drop-ready { background: #14231d; border-color: #8ee4c0; }
+            .notch-drop-card.notch-drop-success { background: #17351f; border-color: #30d158; }
+            .notch-drop-card.notch-drop-error { background: #2a1d12; border-color: #ff9f0a; }
             .notch-drop-title { font-size: 20px; font-weight: 700; }
             .notch-drop-detail { color: #acd5be; }
+            .notch-drop-icon { transition: color 160ms ease; }
+            .notch-drop-success .notch-drop-icon { color: #30d158; }
+            .notch-drop-error .notch-drop-icon { color: #ff9f0a; }
+            .notch-no-motion .notch-drop-card, .notch-no-motion .notch-drop-icon { transition: none; }
         """.encode()
         )
         Gtk.StyleContext.add_provider_for_display(
@@ -172,46 +182,67 @@ class HelperApplication(Gio.Application):
             title=DROP_TITLE, decorated=False, resizable=False, deletable=False, hide_on_close=True
         )
         self.window.add_css_class("notch-drop-window")
-        content = Gtk.Box(
+        if not Gtk.Settings.get_default().get_property("gtk-enable-animations"):
+            self.window.add_css_class("notch-no-motion")
+        self.drop_card = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
-            spacing=12,
+            spacing=10,
             valign=Gtk.Align.CENTER,
-            halign=Gtk.Align.CENTER,
-            margin_top=24,
-            margin_bottom=24,
-            margin_start=24,
-            margin_end=24,
+            halign=Gtk.Align.FILL,
+            vexpand=True,
+            hexpand=True,
+            margin_top=16,
+            margin_bottom=16,
+            margin_start=16,
+            margin_end=16,
+            css_classes=["notch-drop-card"],
         )
-        image = Gtk.Image.new_from_icon_name("folder-download-symbolic")
-        image.set_pixel_size(48)
-        content.append(image)
-        title = Gtk.Label(label="Drop files to stash", css_classes=["notch-drop-title"])
-        content.append(title)
+        self.drop_icon = Gtk.Image.new_from_icon_name("folder-download-symbolic")
+        self.drop_icon.set_pixel_size(44)
+        self.drop_icon.add_css_class("notch-drop-icon")
+        self.drop_card.append(self.drop_icon)
+        self.drop_title = Gtk.Label(label="Drop to Quick stash", css_classes=["notch-drop-title"])
+        self.drop_card.append(self.drop_title)
         self.drop_detail = Gtk.Label(
-            label="Only shelf references are saved. Originals stay where they are.",
+            label="Drop directly on the notch. Originals stay where they are.",
             css_classes=["notch-drop-detail"],
             wrap=True,
             max_width_chars=44,
         )
-        content.append(self.drop_detail)
-        self.window.set_child(content)
+        self.drop_card.append(self.drop_detail)
+        self.window.set_child(self.drop_card)
         target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         target.connect("drop", self._on_drop)
-        target.connect("enter", lambda *_: Gdk.DragAction.COPY)
-        target.connect(
-            "leave",
-            lambda *_: self.drop_detail.set_text(
-                "Only shelf references are saved. Originals stay where they are."
-            ),
-        )
+        target.connect("enter", self._on_drag_enter)
+        target.connect("leave", self._on_drag_leave)
         self.window.add_controller(target)
         self.window.connect("close-request", lambda *_: self.window.hide() or True)
+
+    def _reset_drop_card(self):
+        for name in ("notch-drop-ready", "notch-drop-success", "notch-drop-error"):
+            self.drop_card.remove_css_class(name)
+        self.drop_icon.set_from_icon_name("folder-download-symbolic")
+        self.drop_title.set_text("Drop to Quick stash")
+        self.drop_detail.set_text("Drop directly on the notch. Originals stay where they are.")
+
+    def _on_drag_enter(self, *_args):
+        self.drop_card.add_css_class("notch-drop-ready")
+        self.drop_title.set_text("Release to stash")
+        return self.gdk.DragAction.COPY
+
+    def _on_drag_leave(self, *_args):
+        if not self.drop_card.has_css_class("notch-drop-success"):
+            self._reset_drop_card()
 
     def show_drop_target(self, x, y, width, height):
         if self.window is None:
             self._make_window()
+        if self._hide_source:
+            GLib.source_remove(self._hide_source)
+            self._hide_source = None
+        self._reset_drop_card()
         width = max(160, min(2000, int(width)))
-        height = max(100, min(1400, int(height)))
+        height = max(120, min(1400, int(height)))
         self.window.set_size_request(width, height)
         self.window.set_default_size(width, height)
         # The extension (compositor) owns positioning; this client never calls localhost/X11.
@@ -221,16 +252,32 @@ class HelperApplication(Gio.Application):
         file_list = value.get_boxed()
         files = file_list.get_files() if file_list else []
         try:
-            self.store.add([file.get_uri() for file in files])
+            uris = [file.get_uri() for file in files]
+            count = self.store.add(uris)
             self._emit_shelf()
-            self.drop_detail.set_text("Files stashed. You can release the drag.")
-            GLib.idle_add(self._hide_after_drop)
+            self._emit_signal("DropCompleted", "(si)", (self.store.to_json(), count))
+            self.drop_card.remove_css_class("notch-drop-ready")
+            self.drop_card.add_css_class("notch-drop-success")
+            self.drop_icon.set_from_icon_name("emblem-ok-symbolic")
+            self.drop_title.set_text("Stashed")
+            self.drop_detail.set_text(
+                f"{count} file{'s' if count != 1 else ''} added to Quick stash. Originals stay in place."
+            )
+            if self._hide_source:
+                GLib.source_remove(self._hide_source)
+            self._hide_source = GLib.timeout_add(700, self._hide_after_drop)
             return True
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError, TypeError, OSError) as exc:
+            self.drop_card.remove_css_class("notch-drop-ready")
+            self.drop_card.add_css_class("notch-drop-error")
+            self.drop_icon.set_from_icon_name("dialog-error-symbolic")
+            self.drop_title.set_text("Could not stash")
             self.drop_detail.set_text(str(exc))
+            self._emit_signal("DropFailed", "(s)", (str(exc),))
             return False
 
     def _hide_after_drop(self):
+        self._hide_source = None
         if self.window:
             self.window.hide()
         return GLib.SOURCE_REMOVE

@@ -79,3 +79,7 @@ written to `.cache/` and are not part of the deck.
 - Optional Pillow proof renderer reports no text overflow warnings.
 - No embedded raster media; mockups remain editable.
 - No application UI/behavior code was changed for this deck.
+
+## v9 implementation note
+
+The user explicitly requested code changes after this deck: a non-empty Home dashboard, direct file drop onto the notch, and coordinated iPhone-like motion. Those v9 code changes supersede the older Home/drop/motion mockups in this baseline deck. The deck remains the review reference for pages not explicitly changed by that request.

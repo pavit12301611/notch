@@ -168,6 +168,27 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("showStatus", view)
         self.assertNotIn("Main.notify('Notch', message)", view)
 
+    def test_v9_home_direct_drop_and_motion_contracts(self):
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("notch-home-page", view)
+        self.assertIn("this.homeIdle.visible = true", view)
+        self.assertIn("notchDropGeometry", view)
+        self.assertIn("dropCompleted", view)
+        self.assertIn("translation_y", view)
+        self.assertNotIn("this.homeIdle.visible = !playing", view)
+        shelf = (ROOT / "extension/lib/shelf.js").read_text()
+        self.assertIn("DropCompleted", shelf)
+        self.assertIn("prepareDropTarget", shelf)
+        xml = (ROOT / "extension/dbus/io.github.pavit12301611.Notch.Helper.xml").read_text()
+        self.assertIn('name="PrepareDropTarget"', xml)
+        self.assertIn('name="DropCompleted"', xml)
+        self.assertIn('name="DropFailed"', xml)
+        helper = (ROOT / "app/notch_app/helper.py").read_text()
+        self.assertIn("notch-drop-success", helper)
+        self.assertIn("gtk-enable-animations", helper)
+        metadata = json.loads((ROOT / "extension/metadata.json").read_text())
+        self.assertEqual(metadata["version"], 9)
+
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:
             subprocess.run(

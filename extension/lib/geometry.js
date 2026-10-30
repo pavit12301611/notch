@@ -3,7 +3,7 @@ export {clamp};
 
 /** Logical page sizes inspired by native MacBook notch apps; never one giant window. */
 export const PAGE_SIZES = Object.freeze({
-    home: {width: 640, height: 210},
+    home: {width: 640, height: 320},
     media: {width: 640, height: 300},
     notifications: {width: 560, height: 320},
     system: {width: 640, height: 260},
@@ -57,4 +57,24 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
 
 export function containsPoint(rect, x, y) {
     return x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height;
+}
+
+/** Drop surface starts at the physical notch, so a file can be dropped directly
+ * on the closed notch instead of aiming for a separate window below the panel. */
+export function notchDropGeometry(monitor, options = {}) {
+    const scale = Math.max(1, options.cssScale ?? 1) * Math.max(0.5, options.layoutScale ?? 1);
+    const open = notchGeometry(monitor, {...options, hovered: false}, true, 'open');
+    const closed = notchGeometry(monitor, {...options, hovered: false}, false, 'closed');
+    const width = Math.min(monitor.width, Math.max(open.width, closed.width + 64 * scale));
+    const availableHeight = Math.max(1, monitor.height - (closed.y - monitor.y));
+    const height = clamp(Math.max(open.height, (options.panelHeight ?? 32) + 180 * scale),
+        Math.min(120 * scale, availableHeight), availableHeight);
+    const x = Math.round(monitor.x + clamp((monitor.width - width) / 2 +
+        (options.horizontalOffset ?? 0) * scale, 0, monitor.width - width));
+    return {x, y: closed.y, width: Math.round(width), height: Math.round(height)};
+}
+
+export function nearDropTarget(x, y, target, margin = 48) {
+    return x >= target.x - margin && x <= target.x + target.width + margin &&
+        y >= target.y - margin && y <= target.y + target.height + margin;
 }

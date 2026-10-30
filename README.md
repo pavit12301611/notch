@@ -41,10 +41,10 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 | Media | MPRIS player discovery/switching, title/artist/album, local/data/optional HTTP(S) album art, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
-| File shelf | Drag local files near the notch onto a GTK target, or choose files through GTK/portal; open, reveal, copy URI, remove reference, clear shelf |
+| File shelf | Drag local files directly onto the closed/open notch (or its drop target), or choose files through GTK/portal; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
 | Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, label collapse, scrollable pages, scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
-| Behavior | Mac-style damped-spring opening from the top edge, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
+| Behavior | Mac-style damped-spring opening from the top edge, animated page/status/peek transitions, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
 | Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
 
 ### Important boundaries
@@ -66,17 +66,17 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 Run this in your Fedora desktop terminal (as your normal user, **not** with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/a8df1ad3-notch/scripts/bootstrap.sh | bash -s -- --with-deps
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/71fe92f9-notch/scripts/bootstrap.sh | NOTCH_REF=arena/71fe92f9-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/a8df1ad3-notch` branch; for a reproducible install, set `NOTCH_REF` to a full commit SHA.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/71fe92f9-notch` v9 development branch. `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/a8df1ad3-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/71fe92f9-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
 less /tmp/notch-bootstrap.sh
-bash /tmp/notch-bootstrap.sh --with-deps
+NOTCH_REF=arena/71fe92f9-notch bash /tmp/notch-bootstrap.sh --with-deps
 ```
 
 ### From a local checkout
@@ -95,7 +95,7 @@ notch-settings
 notch-doctor
 ```
 
-The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings, and ordinary notifications appear as compact peeks. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings, and ordinary notifications appear as compact peeks. Home always shows the clock/date, quick actions and a Quick stash card; drag files directly onto the notch to stash them. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ### Manual dependency installation
 

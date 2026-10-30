@@ -3,6 +3,7 @@
   background-color: transparent;
   color: #f5f5f7;
   font-size: 10.5pt;
+  -st-icon-style: symbolic;
 }
 .notch-surface { background-color: transparent; }
 .notch-body { background-color: #000000; }
@@ -89,8 +90,17 @@
 .notch-home-clock { font-size: 2.4em; font-weight: 700; color: #f5f5f7; }
 .notch-home-date { color: #98989d; font-size: 1em; }
 .notch-home-media { spacing: 14px; }
-.notch-home-idle { spacing: 18px; }
+.notch-home-page { spacing: 10px; }
+.notch-home-idle { spacing: 12px; }
+.notch-home-actions { spacing: 8px; }
+.notch-home-media { spacing: 12px; }
+.notch-home-stash { spacing: 8px; }
+.notch-home-stash:hover { border-color: rgba(255,255,255,0.14); }
+.notch-home-recent { spacing: 6px; }
+.notch-home-file { background-color: rgba(255,255,255,0.04); padding: 6px 8px; }
+.notch-home-file:hover { background-color: rgba(255,255,255,0.09); }
 .notch-art { -st-icon-style: regular; border-radius: 14px; background-color: #1c1c1e; padding: 6px; }
+.notch-card, .notch-row, .notch-notification { transition-duration: 150ms; }
 .notch-card {
   background-color: #1c1c1e;
   border: 1px solid rgba(255,255,255,0.06);
@@ -149,3 +159,9 @@
 .notch-status-bar { spacing: 8px; padding: 8px 0 0; }
 .notch-status { color: #ffd60a; font-size: 0.85em; }
 .notch-status-error { color: #ff9f0a; }
+
+/* Keep scroll affordances monochrome inside the notch. */
+.notch-page-scroll StScrollBar { min-width: 6px; padding: 0 2px; }
+.notch-page-scroll StScrollBar StBin#trough { background-color: #1c1c1e; border-radius: 3px; }
+.notch-page-scroll StScrollBar StButton#vhandle { background-color: #636366; border-radius: 3px; }
+.notch-page-scroll StScrollBar StButton#vhandle:hover { background-color: #98989d; }

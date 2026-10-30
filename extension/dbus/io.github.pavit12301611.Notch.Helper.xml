@@ -1,6 +1,7 @@
 <node>
   <interface name="io.github.pavit12301611.Notch.Helper">
     <method name="Ping"><arg name="version" type="s" direction="out"/></method>
+    <method name="PrepareDropTarget"/>
     <method name="ShowDropTarget">
       <arg name="x" type="i" direction="in"/><arg name="y" type="i" direction="in"/>
       <arg name="width" type="i" direction="in"/><arg name="height" type="i" direction="in"/>
@@ -15,5 +16,7 @@
     <method name="Reveal"><arg name="uri" type="s" direction="in"/></method>
     <method name="CopyUri"><arg name="uri" type="s" direction="in"/></method>
     <signal name="ShelfChanged"><arg name="json" type="s"/></signal>
+    <signal name="DropCompleted"><arg name="json" type="s"/><arg name="count" type="i"/></signal>
+    <signal name="DropFailed"><arg name="message" type="s"/></signal>
   </interface>
 </node>

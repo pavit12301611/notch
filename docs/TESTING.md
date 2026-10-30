@@ -100,11 +100,14 @@ journalctl --user -b -t gnome-shell -f
 
 ### Shelf and external drag (highest-risk integration)
 
-- [ ] Drag one and multiple local files from native Wayland Files toward the notch.
+- [ ] Home is never blank: clock/date, quick actions and Quick stash render with and without MPRIS players.
+- [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; the drop surface covers the notch and stashes on release.
+- [ ] Repeat with the notch already open on Home/Music/Shelf; successful drop opens Shelf and shows confirmation.
 - [ ] Repeat from an XWayland file manager.
 - [ ] Repeat on secondary monitor and fractional scaling; target aligns with the collapsed notch.
 - [ ] Dropping stores references, never moves/copies/deletes originals.
-- [ ] Cancel/leave hides the GTK target and restores normal window behavior.
+- [ ] Cancel/leave hides the GTK target and restores the previous page/open state.
+- [ ] Invalid/remote drops show an error without saving; helper success/failure signals do not leave a stale overlay.
 - [ ] Open, Reveal and Copy URI work; missing files produce an error without crashing Shell.
 - [ ] Add files uses the GTK chooser/portal and updates the Shell list.
 - [ ] Remove/Clear changes references only.

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### v9 — Home dashboard, direct notch drop, coordinated motion
+
+- Rebuilt Home as a real scrollable page instead of a visibility-switched stack. The clock/date block is always present; Quick stash shows count, Add/Open actions and recent files, so Home cannot render as an empty black body.
+- Increased the Home page to 640×320 and kept compact/narrow reflow with vertical scrolling.
+- Direct file drop now targets the physical closed/open notch rectangle, not only a separate GTK window below the panel. The helper is prewarmed, positioned by Mutter, and reports success/failure back to the Shell.
+- Added `PrepareDropTarget`, `DropCompleted` and `DropFailed` helper D-Bus contracts; successful drops open Shelf and show an in-notch confirmation. Originals are still never moved/copied/deleted.
+- Added coordinated page crossfade/slide, open/close content translation, peek fade, status-footer fade and stash pulse. All explicit motion respects Notch animations and GNOME Enable Animations; the GTK drop card respects GTK animations.
+- Forced symbolic icon rendering at the notch root and styled notch scrollbars monochrome; album art remains full-color.
+- Fixed the remote installer documentation: `NOTCH_REF` belongs to the `bash` process after the pipe. Bootstrap default ref is now `main`; v9 development installs explicitly pin the active branch.
+- Added drop-geometry, helper drop-result and v9 contract tests.
+
+
 ### Adaptive layout and action reliability
 
 - Design/spacing polish: 20px content gutters, 44px header, consistent page/list/card spacing, centered empty-state cards, and monochrome symbolic control icons (album art stays full-color).

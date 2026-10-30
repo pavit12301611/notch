@@ -11,7 +11,7 @@ import {AudioController} from './audio.js';
 import {ArtLoader} from './art.js';
 import {ClipboardController} from './clipboard.js';
 import {Diagnostics} from './diagnostics.js';
-import {notchGeometry, containsPoint} from './geometry.js';
+import {notchGeometry, notchDropGeometry, nearDropTarget, containsPoint} from './geometry.js';
 import {contentLayout} from './layout.js';
 import {MediaController} from './media.js';
 import {NotificationBridge} from './notifications.js';
@@ -58,7 +58,7 @@ export class NotchView {
         this.art = new ArtLoader(this.settings.get_boolean('remote-art'));
         this.actions = new QuickActions(this.settings, () => this.updateActions());
         this.clipboard = new ClipboardController(this.settings.get_int('clipboard-limit'), () => this.updateClipboard());
-        this.shelf = new ShelfController(this.directory, () => this.updateShelf(), e => this.showError(e));
+        this.shelf = new ShelfController(this.directory, () => this.updateShelf(), e => this.showError(e), count => this.dropCompleted(count));
         this.clock = new GnomeDesktop.WallClock();
         this.clock.connectObject('notify::clock', () => this.updateClock(), this);
         this.build();
@@ -75,7 +75,7 @@ export class NotchView {
         this.settings.connectObject('changed', (_settings, key) => this.settingChanged(key), this);
         this.media.start();
         this.diagnostics.start();
-        this.shelf.start();
+        this.shelf.start().then(ok => { if (ok && !this.dead) this.shelf.prepareDropTarget(); });
         this.updateMedia();
         this.updateShelf();
         this.updateClipboard();
@@ -264,12 +264,32 @@ export class NotchView {
     }
 
     buildHome() {
-        const stack = new St.Widget({layout_manager: new Clutter.BinLayout()});
-        this.homeMedia = box(false, 'notch-home-media', 14);
-        this.homeMedia.x_expand = true;
-        this.homeArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 72,
+        // Home is a real vertical page, not a visibility-switched BinLayout stack.
+        // The clock/date block is always present, so Home can never render blank.
+        const page = box(true, 'notch-page notch-home-page', 10);
+        page.x_expand = true;
+        page.y_expand = true;
+        this.homeIdle = box(false, 'notch-home-idle', 12);
+        this.homeIdle.x_expand = true;
+        const timeBox = box(true, '', 2);
+        timeBox.x_expand = true;
+        timeBox.y_align = Clutter.ActorAlign.CENTER;
+        this.homeClock = label('', 'notch-home-clock');
+        this.homeDate = label('', 'notch-home-date');
+        timeBox.add_child(this.homeClock);
+        timeBox.add_child(this.homeDate);
+        this.homeActions = box(false, 'notch-home-actions', 8);
+        this.homeActions.x_align = Clutter.ActorAlign.END;
+        this.homeActions.y_align = Clutter.ActorAlign.CENTER;
+        this.homeIdle.add_child(timeBox);
+        this.homeIdle.add_child(this.homeActions);
+        page.add_child(this.homeIdle);
+
+        this.homeMedia = box(false, 'notch-home-media notch-card', 12);
+        this.homeMedia.visible = false;
+        this.homeArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 56,
             style_class: 'notch-art', y_align: Clutter.ActorAlign.CENTER});
-        const info = box(true, '', 5);
+        const info = box(true, '', 4);
         info.x_expand = true;
         info.y_align = Clutter.ActorAlign.CENTER;
         this.homeTitle = label('Nothing playing', 'notch-home-title', true);
@@ -281,35 +301,36 @@ export class NotchView {
             accessibleName: 'Play or pause', onClick: () => this.media.playPause()});
         this.homeNext = button({iconName: 'media-skip-forward-symbolic', style: 'notch-icon-button',
             accessibleName: 'Next track', onClick: () => this.media.next()});
+        this.homeFullPlayer = button({text: 'Full player', style: 'notch-link',
+            onClick: () => this.selectTab('media')});
         controls.add_child(this.homePrevious);
         controls.add_child(this.homePlay);
         controls.add_child(this.homeNext);
-        this.homeFullPlayer = button({text: 'Full player', style: 'notch-link',
-            onClick: () => this.selectTab('media')});
         controls.add_child(this.homeFullPlayer);
         info.add_child(this.homeTitle);
         info.add_child(this.homeArtist);
         info.add_child(controls);
         this.homeMedia.add_child(this.homeArt);
         this.homeMedia.add_child(info);
-        stack.add_child(this.homeMedia);
+        page.add_child(this.homeMedia);
 
-        this.homeIdle = box(false, 'notch-home-idle', 18);
-        this.homeIdle.x_expand = true;
-        const timeBox = box(true, '', 2);
-        timeBox.x_expand = true;
-        timeBox.y_align = Clutter.ActorAlign.CENTER;
-        this.homeClock = label('', 'notch-home-clock');
-        this.homeDate = label('', 'notch-home-date');
-        timeBox.add_child(this.homeClock);
-        timeBox.add_child(this.homeDate);
-        this.homeActions = box(false, '', 8);
-        this.homeActions.x_align = Clutter.ActorAlign.END;
-        this.homeActions.y_align = Clutter.ActorAlign.CENTER;
-        this.homeIdle.add_child(timeBox);
-        this.homeIdle.add_child(this.homeActions);
-        stack.add_child(this.homeIdle);
-        return stack;
+        this.homeStashCard = box(true, 'notch-card notch-home-stash', 8);
+        const stashHeader = box(false, '', 8);
+        stashHeader.add_child(icon('folder-symbolic', 18));
+        stashHeader.add_child(label('Quick stash', 'notch-title', true));
+        this.homeStashCount = label('0 files');
+        stashHeader.add_child(this.homeStashCount);
+        stashHeader.add_child(button({text: 'Add', iconName: 'list-add-symbolic', style: 'notch-small-button',
+            accessibleName: 'Add files to quick stash', onClick: () => this.shelf.choose()}));
+        stashHeader.add_child(button({text: 'Open', iconName: 'view-reveal-symbolic', style: 'notch-small-button',
+            accessibleName: 'Open quick stash', onClick: () => this.selectTab('shelf')}));
+        this.homeStashCard.add_child(stashHeader);
+        this.homeStashHint = wrapLabel('Drop files directly on the notch. Originals stay where they are.', 'notch-drop');
+        this.homeStashCard.add_child(this.homeStashHint);
+        this.homeRecent = box(true, 'notch-home-recent', 6);
+        this.homeStashCard.add_child(this.homeRecent);
+        page.add_child(this.homeStashCard);
+        return page;
     }
 
     buildNotifications() {
@@ -391,7 +412,12 @@ export class NotchView {
         }}));
         this.peek.add_child(actions);
         this.peek.visible = true;
-        this.closedLayer.opacity = 0;
+        this.peek.remove_all_transitions();
+        this.peek.opacity = 0;
+        this.peek.set_translation(0, -6, 0);
+        this.peek.ease({opacity: 255, translation_y: 0, duration: this.motionDuration(160), mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        this.closedLayer.remove_all_transitions();
+        this.closedLayer.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         this.content.visible = false;
         this.relayout('open');
         this.schedulePeek();
@@ -407,7 +433,9 @@ export class NotchView {
         if (this.mode !== 'peek') return;
         this.clearTimer('peekTimer');
         this.peekNotification = null;
-        this.peek.visible = false;
+        this.peek.remove_all_transitions();
+        this.peek.ease({opacity: 0, translation_y: -4, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onStopped: () => { if (!this.dead && this.mode !== 'peek') this.peek.visible = false; }});
         this.mode = 'closed';
         this.closedLayer.remove_all_transitions();
         this.closedLayer.ease({opacity: 255, duration: this.motionDuration(140), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
@@ -486,7 +514,7 @@ export class NotchView {
     updateHome(state) {
         const playing = state.names.length > 0;
         this.homeMedia.visible = playing;
-        this.homeIdle.visible = !playing;
+        this.homeIdle.visible = true;
         if (!playing) return;
         setText(this.homeTitle, state.title);
         setText(this.homeArtist, state.artist || state.identity);
@@ -545,9 +573,35 @@ export class NotchView {
 
     selectTab(id, animate = true) {
         if (!this.pages[id]) return;
+        const previous = this.tab;
+        const changed = previous !== id;
         this.tab = id;
         this.options.tab = id;
-        for (const [pageId, scroll] of Object.entries(this.pageScrolls)) scroll.visible = pageId === id;
+        const duration = animate && changed && this.expanded ? this.motionDuration(160) : 0;
+        for (const [pageId, scroll] of Object.entries(this.pageScrolls)) {
+            scroll.remove_all_transitions();
+            if (pageId === id) {
+                scroll.visible = true;
+                scroll.reactive = true;
+                if (duration) {
+                    scroll.opacity = 0;
+                    scroll.set_translation(0, 8, 0);
+                    scroll.ease({opacity: 255, translation_y: 0, duration,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+                } else {
+                    scroll.opacity = 255;
+                    scroll.set_translation(0, 0, 0);
+                }
+            } else if (duration && pageId === previous) {
+                scroll.reactive = false;
+                scroll.ease({opacity: 0, translation_y: -6, duration: Math.round(duration * 0.7),
+                    mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                    onStopped: () => { if (!this.dead && this.tab !== pageId) scroll.visible = false; }});
+            } else {
+                scroll.visible = false;
+                scroll.reactive = false;
+            }
+        }
         for (const [tabId, tab] of this.tabButtons) {
             if (tabId === id) tab.add_style_class_name('notch-tab-active');
             else tab.remove_style_class_name('notch-tab-active');
@@ -572,8 +626,9 @@ export class NotchView {
             this.mode = 'open';
             this.content.visible = true;
             this.content.remove_all_transitions();
-            this.content.ease({opacity: 255, duration: this.motionDuration(180), delay: this.motionDuration(70),
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+            this.content.set_translation(0, -6, 0);
+            this.content.ease({opacity: 255, translation_y: 0, duration: this.motionDuration(180), delay: this.motionDuration(70),
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
             this.closedLayer.remove_all_transitions();
             this.closedLayer.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
             this.selectTab(this.tab, false);
@@ -584,7 +639,7 @@ export class NotchView {
             this.peekNotification = null;
             this.notifications?.release();
             this.content.remove_all_transitions();
-            this.content.ease({opacity: 0, duration: this.motionDuration(90), mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            this.content.ease({opacity: 0, translation_y: -4, duration: this.motionDuration(90), mode: Clutter.AnimationMode.EASE_IN_QUAD,
                 onStopped: () => { if (!this.dead && this.mode === 'closed') this.content.visible = false; }});
             this.closedLayer.remove_all_transitions();
             this.closedLayer.ease({opacity: 255, duration: this.motionDuration(140), delay: this.motionDuration(60),
@@ -655,7 +710,8 @@ export class NotchView {
             this.homeIdle.x_align = layout.compact ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.FILL;
             this.homeActions.x_align = layout.compact ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.END;
             this.homeFullPlayer.visible = !layout.narrow;
-            this.homeArt.icon_size = layout.compact ? 56 : 72;
+            this.homeArt.icon_size = layout.compact ? 48 : 56;
+            this.homeMedia.vertical = layout.narrow;
         }
         if (this.mediaRow) {
             this.mediaRow.vertical = layout.narrow;
@@ -710,8 +766,7 @@ export class NotchView {
         this.animateTo(rect, kind, immediate);
         if (this.reserve) this.updateReserve();
         if (this.shelf.dropVisible) {
-            this.shelf.hideDropTarget();
-            this.shelf.showDropTarget(this.dropRectangle());
+            this.shelf.updateDropTarget(this.dropRectangle());
             this.placeHelper();
         }
     }
@@ -819,8 +874,9 @@ export class NotchView {
             return Clutter.EVENT_PROPAGATE;
         });
         this.dnd = global.backend.get_dnd();
-        this.dnd.connectObject('dnd-position-change', (_dnd, x, y) => this.dragPosition(x, y),
-            'dnd-leave', () => this.endDrag(), this);
+        this.dnd.connectObject('dnd-enter', () => { this._dropHandled = false; },
+            'dnd-position-change', (_dnd, x, y) => this.dragPosition(x, y),
+            'dnd-leave', () => { this._dropHandled = false; this.endDrag(); }, this);
         global.display.connectObject('window-created', (_display, window) => {
             if (this.isHelper(window)) this.helperWindow = window;
         }, this);
@@ -841,28 +897,30 @@ export class NotchView {
     }
 
     dragPosition(x, y) {
-        if (!this.allowed || !this.shelf.ready) return;
+        if (this.dead || !this.allowed || this._dropHandled) return;
         const target = this.dropRectangle();
-        const monitor = this.monitor();
-        const near = x >= target.x - 60 && x <= target.x + target.width + 60 &&
-            y >= monitor.y && y <= target.y + target.height + 40;
-        if (near) {
-            this.externalDrag = true;
-            this.clearTimer('hideTimer');
-            this.setExpanded(false);
-            this.selectTab('shelf', false);
-            this.shelf.showDropTarget(target);
+        const scale = this.options.cssScale * this.options.layoutScale;
+        if (nearDropTarget(x, y, target, 48 * scale)) {
+            if (!this.externalDrag) {
+                this._dragReturn = {mode: this.mode, tab: this.tab};
+                this.externalDrag = true;
+                this.clearTimer('hoverTimer');
+                this.clearTimer('closeTimer');
+                this.clearTimer('peekTimer');
+                if (this.mode !== 'closed') this.setExpanded(false);
+                this.selectTab('shelf', false);
+            }
+            this.shelf.showDropTarget(target).then(ok => {
+                if (!this.dead && this.externalDrag && ok) this.placeHelper();
+            });
             this.placeHelper();
-        } else { this.endDrag(); }
+        } else if (this.externalDrag) {
+            this.endDrag();
+        }
     }
 
     dropRectangle() {
-        const expanded = this.geometry(true);
-        const scale = this.options.cssScale * this.options.layoutScale;
-        const top = this.options.panelHeight;
-        return {x: expanded.x + 20 * scale, y: expanded.y + top + 40 * scale,
-            width: Math.max(160, expanded.width - 40 * scale),
-            height: Math.max(100, expanded.height - top - 56 * scale)};
+        return notchDropGeometry(this.monitor(), this.options);
     }
 
     placeHelper() {
@@ -882,13 +940,42 @@ export class NotchView {
         window.raise();
     }
 
-    endDrag() {
+    dropCompleted(count) {
+        if (this.dead) return;
+        this._dropHandled = true;
+        this.endDrag({restore: false});
+        this.selectTab('shelf', false);
+        this.setExpanded(true);
+        const n = Math.max(1, Number(count) || 1);
+        this.showStatus(`${n} file${n === 1 ? '' : 's'} stashed. Originals stay in place.`, {timeout: 2600});
+        this.pulse(this.homeStashCard);
+    }
+
+    pulse(widget) {
+        if (!widget || !this.motionDuration(1)) return;
+        widget.remove_all_transitions();
+        widget.set_pivot_point(0.5, 0.5);
+        widget.set_scale(1, 1);
+        widget.ease({scale_x: 1.02, scale_y: 1.02, duration: 110, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onStopped: () => {
+                if (this.dead) return;
+                widget.ease({scale_x: 1, scale_y: 1, duration: 160, mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+            }});
+    }
+
+    endDrag({restore = true} = {}) {
+        const previous = this._dragReturn;
+        this._dragReturn = null;
         this.externalDrag = false;
         this.placedHelperKey = null;
         this.shelf?.hideDropTarget();
         if (this.helperWindow) {
             this.helperWindow.unmake_above();
             this.helperWindow.unstick();
+        }
+        if (restore && previous && !this.dead) {
+            this.selectTab(previous.tab, false);
+            if (previous.mode === 'open') this.setExpanded(true);
         }
     }
 
@@ -1246,6 +1333,7 @@ export class NotchView {
         this.shelfRetry.visible = state !== 'ready';
         this.shelfRetry.reactive = state !== 'starting';
         this.shelfClear.reactive = state === 'ready' && this.shelf.items.length > 0;
+        this.updateHomeShelf();
         if (!this.shelf.items.length) {
             this.shelfList.add_child(emptyState('folder-symbolic', 'Shelf is empty',
                 state === 'ready' ? 'Stash a few files for later. Originals stay in place.' :
@@ -1270,6 +1358,22 @@ export class NotchView {
                 this.shelf.remove(item.uri).then(ok => { if (ok) this.showStatus('Removed from shelf.', {timeout: 1800}); });
             }}));
             this.shelfList.add_child(row);
+        }
+    }
+
+    updateHomeShelf() {
+        if (!this.homeStashCount) return;
+        const items = this.shelf.items;
+        setText(this.homeStashCount, `${items.length} file${items.length === 1 ? '' : 's'}`);
+        setText(this.homeStashHint, items.length ? 'Recent stash' :
+            'Drop files directly on the notch. Originals stay where they are.');
+        this.homeRecent.destroy_all_children();
+        for (const item of items.slice(0, 2)) {
+            const row = button({text: item.name, iconName: 'text-x-generic-symbolic', style: 'notch-row notch-home-file',
+                accessibleName: `Open ${item.name}`, onClick: () => this.shelf.open(item.uri)});
+            row.x_expand = true;
+            row.child.x_align = Clutter.ActorAlign.START;
+            this.homeRecent.add_child(row);
         }
     }
 
@@ -1331,9 +1435,21 @@ export class NotchView {
     showStatus(message, {timeout = 0, actionLabel = '', onAction = null} = {}) {
         if (this.dead || !this.statusLabel) return;
         this.clearTimer('statusTimer');
+        this._statusToken = (this._statusToken ?? 0) + 1;
         setText(this.statusLabel, message);
         this.statusLabel.remove_style_class_name('notch-status-error');
+        const wasVisible = this.statusBar.visible;
         this.statusBar.visible = !!message;
+        if (message) {
+            this.statusBar.remove_all_transitions();
+            this.statusBar.opacity = 255;
+            this.statusBar.set_translation(0, 0, 0);
+        }
+        if (message && !wasVisible) {
+            this.statusBar.opacity = 0;
+            this.statusBar.set_translation(0, 4, 0);
+            this.statusBar.ease({opacity: 255, translation_y: 0, duration: this.motionDuration(140), mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        }
         this.statusAction = onAction;
         this.statusActionButton.visible = !!actionLabel && !!onAction;
         setText(this.statusActionButton._notchLabel, actionLabel);
@@ -1343,8 +1459,22 @@ export class NotchView {
 
     clearStatus() {
         this.clearTimer('statusTimer');
+        const token = this._statusToken = (this._statusToken ?? 0) + 1;
         this.statusAction = null;
-        if (this.statusBar) this.statusBar.visible = false;
+        if (this.statusBar?.visible) {
+            this.statusBar.remove_all_transitions();
+            const duration = this.motionDuration(100);
+            if (duration) {
+                this.statusBar.ease({opacity: 0, translation_y: 4, duration, mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                    onStopped: () => {
+                        if (this.dead || token !== this._statusToken || this.statusBar.opacity > 0) return;
+                        this.statusBar.visible = false;
+                        this.layoutPages();
+                    }});
+                return;
+            }
+            this.statusBar.visible = false;
+        }
         this.layoutPages();
     }
 
@@ -1372,6 +1502,10 @@ export class NotchView {
         this.injections?.clear();
         this.content?.remove_all_transitions();
         this.closedLayer?.remove_all_transitions();
+        this.peek?.remove_all_transitions();
+        this.statusBar?.remove_all_transitions();
+        this.homeStashCard?.remove_all_transitions();
+        for (const scroll of Object.values(this.pageScrolls ?? {})) scroll.remove_all_transitions();
         this.notifications?.destroy();
         this.clock?.disconnectObject(this);
         this.interfaceSettings?.disconnectObject(this);
