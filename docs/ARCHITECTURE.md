@@ -6,6 +6,10 @@
 2. **Preferences** are shown inline by `extension/prefs.js` in the separate GNOME Extensions GTK4/Libadwaita process, bound directly to the extension GSettings schema. The optional **Python companion app** (`notch-settings`) runs only when opened and provides the same schema plus shelf/file-chooser/status tools; it calls the extension’s private bus name for state/history operations.
 3. **Helper (Python/Gio, lazy GTK4)** owns file-drop input and shelf storage. It is session-bus activatable and systemd-user supervised. It exits cleanly after five minutes without interaction and no visible drop target/dialog.
 
+## Notification routing
+
+`extension/lib/notifications.js` wraps the Shell message tray’s banner show/hide/state methods. While routing is enabled and the notch is allowed, the native banner actor is hidden from painting and picking, and the same `MessageTray.Notification` objects are rendered inside the notch with `MessageList.Message`. GNOME still owns notification policy, sounds, queueing, actions, residency and expiry. The bridge restores the original methods and native banner visibility on disable, when routing is turned off, or when fullscreen/overview/lock policy hides the notch. It does not write notification content to disk.
+
 Bus names are intentionally distinct:
 
 - Settings application: `io.github.pavit12301611.Notch`

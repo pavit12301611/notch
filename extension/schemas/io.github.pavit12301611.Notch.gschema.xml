@@ -11,10 +11,10 @@
       <summary>Monitor index (-1 for the primary monitor)</summary>
     </key>
     <key name="placement" enum="io.github.pavit12301611.Notch.Placement">
-      <default>'top-center'</default><summary>Notch placement</summary>
+      <default>'panel'</default><summary>Notch placement</summary>
     </key>
     <key name="collapsed-width" type="i">
-      <default>240</default><range min="160" max="520"/>
+      <default>220</default><range min="160" max="520"/>
       <summary>Collapsed width in logical pixels</summary>
     </key>
     <key name="collapsed-height" type="i">
@@ -22,11 +22,11 @@
       <summary>Collapsed height in logical pixels</summary>
     </key>
     <key name="expanded-width" type="i">
-      <default>720</default><range min="560" max="1100"/>
+      <default>760</default><range min="560" max="1100"/>
       <summary>Expanded width in logical pixels</summary>
     </key>
     <key name="expanded-height" type="i">
-      <default>440</default><range min="420" max="720"/>
+      <default>480</default><range min="420" max="720"/>
       <summary>Expanded height in logical pixels</summary>
     </key>
     <key name="floating-margin" type="i">
@@ -38,12 +38,32 @@
       <summary>Horizontal offset from the monitor center</summary>
     </key>
     <key name="corner-radius" type="i">
-      <default>24</default><range min="8" max="40"/>
+      <default>18</default><range min="8" max="40"/>
       <summary>Bottom corner radius</summary>
     </key>
     <key name="opacity" type="d">
-      <default>0.97</default><range min="0.5" max="1.0"/>
+      <default>1.0</default><range min="0.5" max="1.0"/>
       <summary>Notch background opacity</summary>
+    </key>
+    <key name="replace-panel-clock" type="b">
+      <default>true</default><summary>Replace the centered top-bar clock while the notch is visible</summary>
+    </key>
+    <key name="idle-clock" type="b">
+      <default>true</default><summary>Show the local time in the collapsed notch when idle</summary>
+    </key>
+    <key name="notifications-in-notch" type="b">
+      <default>true</default><summary>Route notification banners into the notch instead of the top-center banner</summary>
+    </key>
+    <key name="auto-open-notifications" type="b">
+      <default>true</default><summary>Expand the notch when a notification arrives</summary>
+    </key>
+    <key name="open-animation-ms" type="i">
+      <default>360</default><range min="0" max="1000"/>
+      <summary>Opening animation duration in milliseconds</summary>
+    </key>
+    <key name="close-animation-ms" type="i">
+      <default>260</default><range min="0" max="1000"/>
+      <summary>Closing animation duration in milliseconds</summary>
     </key>
     <key name="open-on-hover" type="b">
       <default>true</default><summary>Expand when the pointer dwells over the notch</summary>

@@ -23,5 +23,11 @@ if (directory) {
     const schema = source.lookup('io.github.pavit12301611.Notch', true);
     if (!schema || !schema.has_key('clipboard-enabled') || schema.get_default_value('clipboard-enabled').get_boolean())
         throw new Error('Schema lookup/default privacy check failed');
+    for (const key of ['replace-panel-clock', 'idle-clock', 'notifications-in-notch', 'auto-open-notifications']) {
+        if (!schema.has_key(key) || !schema.get_default_value(key).get_boolean())
+            throw new Error(`MacBook default check failed: ${key}`);
+    }
+    if (schema.get_default_value('placement').get_string() !== 'panel')
+        throw new Error('MacBook placement default check failed');
 }
 print('GJS model, geometry and schema smoke checks passed');

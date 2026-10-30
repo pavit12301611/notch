@@ -36,19 +36,22 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 
 | Area | Included behavior |
 |---|---|
+| Notifications | GNOME notification banners routed into the notch, native actions, unread count, calendar shortcut, dismiss-all; respects GNOME DND/app banner policy and restores native banners when disabled |
+| Idle clock | Local time in the collapsed MacBook-style notch when no notification is active |
 | Media | MPRIS player discovery/switching, title/artist/album, local/data/optional HTTP(S) album art, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
 | File shelf | Drag local files near the notch onto a GTK target, or choose files through GTK/portal; open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
-| Appearance | Collapsed/expanded dimensions, top-center/floating/panel placement, monitor, offset, corner radius, opacity |
-| Behavior | Hover dwell, click, keyboard shortcut, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
+| Appearance | MacBook top-edge default that replaces the centered top-bar clock; collapsed/expanded dimensions, monitor, offset, corner radius, opacity; optional legacy below-panel/floating modes |
+| Behavior | iPhone-like smooth open/close expansion from the top edge, hover dwell, click, keyboard shortcut, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
 | Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
 
 ### Important boundaries
 
 - **No physical camera-cutout detection.** Configure the notch geometry for your display. The utility draws a notch-shaped overlay; it does not identify camera hardware.
-- **Panel attachment can cover the centered clock.** The default `top-center` mode sits below the panel. Use `panel` mode deliberately.
+- **The default MacBook mode replaces the centered top-bar clock.** The original clock is restored when the notch hides, on other monitors, or when `replace-panel-clock` is off. Legacy below-panel and floating modes remain optional; floating mode is the Dynamic-Island-like layout, not the default.
+- **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel, and Mutter may apply the inset as a top-edge work-area reduction. It is not a pixel-perfect window mask.
 - **The shelf stores references, not copies.** Removing a shelf item never removes the original. Dragging files *out* of the Shell notch is not implemented; use Open, Reveal, or Copy URI.
 - **Clipboard history is text-only and off by default.** Known password-manager hints and mixed-format offers are skipped, but a password manager that exposes plain text without a hint cannot be detected reliably. Keep history off when handling secrets.
@@ -91,7 +94,7 @@ notch-settings
 notch-doctor
 ```
 
-Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, and new notifications open the Alerts page. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ### Manual dependency installation
 
@@ -173,6 +176,7 @@ notch/
 │       ├── widgets.js                   # accessible St controls
 │       ├── geometry.js                  # pure placement/clamping logic
 │       ├── model.js                     # pure parsers, formatters, clipboard ring buffer
+│       ├── notifications.js             # reversible GNOME banner routing into the notch
 │       ├── media.js                     # event-driven MPRIS client
 │       ├── audio.js                     # reuses Shell's Gvc mixer connection
 │       ├── art.js                       # bounded/cancellable album-art loader
@@ -210,11 +214,18 @@ Use **Notch Settings** for the supported UI. Equivalent examples:
 ```bash
 SCHEMA=io.github.pavit12301611.Notch
 
-gsettings set "$SCHEMA" placement 'panel'          # top-center | floating | panel
-gsettings set "$SCHEMA" collapsed-width 280
-gsettings set "$SCHEMA" expanded-width 800
+gsettings set "$SCHEMA" placement 'panel'          # panel = MacBook top edge; top-center/floating are optional legacy modes
+gsettings set "$SCHEMA" collapsed-width 220
+gsettings set "$SCHEMA" collapsed-height 34
+gsettings set "$SCHEMA" expanded-width 760
 gsettings set "$SCHEMA" expanded-height 480
-gsettings set "$SCHEMA" opacity 0.95
+gsettings set "$SCHEMA" opacity 1.0
+gsettings set "$SCHEMA" replace-panel-clock true   # hide GNOME clock only while the notch is visible
+gsettings set "$SCHEMA" idle-clock true            # show local time when idle
+gsettings set "$SCHEMA" notifications-in-notch true
+gsettings set "$SCHEMA" auto-open-notifications true
+gsettings set "$SCHEMA" open-animation-ms 360
+gsettings set "$SCHEMA" close-animation-ms 260
 gsettings set "$SCHEMA" monitor-index -1           # primary monitor
 gsettings set "$SCHEMA" hide-on-fullscreen true
 gsettings set "$SCHEMA" clipboard-enabled false    # privacy-safe default
@@ -234,6 +245,7 @@ Changes are live through GSettings. The schema enforces ranges. For multi-monito
 - Album art: optional remote fetches, 2 MiB limit, 10-second session timeout, cancellation, 12-entry cache.
 - Helper: no visible window at startup, lazy GTK import, five-minute idle exit, bus activation on demand.
 - No per-frame JavaScript work. Expansion uses Clutter implicit animations and honors GNOME’s animation setting.
+- Idle clock uses GnomeDesktop.WallClock signals; notification routing reuses GNOME’s message tray instead of polling a second notification store.
 
 These are design budgets, **not measured performance claims**. Profile on your hardware with the checklist in `docs/TESTING.md` before publishing CPU/RAM numbers.
 
@@ -293,7 +305,7 @@ busctl --user list | grep -E 'Notch|mpris'
 | No album art | Enable remote art if the player supplies a URL; check that the URL is reachable and returns a supported image |
 | Shelf helper offline | `systemctl --user restart notch-helper.service`; then `notch-doctor` |
 | Drop target does not appear | Start the helper first, drag local files from Files toward the notch, and keep the pointer there briefly; use Add files as the portal-backed fallback |
-| Notch covers clock | Switch placement to `top-center` or reduce collapsed width |
+| Want the original clock back | Turn off “Replace top-bar date & time”, or switch placement away from MacBook top edge |
 | Need emergency disable | `gnome-extensions disable notch@pavit12301611.github.io`; from a TTY, `gsettings set org.gnome.shell disable-user-extensions true` disables all user extensions |
 
 ## Uninstall

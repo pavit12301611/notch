@@ -97,8 +97,10 @@ class SettingsApplication(Adw.Application):
         )
         placement = Adw.ComboRow(
             title="Placement",
-            subtitle="Top center sits below the GNOME panel",
-            model=Gtk.StringList.new(["Top center", "Floating", "Panel attachment"]),
+            subtitle="MacBook mode replaces the centered top-bar clock",
+            model=Gtk.StringList.new(
+                ["Below panel (legacy)", "Floating island (optional)", "MacBook top edge (default)"]
+            ),
         )
         values = ["top-center", "floating", "panel"]
         placement.set_selected(values.index(self.settings.get_string("placement")))
@@ -114,6 +116,15 @@ class SettingsApplication(Adw.Application):
             (self.settings, self.settings.connect("changed::placement", placement_external))
         )
         geometry.add(placement)
+        preset = Adw.ActionRow(
+            title="MacBook preset",
+            subtitle="Top-edge notch, idle clock, notification routing and smooth animation",
+        )
+        preset_button = Gtk.Button(label="Apply", valign=Gtk.Align.CENTER)
+        preset_button.connect("clicked", lambda *_: self.apply_macbook_preset())
+        preset.add_suffix(preset_button)
+        preset.set_activatable_widget(preset_button)
+        geometry.add(preset)
         self.spin(geometry, "monitor-index", "Monitor", -1, 15, subtitle="−1 = primary monitor")
         self.spin(geometry, "collapsed-width", "Collapsed width", 160, 520, 10)
         self.spin(geometry, "collapsed-height", "Collapsed height", 24, 64)
@@ -148,8 +159,35 @@ class SettingsApplication(Adw.Application):
         finish.add(row)
         return page
 
+    def apply_macbook_preset(self):
+        self.settings.set_string("placement", "panel")
+        self.settings.set_int("collapsed-width", 220)
+        self.settings.set_int("collapsed-height", 34)
+        self.settings.set_int("expanded-width", 760)
+        self.settings.set_int("expanded-height", 480)
+        self.settings.set_int("corner-radius", 18)
+        self.settings.set_double("opacity", 1.0)
+        self.settings.set_boolean("replace-panel-clock", True)
+        self.settings.set_boolean("idle-clock", True)
+        self.settings.set_boolean("notifications-in-notch", True)
+        self.settings.set_boolean("auto-open-notifications", True)
+        self.settings.set_boolean("animations", True)
+        self.settings.set_int("open-animation-ms", 360)
+        self.settings.set_int("close-animation-ms", 260)
+
     def behavior_page(self):
         page = Adw.PreferencesPage(title="Behavior", icon_name="preferences-system-symbolic")
+        macbook = self.group(
+            page,
+            "MacBook notch",
+            "The default is a top-edge notch, not a floating Dynamic Island.",
+        )
+        self.switch(macbook, "replace-panel-clock", "Replace top-bar date & time")
+        self.switch(macbook, "idle-clock", "Show time when idle")
+        self.switch(macbook, "notifications-in-notch", "Show notifications in the notch")
+        self.switch(macbook, "auto-open-notifications", "Open notch for new notifications")
+        self.spin(macbook, "open-animation-ms", "Open animation", 0, 1000, 20, "Milliseconds")
+        self.spin(macbook, "close-animation-ms", "Close animation", 0, 1000, 20, "Milliseconds")
         behavior = self.group(page, "Opening & hiding")
         self.switch(
             behavior, "open-on-hover", "Open on hover", "Clicking the collapsed notch always works"

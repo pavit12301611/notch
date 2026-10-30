@@ -10,6 +10,22 @@ export default class NotchExtension extends Extension {
     enable() {
         if (this.view) return;
         this.settings = this.getSettings();
+        // Migrate untouched 0.1 defaults to the requested MacBook-style notch.
+        // Customized geometries are left alone; the preset is also available in Settings.
+        if (this.settings.get_string('placement') === 'top-center' &&
+            this.settings.get_int('collapsed-width') === 240 &&
+            this.settings.get_int('expanded-width') === 720) {
+            this.settings.set_string('placement', 'panel');
+            this.settings.set_int('collapsed-width', 220);
+            this.settings.set_int('expanded-width', 760);
+            this.settings.set_int('expanded-height', 480);
+            this.settings.set_int('corner-radius', 18);
+            this.settings.set_double('opacity', 1.0);
+            this.settings.set_boolean('replace-panel-clock', true);
+            this.settings.set_boolean('idle-clock', true);
+            this.settings.set_boolean('notifications-in-notch', true);
+            this.settings.set_boolean('auto-open-notifications', true);
+        }
         this.view = new NotchView(this);
         this.keybindingAdded = Main.wm.addKeybinding('toggle-notch', this.settings,
             Meta.KeyBindingFlags.NONE, Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,

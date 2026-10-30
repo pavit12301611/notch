@@ -1,12 +1,15 @@
 /* Shell (St/CSS) styling. GTK4/Libadwaita styling lives in the Python app. */
 .notch-shell {
-  background-color: #101114;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-top-width: 0;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.32);
+  background-color: #000000;
+  border: 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
   color: #f5f5f7;
 }
-.notch-pill { background: transparent; border: 0; padding: 0 16px; color: #f5f5f7; }
+.notch-pill { background: transparent; border: 0; padding: 0 14px; color: #f5f5f7; }
+.notch-summary { spacing: 8px; }
+.notch-clock { font-weight: 600; font-size: 0.95em; color: #f5f5f7; }
+.notch-badge { background-color: #a5f0ce; color: #14271f; border-radius: 999px; padding: 0 6px; font-size: 0.75em; font-weight: 700; }
+.notch-notification { background-color: #1b1d23; border-radius: 14px; padding: 4px; }
 .notch-pill:hover, .notch-pill:focus { background: rgba(255,255,255,0.05); }
 .notch-title { font-weight: 700; font-size: 1em; }
 .notch-muted { color: #a9abb5; font-size: 0.9em; }

@@ -51,8 +51,8 @@ export default class NotchPreferences extends ExtensionPreferences {
             'Logical pixels. The notch is clamped to the selected monitor.');
         const placementValues = ['top-center', 'floating', 'panel'];
         const placementModel = new Gtk.StringList();
-        ['Top center (below panel)', 'Floating', 'Panel attachment'].forEach(s => placementModel.append(s));
-        const placement = new Adw.ComboRow({title: 'Placement', model: placementModel,
+        ['Below panel (legacy)', 'Floating island (optional)', 'MacBook top edge (default)'].forEach(s => placementModel.append(s));
+        const placement = new Adw.ComboRow({title: 'Placement', subtitle: 'MacBook mode replaces the centered top-bar clock', model: placementModel,
             selected: Math.max(0, placementValues.indexOf(settings.get_string('placement')))});
         track(placement, placement.connect('notify::selected', () => {
             settings.set_string('placement', placementValues[placement.selected]);
@@ -62,6 +62,29 @@ export default class NotchPreferences extends ExtensionPreferences {
             if (index >= 0 && placement.selected !== index) placement.selected = index;
         }));
         shape.add(placement);
+        const preset = new Adw.ActionRow({title: 'MacBook preset',
+            subtitle: 'Top-edge notch, idle clock, notification routing and smooth open/close animation'});
+        const presetButton = new Gtk.Button({label: 'Apply', valign: Gtk.Align.CENTER});
+        presetButton.connect('clicked', () => {
+            settings.set_string('placement', 'panel');
+            settings.set_int('collapsed-width', 220);
+            settings.set_int('collapsed-height', 34);
+            settings.set_int('expanded-width', 760);
+            settings.set_int('expanded-height', 480);
+            settings.set_int('corner-radius', 18);
+            settings.set_double('opacity', 1.0);
+            settings.set_boolean('replace-panel-clock', true);
+            settings.set_boolean('idle-clock', true);
+            settings.set_boolean('notifications-in-notch', true);
+            settings.set_boolean('auto-open-notifications', true);
+            settings.set_boolean('animations', true);
+            settings.set_int('open-animation-ms', 360);
+            settings.set_int('close-animation-ms', 260);
+            window.add_toast(new Adw.Toast({title: 'MacBook preset applied'}));
+        });
+        preset.add_suffix(presetButton);
+        preset.set_activatable_widget(presetButton);
+        shape.add(preset);
         addSpin(shape, 'monitor-index', 'Monitor', -1, 15, 1, '-1 = primary monitor');
         addSpin(shape, 'collapsed-width', 'Collapsed width', 160, 520, 10);
         addSpin(shape, 'collapsed-height', 'Collapsed height', 24, 64);
@@ -91,6 +114,14 @@ export default class NotchPreferences extends ExtensionPreferences {
 
         const behavior = new Adw.PreferencesPage({title: 'Behavior',
             icon_name: 'preferences-system-symbolic'});
+        const macbook = group(behavior, 'MacBook notch',
+            'The default is a top-edge notch, not a floating Dynamic Island.');
+        addSwitch(macbook, 'replace-panel-clock', 'Replace top-bar date & time');
+        addSwitch(macbook, 'idle-clock', 'Show time when idle');
+        addSwitch(macbook, 'notifications-in-notch', 'Show notifications in the notch');
+        addSwitch(macbook, 'auto-open-notifications', 'Open notch for new notifications');
+        addSpin(macbook, 'open-animation-ms', 'Open animation (ms)', 0, 1000, 20);
+        addSpin(macbook, 'close-animation-ms', 'Close animation (ms)', 0, 1000, 20);
         const opening = group(behavior, 'Opening & hiding');
         addSwitch(opening, 'open-on-hover', 'Open on hover');
         addSpin(opening, 'hover-delay-ms', 'Hover delay (ms)', 0, 1500, 50);

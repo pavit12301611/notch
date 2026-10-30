@@ -60,6 +60,16 @@ journalctl --user -b -t gnome-shell -f
 - [ ] GNOME Enable Animations off and Notch animations off both remove motion.
 - [ ] Experimental reservation changes only the collapsed work-area inset and restores it on disable.
 
+### MacBook notch, clock and notifications
+
+- [ ] Default placement is the top edge; the centered GNOME clock is hidden only while the notch is visible on that monitor.
+- [ ] Idle notch shows local time and respects 12/24-hour and timezone changes.
+- [ ] New notifications appear in Alerts instead of the top-center banner; native actions and default activation work.
+- [ ] DND/app banner settings still suppress normal previews; critical notifications still behave as GNOME intends.
+- [ ] Disabling routing or the extension restores native banners, including an active banner.
+- [ ] Fullscreen/overview/lock does not leave the clock hidden or expose notification content through the notch.
+- [ ] Open/close animation is smooth, honors configurable durations and GNOME Enable Animations, and does not overshoot the monitor.
+
 ### Media/audio
 
 - [ ] Spotify, Rhythmbox, VLC and Firefox MPRIS appear and disappear cleanly.

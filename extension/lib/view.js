@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import GnomeDesktop from 'gi://GnomeDesktop?version=4.0';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
@@ -13,9 +14,11 @@ import {QuickActions} from './actions.js';
 import {ClipboardController} from './clipboard.js';
 import {ShelfController} from './shelf.js';
 import {ArtLoader} from './art.js';
+import {NotificationBridge} from './notifications.js';
 
 
 const TABS = [
+    ['notifications', 'Alerts', 'preferences-system-notifications-symbolic'],
     ['media', 'Media', 'audio-x-generic-symbolic'],
     ['system', 'System', 'utilities-system-monitor-symbolic'],
     ['shelf', 'Shelf', 'folder-symbolic'],
@@ -38,7 +41,7 @@ export class NotchView {
 
     _initialize() {
         this.expanded = false;
-        this.tab = 'media';
+        this.tab = 'notifications';
         this.dead = false;
         this.allowed = true;
         this.externalDrag = false;
@@ -56,6 +59,9 @@ export class NotchView {
         this.shelf = new ShelfController(this.directory, () => this.updateShelf(), e => this.showError(e));
         this.art = new ArtLoader(this.settings.get_boolean('remote-art'));
         this.actions = new QuickActions(this.settings, () => this.updateActions());
+        this.notifications = new NotificationBridge(n => this.notificationActive(n), () => this.updateNotifications());
+        this.wallClock = new GnomeDesktop.WallClock();
+        this.wallClock.connectObject('notify::clock', () => this.updateSummary(), this);
         this.build();
         this.connectEnvironment();
         this.media.start();
@@ -69,6 +75,9 @@ export class NotchView {
         this.updateShelf();
         this.updateClipboard();
         this.syncVisibility();
+        this.notifications.start();
+        this.notifications.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
+        this.updateSummary();
         this.updateReserve();
     }
 
@@ -96,8 +105,20 @@ export class NotchView {
         this.actor = new St.Widget({style_class: 'notch-shell', reactive: true,
             track_hover: true, clip_to_allocation: true, ...collapsed,
             layout_manager: new Clutter.FixedLayout()});
-        this.pill = button({text: 'Notch', iconName: 'audio-x-generic-symbolic', style: 'notch-pill',
-            accessibleName: 'Expand Notch', onClick: () => this.toggle()});
+        const summary = box(false, 'notch-summary', 8);
+        summary.x_align = Clutter.ActorAlign.CENTER;
+        this.summaryIcon = icon('preferences-system-notifications-symbolic', 14);
+        this.summaryLabel = label('', 'notch-clock', true);
+        this.summaryLabel.x_align = Clutter.ActorAlign.CENTER;
+        this.summaryLabel.clutter_text.ellipsize = 3;
+        this.summaryBadge = label('', 'notch-badge');
+        this.summaryBadge.visible = false;
+        summary.add_child(this.summaryIcon);
+        summary.add_child(this.summaryLabel);
+        summary.add_child(this.summaryBadge);
+        this.pill = new St.Button({child: summary, style_class: 'notch-pill', can_focus: true,
+            accessible_name: 'Expand Notch', x_expand: true, y_expand: true});
+        this.pill.connect('clicked', () => this.toggle());
         this.pill.set_size(collapsed.width, collapsed.height);
         this.actor.add_child(this.pill);
         this.content = box(true, 'notch-content', 10);
@@ -121,7 +142,7 @@ export class NotchView {
         header.add_child(button({iconName: 'window-close-symbolic', accessibleName: 'Collapse Notch',
             onClick: () => this.setExpanded(false)}));
         this.content.add_child(header);
-        this.pages = {media: this.buildMedia(), system: this.buildSystem(),
+        this.pages = {notifications: this.buildNotifications(), media: this.buildMedia(), system: this.buildSystem(),
             shelf: this.buildShelf(), clipboard: this.buildClipboard()};
         for (const page of Object.values(this.pages)) {
             page.x_expand = true;
@@ -150,9 +171,107 @@ export class NotchView {
 
     applyStyle() {
         const radius = this.settings.get_int('corner-radius');
-        const attached = this.options.placement === 'panel';
-        this.actor.set_style(`border-radius: ${attached ? 0 : radius}px ${attached ? 0 : radius}px ${radius}px ${radius}px;`);
+        const topRadius = this.options.placement === 'panel' ? 0 : radius;
+        this.actor.set_style(`border-radius: ${topRadius}px ${topRadius}px ${radius}px ${radius}px;`);
         this.actor.opacity = Math.round(this.settings.get_double('opacity') * 255);
+    }
+
+    syncPanelClock() {
+        const dateMenu = Main.panel.statusArea.dateMenu;
+        const container = dateMenu?.container;
+        if (!container) return;
+        const primary = Main.layoutManager.primaryMonitor;
+        const shouldHide = this.allowed && this.settings.get_boolean('replace-panel-clock') &&
+            this.options.placement === 'panel' && this.monitor().index === primary?.index;
+        if (shouldHide && !this.clockHidden) {
+            this.clockOriginal = {opacity: container.opacity, reactive: container.reactive};
+            container.opacity = 0;
+            container.reactive = false;
+            this.clockHidden = true;
+        } else if (!shouldHide && this.clockHidden) {
+            container.opacity = this.clockOriginal?.opacity ?? 255;
+            container.reactive = this.clockOriginal?.reactive ?? true;
+            this.clockHidden = false;
+        }
+    }
+
+    updateSummary() {
+        if (this.dead || !this.summaryLabel) return;
+        const active = this.notifications?.active;
+        const count = this.notifications?.count ?? 0;
+        const media = this.media?.snapshot();
+        if (active) {
+            setText(this.summaryLabel, active.title || active.source?.title || 'Notification');
+            this.summaryIcon.gicon = active.gicon ?? null;
+            this.summaryIcon.icon_name = active.gicon ? null : 'preferences-system-notifications-symbolic';
+        } else if (this.settings.get_boolean('idle-clock')) {
+            setText(this.summaryLabel, this.wallClock.clock || '');
+            this.summaryIcon.gicon = null;
+            this.summaryIcon.icon_name = media?.status === 'Playing' ?
+                'audio-speakers-symbolic' : 'preferences-system-time-symbolic';
+        } else {
+            setText(this.summaryLabel, 'Notch');
+            this.summaryIcon.gicon = null;
+            this.summaryIcon.icon_name = 'preferences-system-notifications-symbolic';
+        }
+        setText(this.summaryBadge, count > 99 ? '99+' : String(count));
+        this.summaryBadge.visible = count > 0 && !active;
+        if (this.pill) {
+            this.pill.accessible_name = active ? `Notification: ${this.summaryLabel.text}` :
+                `Notch, ${this.summaryLabel.text}${count ? `, ${count} notifications` : ''}`;
+        }
+    }
+
+    notificationActive(notification) {
+        if (this.dead) return;
+        this.updateSummary();
+        if (notification) {
+            if (this.settings.get_boolean('auto-open-notifications') && this.allowed &&
+                !this.externalDrag && !this.expanded) {
+                this.notificationAutoOpened = true;
+                this.setTab('notifications');
+                this.setExpanded(true);
+            }
+        } else if (this.notificationAutoOpened) {
+            this.notificationAutoOpened = false;
+            if (!this.actor.hover && !global.stage.get_grab_actor() && !this.externalDrag)
+                this.setExpanded(false);
+        }
+    }
+
+    buildNotifications() {
+        const page = box(true, '', 8);
+        const header = box(false, '', 8);
+        this.notificationStatus = label('Notifications', 'notch-title', true);
+        header.add_child(this.notificationStatus);
+        header.add_child(button({text: 'Calendar', iconName: 'x-office-calendar-symbolic',
+            accessibleName: 'Open GNOME calendar and notification list',
+            onClick: () => Main.panel.toggleCalendar()}));
+        header.add_child(button({text: 'Dismiss all', iconName: 'edit-clear-all-symbolic',
+            accessibleName: 'Dismiss all non-resident notifications',
+            onClick: () => this.notifications.dismissAll()}));
+        page.add_child(header);
+        this.notificationList = box(true, '', 8);
+        this.notificationList.x_expand = true;
+        const scroll = new St.ScrollView({style_class: 'notch-scroll', hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC, y_expand: true});
+        scroll.add_child(this.notificationList);
+        page.add_child(scroll);
+        return page;
+    }
+
+    updateNotifications() {
+        if (this.dead || !this.notificationList) return;
+        const count = this.notifications?.count ?? 0;
+        setText(this.notificationStatus, count ? `Notifications · ${count} unread` : 'Notifications');
+        this.notificationList.destroy_all_children();
+        const items = this.notifications?.items() ?? [];
+        if (!items.length) {
+            this.notificationList.add_child(label('No notifications. New alerts appear here instead of the top-center banner.'));
+            return;
+        }
+        for (const notification of items)
+            this.notificationList.add_child(this.notifications.createMessage(notification));
     }
 
     connectEnvironment() {
@@ -257,6 +376,12 @@ export class NotchView {
             this.actions = new QuickActions(this.settings, () => this.updateActions());
             this.updateActions();
         }
+        if (key === 'notifications-in-notch' || key === 'auto-open-notifications')
+            this.notifications.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
+        if (key === 'idle-clock' || key === 'replace-panel-clock' || key === 'placement' || key === 'monitor-index') {
+            this.syncPanelClock();
+            this.updateSummary();
+        }
         if (key === 'remote-art') {
             this.art.setAllowRemote(this.settings.get_boolean('remote-art'));
             this.artKey = null;
@@ -310,6 +435,8 @@ export class NotchView {
         this.actor.visible = this.allowed;
         if (this.reserve) this.reserve.visible = this.allowed;
         this.clipboard.setPaused(locked);
+        this.notifications?.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
+        this.syncPanelClock();
         this.diagnostics.setActive(this.allowed && this.expanded && this.tab === 'system');
         if (!this.allowed) {
             this.endDrag();
@@ -362,7 +489,8 @@ export class NotchView {
         this.pill.remove_all_transitions();
         this.content.remove_all_transitions();
         this.content.visible = expanded;
-        const duration = this.settings.get_boolean('animations') && St.Settings.get().enable_animations ? 220 : 0;
+        const animate = this.settings.get_boolean('animations') && St.Settings.get().enable_animations;
+        const duration = animate ? this.settings.get_int(expanded ? 'open-animation-ms' : 'close-animation-ms') : 0;
         const properties = {...rect, duration, mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
             onComplete: () => {
                 if (token !== this.animationToken || this.dead) return;
@@ -378,8 +506,9 @@ export class NotchView {
         } else {
             if (expanded) this.pill.visible = false;
             this.actor.ease(properties);
-            this.pill.ease({opacity: expanded ? 0 : 255, duration});
-            this.content.ease({opacity: expanded ? 255 : 0, duration});
+            this.pill.ease({opacity: expanded ? 0 : 255, duration: Math.round(duration * 0.55)});
+            this.content.ease({opacity: expanded ? 255 : 0, duration: Math.round(duration * 0.8),
+                delay: expanded ? Math.round(duration * 0.2) : 0});
         }
         this.layoutContent();
         this.setTab(this.tab);
@@ -408,6 +537,7 @@ export class NotchView {
             else this.shelf.start();
         }
         if (tab === 'media') this.updateMedia();
+        if (tab === 'notifications') this.updateNotifications();
     }
 
     positionTimer() {
@@ -487,9 +617,7 @@ export class NotchView {
         if (this.dead || !this.mediaTitle) return;
         const state = this.media.snapshot();
         setText(this.mediaTitle, state.title);
-        setText(this.pill.child.get_last_child(), state.names.length ? state.title : 'Notch');
-        this.pill.child.get_first_child().icon_name = state.status === 'Playing' ?
-            'audio-speakers-symbolic' : 'audio-x-generic-symbolic';
+        this.updateSummary();
         setText(this.mediaArtist, state.artist || state.identity);
         setText(this.mediaAlbum, state.album);
         setText(this.mediaElapsed, formatTime(state.positionUs));
@@ -707,13 +835,25 @@ export class NotchView {
     state() {
         return JSON.stringify({version: '0.1.0', expanded: this.expanded, visible: this.allowed,
             media: this.media.snapshot().identity, clipboardCount: this.clipboard.history.items.length,
-            shelfCount: this.shelf.items.length});
+            shelfCount: this.shelf.items.length, notificationCount: this.notifications?.count ?? 0,
+            activeNotification: !!this.notifications?.active});
     }
 
     destroy() {
         this.dead = true;
         this.animationToken++;
         for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer']) this.clearTimer(name);
+        this.notificationAutoOpened = false;
+        this.notifications?.destroy();
+        this.wallClock?.disconnectObject(this);
+        if (this.clockHidden) {
+            const container = Main.panel.statusArea.dateMenu?.container;
+            if (container) {
+                container.opacity = this.clockOriginal?.opacity ?? 255;
+                container.reactive = this.clockOriginal?.reactive ?? true;
+            }
+            this.clockHidden = false;
+        }
         if (this.stagePress) global.stage.disconnect(this.stagePress);
         if (this.screenSignal) Gio.DBus.session.signal_unsubscribe(this.screenSignal);
         this.screenSignal = 0;

@@ -53,6 +53,36 @@ class ProjectTests(unittest.TestCase):
         self.assertNotIn("Open Notch Settings", prefs)
         self.assertNotIn("openPreferences()", (ROOT / "extension/extension.js").read_text())
 
+    def test_macbook_defaults_and_notification_keys(self):
+        schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
+        keys = {key.attrib["name"]: key for key in schema.findall(".//key")}
+        for name in (
+            "replace-panel-clock",
+            "idle-clock",
+            "notifications-in-notch",
+            "auto-open-notifications",
+            "open-animation-ms",
+            "close-animation-ms",
+        ):
+            self.assertIn(name, keys)
+        self.assertEqual(keys["placement"].find("default").text, "'panel'")
+        self.assertEqual(keys["collapsed-width"].find("default").text, "220")
+        self.assertEqual(keys["opacity"].find("default").text, "1.0")
+        self.assertEqual(keys["notifications-in-notch"].find("default").text, "true")
+
+    def test_notification_bridge_is_reversible(self):
+        source = (ROOT / "extension/lib/notifications.js").read_text()
+        self.assertIn("MessageList.Message", source)
+        self.assertNotIn("MessageList.NotificationMessage", source)
+        for method in ("_showNotification", "_hideNotificationCompleted", "_updateState"):
+            self.assertIn(method, source)
+        self.assertIn("_restoreNativeBanner", source)
+        self.assertIn("Shell.util_set_hidden_from_pick(bin, false)", source)
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("GnomeDesktop.WallClock", view)
+        self.assertIn("syncPanelClock", view)
+        self.assertIn("container.opacity = this.clockOriginal?.opacity ?? 255", view)
+
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:
             subprocess.run(

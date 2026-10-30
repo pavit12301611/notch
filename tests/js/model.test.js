@@ -93,3 +93,16 @@ test('formatting is stable for missing values and boundaries', () => {
     assert.equal(formatTime(65e6), '1:05');
     assert.equal(formatTime(-1), '0:00');
 });
+
+
+test('MacBook notch attaches to the top edge and expands around the same center', () => {
+    const mac = {...options, placement: 'panel', collapsedWidth: 220, collapsedHeight: 34,
+        expandedWidth: 760, expandedHeight: 480};
+    const closed = notchGeometry(monitor, mac, false);
+    const open = notchGeometry(monitor, mac, true);
+    assert.equal(closed.y, 0);
+    assert.equal(open.y, 0);
+    assert.equal(closed.x + closed.width / 2, open.x + open.width / 2);
+    assert.equal(closed.width, 220);
+    assert.equal(open.width, 760);
+});
