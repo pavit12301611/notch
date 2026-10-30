@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Notch
+Comment=Configure your GNOME notch, media controls and file shelf
+Exec=@bindir@/notch-settings
+Icon=io.github.pavit12301611.Notch
+Terminal=false
+Categories=Utility;GTK;GNOME;
+Keywords=notch;media;clipboard;shelf;
+StartupNotify=true
+X-GNOME-UsesNotifications=false

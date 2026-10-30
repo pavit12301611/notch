@@ -1,0 +1,4 @@
+#!/bin/sh
+export NOTCH_EXTENSION_DIR='@extdir@'
+export PYTHONPATH='@pkgdatadir@/python'${PYTHONPATH:+:$PYTHONPATH}
+exec '@python@' -m notch_app.helper "$@"

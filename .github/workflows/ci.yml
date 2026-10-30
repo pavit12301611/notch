@@ -1,0 +1,33 @@
+name: Fedora checks
+on:
+  push:
+  pull_request:
+
+jobs:
+  fedora:
+    runs-on: ubuntu-latest
+    container: fedora:44
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build and test dependencies
+        run: |
+          dnf install -y make git-core python3 python3-gobject gtk4 libadwaita glib2-devel \
+            gjs gnome-shell libsoup3 desktop-file-utils nodejs npm dbus-daemon \
+            rpm-build systemd-rpm-macros
+      - run: npm ci
+      - run: make stage PREFIX=/usr SYSCONFDIR=/etc
+      - name: Compile schemas for GJS smoke tests
+        run: |
+          mkdir -p .generated/schemas
+          cp extension/schemas/*.xml .generated/schemas/
+          glib-compile-schemas .generated/schemas
+      - run: make check
+      - name: GJS/GLib smoke test (not a live Shell test)
+        run: GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" dbus-run-session -- gjs -m tests/gjs_smoke.js
+      - name: Doctor with staged schema
+        run: GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" PYTHONPATH=app python3 -m notch_app.doctor --offline
+      - run: make rpm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fedora-rpm
+          path: dist/rpmbuild/RPMS/noarch/*.rpm

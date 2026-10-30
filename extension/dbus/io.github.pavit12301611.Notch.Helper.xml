@@ -1,0 +1,19 @@
+<node>
+  <interface name="io.github.pavit12301611.Notch.Helper">
+    <method name="Ping"><arg name="version" type="s" direction="out"/></method>
+    <method name="ShowDropTarget">
+      <arg name="x" type="i" direction="in"/><arg name="y" type="i" direction="in"/>
+      <arg name="width" type="i" direction="in"/><arg name="height" type="i" direction="in"/>
+    </method>
+    <method name="HideDropTarget"/>
+    <method name="ChooseFiles"/>
+    <method name="List"><arg name="json" type="s" direction="out"/></method>
+    <method name="Add"><arg name="uris" type="as" direction="in"/><arg name="json" type="s" direction="out"/></method>
+    <method name="Remove"><arg name="uri" type="s" direction="in"/><arg name="json" type="s" direction="out"/></method>
+    <method name="Clear"><arg name="json" type="s" direction="out"/></method>
+    <method name="Open"><arg name="uri" type="s" direction="in"/></method>
+    <method name="Reveal"><arg name="uri" type="s" direction="in"/></method>
+    <method name="CopyUri"><arg name="uri" type="s" direction="in"/></method>
+    <signal name="ShelfChanged"><arg name="json" type="s"/></signal>
+  </interface>
+</node>
