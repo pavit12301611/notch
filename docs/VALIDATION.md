@@ -9,11 +9,12 @@
 
 - ESLint over extension and JavaScript tests.
 - Node model/geometry suite: **7 passed**.
-- Python compilation and unittest suite: **12 passed**.
+- Python compilation and unittest suite: **13 passed**.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.
 - Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.
 - Remote bootstrap help and invalid-ref rejection checks (no network needed).
+- Regression check for the separate GNOME Extensions prefs resource import path.
 - Staged `make install` / `make uninstall` with `/usr` prefix, including the RPM user-unit directory override.
 - Source distribution creation and archive listing.
 - `git diff --check`.

@@ -32,6 +32,15 @@ class ProjectTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(ET.parse(path).getroot().findall("interface"))
 
+    def test_shell_resource_import_paths(self):
+        # prefs.js lives in the separate org.gnome.Shell.Extensions resource bundle,
+        # not in the main org.gnome.Shell bundle used by extension.js.
+        prefs = (ROOT / "extension/prefs.js").read_text()
+        self.assertIn("resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js", prefs)
+        self.assertNotIn("resource:///org/gnome/shell/extensions/prefs.js", prefs)
+        extension = (ROOT / "extension/extension.js").read_text()
+        self.assertIn("resource:///org/gnome/shell/extensions/extension.js", extension)
+
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:
             subprocess.run(
