@@ -4,6 +4,9 @@
 
 ### Adaptive layout and action reliability
 
+- Fixed Shelf/Media D-Bus result handling: GJS `call_finish()` returns a `GLib.Variant`; unpack it instead of destructuring it as an array (`{} is not iterable`).
+- Header labels now collapse to active-only/icon modes before they can ellipsize; tab labels no longer truncate.
+
 - Fixed Fedora 44 / PyGObject helper startup crash: use `Gio.DBusConnection.register_object_with_closures2` (fallback `register_object`) and `unregister_object`, not nonexistent `*_object_path` methods.
 - Fixed `notch-doctor` and companion settings status calls: PyGObject `Variant` results use `unpack()`, not GJS-style `deepUnpack()`.
 

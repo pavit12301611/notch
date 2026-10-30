@@ -94,6 +94,17 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("new NotchSurface", view)
         self.assertIn("SpringGeometry", view)
 
+    def test_gjs_dbus_results_are_unpacked_not_destructured(self):
+        shelf = (ROOT / "extension/lib/shelf.js").read_text()
+        media = (ROOT / "extension/lib/media.js").read_text()
+        self.assertIn("result.deepUnpack()[0]", shelf)
+        self.assertIn("result.deepUnpack()[0]", media)
+        self.assertNotIn("const [json] = await call", shelf)
+        self.assertNotIn(".then(([names])", media)
+        self.assertNotIn(".then(([variant])", media)
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("Pango.EllipsizeMode.NONE", view)
+
     def test_pyobject_dbus_apis_match_gio(self):
         helper = (ROOT / "app/notch_app/helper.py").read_text()
         self.assertIn("register_object_with_closures2", helper)

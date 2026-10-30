@@ -41,8 +41,10 @@ export class MediaController {
                 1500, this.cancellable, (connection, result) => {
                     try { resolve(connection.call_finish(result)); } catch (e) { reject(e); }
                 });
-        }).then(([names]) => {
-            if (!this.dead) names.deepUnpack().filter(n => n.startsWith(PREFIX)).forEach(n => this.add(n));
+        }).then(result => {
+            const names = result.deepUnpack()[0];
+            if (!this.dead && Array.isArray(names))
+                names.filter(n => typeof n === 'string' && n.startsWith(PREFIX)).forEach(n => this.add(n));
         }).catch(e => this.report(e));
     }
 
@@ -152,8 +154,10 @@ export class MediaController {
         this.positionPending = true;
         const name = this.selected;
         call(entry.player, 'org.freedesktop.DBus.Properties.Get',
-            new GLib.Variant('(ss)', [PLAYER, 'Position'])).then(([variant]) => {
-            if (!this.dead && this.players.has(name)) this.setPosition(name, variant.deepUnpack());
+            new GLib.Variant('(ss)', [PLAYER, 'Position'])).then(result => {
+            let value = result.deepUnpack()[0];
+            if (value?.deepUnpack) value = value.deepUnpack();
+            if (!this.dead && this.players.has(name)) this.setPosition(name, value);
         }).catch(() => { /* Position is not emitted as a property-change by many players. */ })
             .finally(() => { this.positionPending = false; });
     }

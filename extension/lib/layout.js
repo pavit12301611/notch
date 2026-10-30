@@ -12,8 +12,10 @@ export const LAYOUT_LIMITS = Object.freeze({
 });
 
 export function headerMode(width) {
-    if (width >= 600) return 'labels';
-    if (width >= 380) return 'active';
+    // Six labelled tabs plus settings/close need ~760 logical px; below that
+    // show only the active label, then icons. Never ellipsize tab text.
+    if (width >= 760) return 'labels';
+    if (width >= 420) return 'active';
     return 'icons';
 }
 

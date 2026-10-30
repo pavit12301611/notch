@@ -67,9 +67,14 @@ export class ShelfController {
 
     acceptState(json) {
         try {
-            const items = JSON.parse(json);
-            if (!Array.isArray(items)) return;
-            this.items = items.slice(0, 100).filter(i => typeof i.uri === 'string' &&
+            const parsed = JSON.parse(json);
+            const items = Array.isArray(parsed) ? parsed :
+                Array.isArray(parsed?.items) ? parsed.items : null;
+            if (!items) {
+                this.onError('The shelf helper returned invalid data. Press Retry or run notch-doctor.');
+                return;
+            }
+            this.items = items.slice(0, 100).filter(i => typeof i?.uri === 'string' &&
                 i.uri.startsWith('file://') && typeof i.name === 'string');
             this.onChange();
         } catch { this.onError('The shelf helper returned invalid data.'); }
@@ -78,8 +83,8 @@ export class ShelfController {
     async refresh() {
         if (!this.ready || this.dead) return false;
         try {
-            const [json] = await call(this.proxy, 'List');
-            if (!this.dead) this.acceptState(json.deepUnpack());
+            const result = await call(this.proxy, 'List');
+            if (!this.dead) this.acceptState(result.deepUnpack()[0]);
             return true;
         } catch (e) {
             this.report(e);

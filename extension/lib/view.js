@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
+import Pango from 'gi://Pango';
 import GnomeDesktop from 'gi://GnomeDesktop?version=4.0';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Urgency} from 'resource:///org/gnome/shell/ui/messageTray.js';
@@ -189,6 +190,10 @@ export class NotchView {
         for (const [id, title, iconName] of TABS) {
             const tab = button({text: title, iconName, style: 'notch-tab', accessibleName: title,
                 onClick: () => this.selectTab(id)});
+            if (tab._notchLabel) {
+                tab._notchLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+                tab._notchLabel.x_expand = false;
+            }
             this.tabsBox.add_child(tab);
             this.tabButtons.set(id, tab);
         }

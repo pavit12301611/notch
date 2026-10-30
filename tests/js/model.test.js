@@ -198,7 +198,8 @@ test('adaptive layout fits the actual notch rectangle and collapses labels befor
         assert.ok(layout.pageHeight > 0);
         assert.ok(rect.x >= 0 && rect.x + rect.width <= monitor.width);
     }
-    assert.equal(headerMode(640), 'labels');
+    assert.equal(headerMode(800), 'labels');
+    assert.equal(headerMode(640), 'active');
     assert.equal(headerMode(480), 'active');
     assert.equal(headerMode(320), 'icons');
     assert.equal(statColumns(640), 4);
