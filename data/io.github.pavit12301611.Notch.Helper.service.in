@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=io.github.pavit12301611.Notch.Helper
+Exec=@bindir@/notch-helper
+SystemdService=notch-helper.service

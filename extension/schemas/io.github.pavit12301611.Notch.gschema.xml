@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <enum id="io.github.pavit12301611.Notch.Placement">
+    <value nick="top-center" value="0"/>
+    <value nick="floating" value="1"/>
+    <value nick="panel" value="2"/>
+  </enum>
+  <schema id="io.github.pavit12301611.Notch" path="/io/github/pavit12301611/Notch/">
+    <key name="monitor-index" type="i">
+      <default>-1</default><range min="-1" max="15"/>
+      <summary>Monitor index (-1 for the primary monitor)</summary>
+    </key>
+    <key name="placement" enum="io.github.pavit12301611.Notch.Placement">
+      <default>'top-center'</default><summary>Notch placement</summary>
+    </key>
+    <key name="collapsed-width" type="i">
+      <default>240</default><range min="160" max="520"/>
+      <summary>Collapsed width in logical pixels</summary>
+    </key>
+    <key name="collapsed-height" type="i">
+      <default>34</default><range min="24" max="64"/>
+      <summary>Collapsed height in logical pixels</summary>
+    </key>
+    <key name="expanded-width" type="i">
+      <default>720</default><range min="560" max="1100"/>
+      <summary>Expanded width in logical pixels</summary>
+    </key>
+    <key name="expanded-height" type="i">
+      <default>440</default><range min="420" max="720"/>
+      <summary>Expanded height in logical pixels</summary>
+    </key>
+    <key name="floating-margin" type="i">
+      <default>12</default><range min="0" max="200"/>
+      <summary>Top margin in floating mode</summary>
+    </key>
+    <key name="horizontal-offset" type="i">
+      <default>0</default><range min="-2000" max="2000"/>
+      <summary>Horizontal offset from the monitor center</summary>
+    </key>
+    <key name="corner-radius" type="i">
+      <default>24</default><range min="8" max="40"/>
+      <summary>Bottom corner radius</summary>
+    </key>
+    <key name="opacity" type="d">
+      <default>0.97</default><range min="0.5" max="1.0"/>
+      <summary>Notch background opacity</summary>
+    </key>
+    <key name="open-on-hover" type="b">
+      <default>true</default><summary>Expand when the pointer dwells over the notch</summary>
+    </key>
+    <key name="hover-delay-ms" type="i">
+      <default>180</default><range min="0" max="1500"/>
+      <summary>Hover dwell time in milliseconds</summary>
+    </key>
+    <key name="auto-hide-ms" type="i">
+      <default>0</default><range min="0" max="60000"/>
+      <summary>Automatically collapse after this many milliseconds; zero disables</summary>
+    </key>
+    <key name="animations" type="b">
+      <default>true</default><summary>Animate expansion, respecting GNOME reduced-motion settings</summary>
+    </key>
+    <key name="hide-on-fullscreen" type="b">
+      <default>true</default><summary>Hide on a monitor containing a fullscreen window</summary>
+    </key>
+    <key name="hide-in-overview" type="b">
+      <default>true</default><summary>Hide while the Activities overview is open</summary>
+    </key>
+    <key name="reserve-space" type="b">
+      <default>false</default><summary>Reserve collapsed notch space in the monitor work area (experimental)</summary>
+    </key>
+    <key name="remote-art" type="b">
+      <default>true</default><summary>Download HTTP(S) album art supplied by media players</summary>
+    </key>
+    <key name="show-dnd" type="b">
+      <default>true</default><summary>Show the Do Not Disturb quick action</summary>
+    </key>
+    <key name="show-night-light" type="b">
+      <default>true</default><summary>Show the Night Light quick action</summary>
+    </key>
+    <key name="show-dark-mode" type="b">
+      <default>true</default><summary>Show the Dark Mode quick action</summary>
+    </key>
+    <key name="clipboard-enabled" type="b">
+      <default>false</default><summary>Keep a bounded, RAM-only text clipboard history</summary>
+    </key>
+    <key name="clipboard-limit" type="i">
+      <default>20</default><range min="5" max="50"/>
+      <summary>Maximum number of remembered text clips</summary>
+    </key>
+    <key name="toggle-notch" type="as">
+      <default><![CDATA[['<Super>grave']]]></default>
+      <summary>Keyboard shortcut to expand or collapse the notch</summary>
+      <description>Use an empty array to disable. The default is Super plus the key above Tab on US keyboards.</description>
+    </key>
+  </schema>
+</schemalist>

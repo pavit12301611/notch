@@ -1,0 +1,44 @@
+/* Shell (St/CSS) styling. GTK4/Libadwaita styling lives in the Python app. */
+.notch-shell {
+  background-color: #101114;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-top-width: 0;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.32);
+  color: #f5f5f7;
+}
+.notch-pill { background: transparent; border: 0; padding: 0 16px; color: #f5f5f7; }
+.notch-pill:hover, .notch-pill:focus { background: rgba(255,255,255,0.05); }
+.notch-title { font-weight: 700; font-size: 1em; }
+.notch-muted { color: #a9abb5; font-size: 0.9em; }
+.notch-accent { color: #8ee4c0; }
+.notch-content { padding: 4px 18px 16px; spacing: 12px; }
+.notch-tabs { spacing: 6px; }
+.notch-tab, .notch-button, .notch-action {
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: #e8e8ed;
+  background-color: #25272e;
+  border: 1px solid transparent;
+  transition-duration: 140ms;
+}
+.notch-tab { background-color: transparent; color: #a9abb5; }
+.notch-tab:hover, .notch-button:hover, .notch-action:hover,
+.notch-tab:focus, .notch-button:focus, .notch-action:focus {
+  background-color: #363942;
+  border-color: rgba(255,255,255,0.12);
+}
+.notch-tab:checked { background-color: #303a38; color: #a5f0ce; }
+.notch-button:insensitive, .notch-action:insensitive { color: #666976; background-color: #1b1d23; }
+.notch-button:active, .notch-action:active { background-color: #454a56; }
+.notch-action-active { background-color: #29483d; color: #a5f0ce; }
+.notch-play { background-color: #a5f0ce; color: #14271f; border-radius: 22px; padding: 10px 16px; }
+.notch-play:hover, .notch-play:focus { background-color: #c3f8df; }
+.notch-art { border-radius: 14px; background-color: #292c35; padding: 8px; }
+.notch-card { background-color: #1b1d23; border: 1px solid #30323b; border-radius: 14px; padding: 12px; spacing: 6px; }
+.notch-value { font-size: 1.65em; font-weight: 700; }
+.notch-row { background-color: #202229; border-radius: 10px; padding: 6px 8px; spacing: 8px; }
+.notch-row:hover { background-color: #2a2d36; }
+.notch-scroll { padding-right: 4px; }
+.notch-error { color: #ffb4ab; }
+.notch-drop { border: 1px dashed #648777; border-radius: 12px; padding: 12px; color: #a5f0ce; background-color: #192a24; }
+.notch-slider { -barlevel-height: 4px; -barlevel-background-color: #424650; -barlevel-active-background-color: #a5f0ce; -slider-height: 12px; -slider-width: 12px; -slider-border-width: 0; -slider-background-color: #a5f0ce; -slider-border-color: transparent; -slider-handle-radius: 6px; }

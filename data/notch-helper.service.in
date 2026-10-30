@@ -1,0 +1,19 @@
+[Unit]
+Description=Notch GTK file shelf helper
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=XDG_CURRENT_DESKTOP=GNOME
+
+[Service]
+Type=dbus
+BusName=io.github.pavit12301611.Notch.Helper
+ExecStart=@bindir@/notch-helper
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=10
+Slice=app.slice
+CPUWeight=20
+UMask=0077
+
+[Install]
+WantedBy=graphical-session.target

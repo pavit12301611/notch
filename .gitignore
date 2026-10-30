@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.cache/
+.ruff_cache/
+node_modules/
+.generated/
+dist/
+build/
+coverage/
+*.zip
+*.tar.gz
+*.rpm
+.env

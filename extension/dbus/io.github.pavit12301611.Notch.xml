@@ -1,0 +1,8 @@
+<node>
+  <interface name="io.github.pavit12301611.Notch">
+    <method name="Toggle"/>
+    <method name="SetExpanded"><arg name="expanded" type="b" direction="in"/></method>
+    <method name="ClearClipboard"/>
+    <method name="GetState"><arg name="state" type="s" direction="out"/></method>
+  </interface>
+</node>

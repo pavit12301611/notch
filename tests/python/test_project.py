@@ -1,0 +1,76 @@
+import json
+import re
+import subprocess
+import tempfile
+import unittest
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+from notch_app.config import APP_ID, UUID, extension_dir
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+class ProjectTests(unittest.TestCase):
+    def test_metadata_and_schema_agree(self):
+        metadata = json.loads((ROOT / "extension/metadata.json").read_text())
+        self.assertEqual(metadata["uuid"], UUID)
+        self.assertEqual(metadata["settings-schema"], APP_ID)
+        self.assertIn("50", metadata["shell-version"])
+        schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
+        keys = {key.attrib["name"] for key in schema.findall(".//key")}
+        for source in (ROOT / "extension").rglob("*.js"):
+            used = set(
+                re.findall(
+                    r"settings\.get_(?:int|boolean|double|string)\('([^']+)'\)", source.read_text()
+                )
+            )
+            self.assertTrue(used <= keys, f"Unknown keys in {source}: {used - keys}")
+
+    def test_xml_interfaces_parse(self):
+        for path in (ROOT / "extension/dbus").glob("*.xml"):
+            with self.subTest(path=path):
+                self.assertTrue(ET.parse(path).getroot().findall("interface"))
+
+    def test_templates_are_fully_substituted(self):
+        with tempfile.TemporaryDirectory() as temp:
+            subprocess.run(
+                ["make", "stage", f"STAGE={temp}", "PREFIX=/usr", "SYSCONFDIR=/etc"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+            )
+            for path in Path(temp).iterdir():
+                self.assertNotIn("@bindir@", path.read_text())
+                self.assertNotIn("@pkgdatadir@", path.read_text())
+                self.assertNotIn("@python@", path.read_text())
+            self.assertIn(
+                "/usr/bin/notch-helper", (Path(temp) / "notch-helper.service").read_text()
+            )
+
+    def test_remote_bootstrap_syntax_and_help(self):
+        script = ROOT / "scripts/bootstrap.sh"
+        subprocess.run(["bash", "-n", str(script)], check=True, capture_output=True)
+        result = subprocess.run(
+            ["bash", str(script), "--help"], check=True, capture_output=True, text=True
+        )
+        self.assertIn("--with-deps", result.stdout)
+        self.assertIn("codeload", script.read_text())
+        self.assertTrue(script.stat().st_mode & 0o111)
+
+    def test_extension_directory_override(self):
+        import os
+
+        old = os.environ.get("NOTCH_EXTENSION_DIR")
+        os.environ["NOTCH_EXTENSION_DIR"] = str(ROOT / "extension")
+        try:
+            self.assertEqual(extension_dir(), ROOT / "extension")
+        finally:
+            if old is None:
+                del os.environ["NOTCH_EXTENSION_DIR"]
+            else:
+                os.environ["NOTCH_EXTENSION_DIR"] = old
+
+
+if __name__ == "__main__":
+    unittest.main()

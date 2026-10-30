@@ -1,0 +1,17 @@
+{
+  "name": "notch-gnome",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Development checks for the Notch GNOME Shell extension",
+  "scripts": {
+    "test": "node --test tests/js/*.test.js",
+    "lint": "eslint extension tests/js",
+    "check": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "eslint": "^9.38.0",
+    "globals": "^16.4.0"
+  }
+}

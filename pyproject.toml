@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "notch-gnome"
+version = "0.1.0"
+description = "GTK4/Libadwaita companion for the Notch GNOME Shell extension"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-or-later"}
+dependencies = []
+
+[project.scripts]
+notch-settings = "notch_app.settings:main"
+notch-helper = "notch_app.helper:main"
+notch-doctor = "notch_app.doctor:main"
+
+[tool.setuptools]
+package-dir = {"" = "app"}
+
+[tool.setuptools.packages.find]
+where = ["app"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["E402"]  # gi.require_version() must precede repository imports.
