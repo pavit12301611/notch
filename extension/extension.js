@@ -5,7 +5,6 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {NotchView} from './lib/view.js';
 import {APP_ID, EXTENSION_ID, EXTENSION_PATH, interfaceXml} from './lib/dbus.js';
-import {launchSettings} from './lib/launcher.js';
 
 export default class NotchExtension extends Extension {
     enable() {
@@ -25,11 +24,6 @@ export default class NotchExtension extends Extension {
         this.dbus.export(Gio.DBus.session, EXTENSION_PATH);
         this.busOwnerId = Gio.bus_own_name(Gio.BusType.SESSION, EXTENSION_ID,
             Gio.BusNameOwnerFlags.NONE, null, null, null);
-    }
-
-    openPreferences() {
-        // The real settings UI is GTK4 + Libadwaita, never GTK3 inside GNOME Shell.
-        try { launchSettings(); } catch (e) { console.error(`Notch: ${e.message}`); }
     }
 
     disable() {

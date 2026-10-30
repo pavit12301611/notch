@@ -13,7 +13,7 @@ import {QuickActions} from './actions.js';
 import {ClipboardController} from './clipboard.js';
 import {ShelfController} from './shelf.js';
 import {ArtLoader} from './art.js';
-import {launchSettings} from './launcher.js';
+
 
 const TABS = [
     ['media', 'Media', 'audio-x-generic-symbolic'],
@@ -116,7 +116,7 @@ export class NotchView {
         header.add_child(new St.Widget({x_expand: true}));
         header.add_child(button({iconName: 'emblem-system-symbolic', accessibleName: 'Notch settings',
             onClick: () => {
-                try { launchSettings(); } catch (e) { this.showError(e.message); }
+                try { this.extension.openPreferences(); } catch (e) { this.showError(e.message); }
             }}));
         header.add_child(button({iconName: 'window-close-symbolic', accessibleName: 'Collapse Notch',
             onClick: () => this.setExpanded(false)}));

@@ -10,13 +10,3 @@ export function settingsCommand() {
 export function launchSettings() {
     GLib.spawn_async(null, [settingsCommand()], null, GLib.SpawnFlags.SEARCH_PATH, null);
 }
-
-export function makeSettingsButton(Gtk) {
-    const button = new Gtk.Button({label: 'Open Notch Settings', halign: Gtk.Align.CENTER});
-    button.add_css_class('pill');
-    button.add_css_class('suggested-action');
-    button.connect('clicked', () => {
-        try { launchSettings(); } catch (e) { console.error(e.message); }
-    });
-    return button;
-}

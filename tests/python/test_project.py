@@ -41,6 +41,13 @@ class ProjectTests(unittest.TestCase):
         extension = (ROOT / "extension/extension.js").read_text()
         self.assertIn("resource:///org/gnome/shell/extensions/extension.js", extension)
 
+    def test_prefs_are_inline_libadwaita(self):
+        prefs = (ROOT / "extension/prefs.js").read_text()
+        for control in ("Adw.SwitchRow", "Adw.SpinRow", "Adw.ComboRow", "clipboard-enabled"):
+            self.assertIn(control, prefs)
+        self.assertNotIn("Open Notch Settings", prefs)
+        self.assertNotIn("openPreferences()", (ROOT / "extension/extension.js").read_text())
+
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:
             subprocess.run(

@@ -3,7 +3,7 @@
 ## Process boundaries
 
 1. **GNOME Shell extension (GJS/St/Clutter)** owns all always-visible chrome. It is loaded by Shell, not by systemd. `enable()` creates the actor, controllers, keybinding and a private session-bus object; `disable()` reverses those operations.
-2. **Settings (Python/PyGObject/GTK4/Libadwaita)** runs only when opened. It reads/writes the same GSettings schema and calls the extension’s private bus name for state/history operations.
+2. **Preferences** are shown inline by `extension/prefs.js` in the separate GNOME Extensions GTK4/Libadwaita process, bound directly to the extension GSettings schema. The optional **Python companion app** (`notch-settings`) runs only when opened and provides the same schema plus shelf/file-chooser/status tools; it calls the extension’s private bus name for state/history operations.
 3. **Helper (Python/Gio, lazy GTK4)** owns file-drop input and shelf storage. It is session-bus activatable and systemd-user supervised. It exits cleanly after five minutes without interaction and no visible drop target/dialog.
 
 Bus names are intentionally distinct:

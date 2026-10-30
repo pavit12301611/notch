@@ -1,19 +1,148 @@
 import Adw from 'gi://Adw?version=1';
+import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-import {makeSettingsButton} from './lib/launcher.js';
+import {APP_ID, EXTENSION_ID, EXTENSION_PATH} from './lib/dbus.js';
+import {launchSettings} from './lib/launcher.js';
 
-/** Fallback for extension managers that open prefs.js instead of openPreferences(). */
+/** Native Libadwaita preferences shown directly by GNOME Extensions. */
 export default class NotchPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        const page = new Adw.PreferencesPage();
-        const group = new Adw.PreferencesGroup();
-        const status = new Adw.StatusPage({title: 'Notch',
-            description: 'Appearance, placement, media, privacy and file shelf settings are in the GTK4/Libadwaita companion app.',
-            icon_name: 'io.github.pavit12301611.Notch',
-            child: makeSettingsButton(Gtk)});
-        group.add(status);
-        page.add(group);
-        window.add(page);
+        const settings = this.getSettings();
+        const handlers = [];
+        const track = (object, id) => handlers.push([object, id]);
+        window.connect('close-request', () => {
+            for (const [object, id] of handlers) {
+                try { object.disconnect(id); } catch { /* already disconnected */ }
+            }
+            return false;
+        });
+
+        const addSwitch = (group, key, title, subtitle = '') => {
+            const row = new Adw.SwitchRow({title, subtitle});
+            settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
+            group.add(row);
+            return row;
+        };
+        const addSpin = (group, key, title, lower, upper, step = 1, subtitle = '') => {
+            const row = new Adw.SpinRow({title, subtitle,
+                adjustment: new Gtk.Adjustment({lower, upper, step_increment: step,
+                    page_increment: step * 10, value: settings.get_int(key)})});
+            track(row, row.connect('notify::value', () => {
+                const value = Math.round(row.value);
+                if (settings.get_int(key) !== value) settings.set_int(key, value);
+            }));
+            track(settings, settings.connect(`changed::${key}`, () => {
+                const value = settings.get_int(key);
+                if (Math.round(row.value) !== value) row.value = value;
+            }));
+            group.add(row);
+            return row;
+        };
+        const group = (page, title, description = '') => {
+            const widget = new Adw.PreferencesGroup({title, description});
+            page.add(widget);
+            return widget;
+        };
+
+        const appearance = new Adw.PreferencesPage({title: 'Appearance',
+            icon_name: 'preferences-desktop-appearance-symbolic'});
+        const shape = group(appearance, 'Shape & position',
+            'Logical pixels. The notch is clamped to the selected monitor.');
+        const placementValues = ['top-center', 'floating', 'panel'];
+        const placementModel = new Gtk.StringList();
+        ['Top center (below panel)', 'Floating', 'Panel attachment'].forEach(s => placementModel.append(s));
+        const placement = new Adw.ComboRow({title: 'Placement', model: placementModel,
+            selected: Math.max(0, placementValues.indexOf(settings.get_string('placement')))});
+        track(placement, placement.connect('notify::selected', () => {
+            settings.set_string('placement', placementValues[placement.selected]);
+        }));
+        track(settings, settings.connect('changed::placement', () => {
+            const index = placementValues.indexOf(settings.get_string('placement'));
+            if (index >= 0 && placement.selected !== index) placement.selected = index;
+        }));
+        shape.add(placement);
+        addSpin(shape, 'monitor-index', 'Monitor', -1, 15, 1, '-1 = primary monitor');
+        addSpin(shape, 'collapsed-width', 'Collapsed width', 160, 520, 10);
+        addSpin(shape, 'collapsed-height', 'Collapsed height', 24, 64);
+        addSpin(shape, 'expanded-width', 'Expanded width', 560, 1100, 10);
+        addSpin(shape, 'expanded-height', 'Expanded height', 420, 720, 10);
+        addSpin(shape, 'floating-margin', 'Floating top margin', 0, 200);
+        addSpin(shape, 'horizontal-offset', 'Horizontal offset', -2000, 2000, 10);
+        const finish = group(appearance, 'Finish');
+        addSpin(finish, 'corner-radius', 'Corner radius', 8, 40);
+        const opacityRow = new Adw.ActionRow({title: 'Opacity'});
+        const opacity = new Gtk.Scale({orientation: Gtk.Orientation.HORIZONTAL,
+            hexpand: true, digits: 2, draw_value: true});
+        opacity.set_range(0.5, 1.0);
+        opacity.set_size_request(220, -1);
+        opacity.set_value(settings.get_double('opacity'));
+        track(opacity, opacity.connect('value-changed', () => {
+            settings.set_double('opacity', Math.round(opacity.get_value() * 100) / 100);
+        }));
+        track(settings, settings.connect('changed::opacity', () => {
+            const value = settings.get_double('opacity');
+            if (Math.abs(opacity.get_value() - value) > 0.001) opacity.set_value(value);
+        }));
+        opacityRow.add_suffix(opacity);
+        opacityRow.set_activatable_widget(opacity);
+        finish.add(opacityRow);
+        window.add(appearance);
+
+        const behavior = new Adw.PreferencesPage({title: 'Behavior',
+            icon_name: 'preferences-system-symbolic'});
+        const opening = group(behavior, 'Opening & hiding');
+        addSwitch(opening, 'open-on-hover', 'Open on hover');
+        addSpin(opening, 'hover-delay-ms', 'Hover delay (ms)', 0, 1500, 50);
+        addSpin(opening, 'auto-hide-ms', 'Auto-hide delay (ms)', 0, 60000, 500, '0 disables');
+        addSwitch(opening, 'animations', 'Smooth animations');
+        addSwitch(opening, 'hide-on-fullscreen', 'Hide on fullscreen');
+        addSwitch(opening, 'hide-in-overview', 'Hide in Activities overview');
+        addSwitch(opening, 'reserve-space', 'Reserve collapsed space (experimental)');
+        const actions = group(behavior, 'Quick actions');
+        addSwitch(actions, 'show-dnd', 'Do Not Disturb');
+        addSwitch(actions, 'show-night-light', 'Night Light');
+        addSwitch(actions, 'show-dark-mode', 'Dark Mode');
+        const media = group(behavior, 'Media');
+        addSwitch(media, 'remote-art', 'Download remote album art');
+        window.add(behavior);
+
+        const privacy = new Adw.PreferencesPage({title: 'Privacy',
+            icon_name: 'security-high-symbolic'});
+        const clipboard = group(privacy, 'Clipboard history',
+            'RAM-only, cleared on lock/disable. Keep off when handling secrets.');
+        addSwitch(clipboard, 'clipboard-enabled', 'Remember copied text');
+        addSpin(clipboard, 'clipboard-limit', 'History size', 5, 50, 5);
+        const clearRow = new Adw.ActionRow({title: 'Clear clipboard history',
+            subtitle: 'Does not erase the current system clipboard'});
+        const clearButton = new Gtk.Button({label: 'Clear', valign: Gtk.Align.CENTER});
+        clearButton.connect('clicked', () => {
+            Gio.DBus.session.call(EXTENSION_ID, EXTENSION_PATH, APP_ID, 'ClearClipboard',
+                null, null, Gio.DBusCallFlags.NONE, 1000, null, (connection, result) => {
+                    try {
+                        connection.call_finish(result);
+                        window.add_toast(new Adw.Toast({title: 'Clipboard history cleared'}));
+                    } catch (e) {
+                        window.add_toast(new Adw.Toast({title: `Notch is not running: ${e.message}`}));
+                    }
+                });
+        });
+        clearRow.add_suffix(clearButton);
+        clearRow.set_activatable_widget(clearButton);
+        clipboard.add(clearRow);
+        const shelf = group(privacy, 'File shelf',
+            'Stores local file references only. Originals are never moved or deleted.');
+        const companion = new Adw.ActionRow({title: 'Companion app',
+            subtitle: 'File chooser, shelf tools and installation status'});
+        const openButton = new Gtk.Button({label: 'Open', valign: Gtk.Align.CENTER});
+        openButton.connect('clicked', () => {
+            try { launchSettings(); } catch (e) {
+                window.add_toast(new Adw.Toast({title: e.message}));
+            }
+        });
+        companion.add_suffix(openButton);
+        companion.set_activatable_widget(openButton);
+        shelf.add(companion);
+        window.add(privacy);
     }
 }

@@ -163,7 +163,7 @@ notch/
 ├── extension/
 │   ├── metadata.json                    # UUID, Shell versions, settings schema
 │   ├── extension.js                     # enable/disable, keybinding, private D-Bus API
-│   ├── prefs.js                         # Libadwaita launcher fallback
+│   ├── prefs.js                         # inline Libadwaita preferences pages
 │   ├── stylesheet.css                   # St/CSS notch styling and transitions
 │   ├── schemas/
 │   │   └── io.github.pavit12301611.Notch.gschema.xml
