@@ -15,7 +15,9 @@ export function icon(name, size = 16) {
 }
 
 export function box(vertical = false, style = '', spacing = 8) {
-    return new St.BoxLayout({vertical, style_class: style, spacing, x_expand: !vertical});
+    // St.BoxLayout has no GObject "spacing" property; spacing is an St CSS style.
+    return new St.BoxLayout({vertical, style_class: style,
+        style: `spacing: ${Number(spacing) || 0}px;`, x_expand: !vertical});
 }
 
 export function button({text = '', iconName = '', onClick, style = 'notch-button', accessibleName = ''}) {

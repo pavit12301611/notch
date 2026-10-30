@@ -9,13 +9,14 @@
 
 - ESLint over extension and JavaScript tests.
 - Node model/geometry suite: **7 passed**.
-- Python compilation and unittest suite: **14 passed**.
+- Python compilation and unittest suite: **15 passed**.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.
 - Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.
 - Remote bootstrap help and invalid-ref rejection checks (no network needed).
 - Regression check for the separate GNOME Extensions prefs resource import path.
 - Regression check that extension preferences are inline Libadwaita pages, not a launcher placeholder.
+- Regression check that St.BoxLayout spacing uses St CSS, not a nonexistent GObject property.
 - Staged `make install` / `make uninstall` with `/usr` prefix, including the RPM user-unit directory override.
 - Source distribution creation and archive listing.
 - `git diff --check`.

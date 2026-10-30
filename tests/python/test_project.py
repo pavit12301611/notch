@@ -41,6 +41,11 @@ class ProjectTests(unittest.TestCase):
         extension = (ROOT / "extension/extension.js").read_text()
         self.assertIn("resource:///org/gnome/shell/extensions/extension.js", extension)
 
+    def test_st_box_spacing_is_css_not_property(self):
+        widgets = (ROOT / "extension/lib/widgets.js").read_text()
+        self.assertNotRegex(widgets, r"new St\.BoxLayout\(\{[^}]*\bspacing\s*[,}]")
+        self.assertIn("spacing: ${Number(spacing) || 0}px;", widgets)
+
     def test_prefs_are_inline_libadwaita(self):
         prefs = (ROOT / "extension/prefs.js").read_text()
         for control in ("Adw.SwitchRow", "Adw.SpinRow", "Adw.ComboRow", "clipboard-enabled"):
