@@ -21,7 +21,7 @@ import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from
 import {NotchSurface} from './surface.js';
 import {box, button, icon, sourceIcon, setIconSource, emptyState, label, wrapLabel, setText, slider, setSensitive} from './widgets.js';
 import {setIconDirectory, iconGicon, setNotchIcon} from './icons.js';
-import {formatBytes, formatTime, plainText, mediaDisplayTitle, mediaDisplayArtist} from './model.js';
+import {formatBytes, formatTime, plainText, mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from './model.js';
 
 const TABS = [
     ['home', 'Home', 'user-home-symbolic'],
@@ -152,8 +152,11 @@ export class NotchView {
             style_class: 'notch-live-art', y_align: Clutter.ActorAlign.CENTER});
         this.liveBars = box(false, 'notch-live-bars', 2);
         this.liveBars.y_align = Clutter.ActorAlign.CENTER;
-        this.barWidgets = [6, 12, 8].map(height => {
-            const bar = new St.Widget({style_class: 'notch-live-bar', style: `height: ${height}px;`});
+        this.barWidgets = [0.42, 0.88, 0.58].map(level => {
+            const bar = new St.Widget({style_class: 'notch-live-bar', y_align: Clutter.ActorAlign.END});
+            // Grow from the bottom edge; Clutter scale animates without relayout.
+            bar.set_pivot_point(0.5, 1);
+            bar.set_scale(1, level);
             this.liveBars.add_child(bar);
             return bar;
         });
@@ -548,22 +551,42 @@ export class NotchView {
         if (previous !== this.options.mediaWings) this.relayout('resize');
     }
 
-    syncVisualizer() {
-        const active = this.allowed && this.mode === 'closed' && this.liveBars?.visible &&
+    visualizerActive() {
+        return this.allowed && this.mode === 'closed' && this.liveBars?.visible &&
             this.settings.get_boolean('animations') && !!St.Settings.get().enable_animations;
+    }
+
+    stopVisualizer() {
+        if (this.visualTimer) GLib.source_remove(this.visualTimer);
+        this.visualTimer = 0;
+        for (const bar of this.barWidgets ?? []) {
+            bar.remove_all_transitions();
+            bar.set_scale(1, 0.62);
+        }
+    }
+
+    syncVisualizer() {
+        const active = this.visualizerActive();
         if (active && !this.visualTimer) {
-            this.visualTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 240, () => {
+            this.visualStep = 0;
+            const tick = () => {
                 if (this.dead) return GLib.SOURCE_REMOVE;
-                const patterns = [[6, 12, 8], [12, 7, 13], [8, 14, 6], [13, 8, 11]];
-                this.visualStep = (this.visualStep + 1) % patterns.length;
+                if (!this.visualizerActive()) {
+                    this.stopVisualizer();
+                    return GLib.SOURCE_REMOVE;
+                }
+                const levels = visualizerLevels(this.visualStep++);
                 this.barWidgets.forEach((bar, index) => {
-                    bar.style = `height: ${patterns[this.visualStep][index]}px;`;
+                    bar.remove_all_transitions();
+                    bar.ease({scale_y: levels[index], duration: 190,
+                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD});
                 });
                 return GLib.SOURCE_CONTINUE;
-            });
+            };
+            tick();
+            this.visualTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 210, tick);
         } else if (!active && this.visualTimer) {
-            GLib.source_remove(this.visualTimer);
-            this.visualTimer = 0;
+            this.stopVisualizer();
         }
     }
 
@@ -629,6 +652,7 @@ export class NotchView {
             this.closedLayer.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
             this.selectTab(this.tab, false);
             this.relayout('open');
+            this.syncVisualizer();
         } else {
             this.mode = 'closed';
             this.peek.visible = false;
@@ -1536,8 +1560,7 @@ export class NotchView {
         this.dead = true;
         for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer']) this.clearTimer(name);
         this.stopTimeline();
-        if (this.visualTimer) GLib.source_remove(this.visualTimer);
-        this.visualTimer = 0;
+        this.stopVisualizer();
         this.injections?.clear();
         this.content?.remove_all_transitions();
         this.closedLayer?.remove_all_transitions();

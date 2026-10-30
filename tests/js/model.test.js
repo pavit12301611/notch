@@ -6,7 +6,7 @@ import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
     formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText,
-    helperErrorMessage, mediaDisplayTitle, mediaDisplayArtist} from '../../extension/lib/model.js';
+    helperErrorMessage, mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -53,6 +53,22 @@ test('MPRIS metadata tolerates malformed players and recursive variants', () => 
     assert.equal(mediaMetadata({'mpris:trackid': 'not-an-object-path'}).trackId, '');
     assert.equal(seekTarget(1000, 2), 1000);
     assert.equal(seekTarget(1000, -1), 0);
+});
+
+test('closed-notch equalizer loops through bounded rhythmic levels', () => {
+    const first = visualizerLevels(0);
+    assert.equal(first.length, 3);
+    assert.deepEqual(visualizerLevels(8), first);
+    assert.deepEqual(visualizerLevels(-1), visualizerLevels(7));
+    const seen = new Set();
+    for (let step = 0; step < 8; step++) {
+        const levels = visualizerLevels(step);
+        for (const level of levels) {
+            assert.ok(level >= 0.25 && level <= 1);
+            seen.add(level);
+        }
+    }
+    assert.ok(seen.size >= 6, 'equalizer should visibly vary instead of staying static');
 });
 
 test('CPU deltas exclude guest double-counting and handle first sample/reset', () => {

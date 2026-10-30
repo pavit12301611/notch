@@ -8,7 +8,7 @@
 ## Checks executed successfully
 
 - ESLint over extension and JavaScript tests.
-- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **21 passed**.
+- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **22 passed**.
 - Python compilation and unittest suite: **40 passed**.
 - Ruff lint and formatting checks.
 - GSettings XML validated against GNOME GLib’s `gschema.dtd`.

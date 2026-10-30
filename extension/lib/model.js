@@ -50,6 +50,24 @@ export function mediaDisplayArtist(state) {
     return 'No media player connected';
 }
 
+/** Smooth closed-notch equalizer targets. Values are scale_y, not CSS heights. */
+export const VISUALIZER_PATTERN = Object.freeze([
+    [0.42, 0.88, 0.58],
+    [0.72, 0.48, 1.00],
+    [1.00, 0.34, 0.70],
+    [0.58, 0.82, 0.40],
+    [0.34, 1.00, 0.76],
+    [0.84, 0.54, 0.34],
+    [0.56, 0.74, 0.94],
+    [0.94, 0.40, 0.60],
+]);
+
+export function visualizerLevels(step) {
+    const length = VISUALIZER_PATTERN.length;
+    const index = ((Math.trunc(Number(step) || 0) % length) + length) % length;
+    return VISUALIZER_PATTERN[index];
+}
+
 export function seekTarget(lengthUs, fraction) {
     return Math.round(Math.max(0, Math.min(1, fraction)) * Math.max(0, lengthUs));
 }

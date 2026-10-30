@@ -185,6 +185,10 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('name="DropFailed"', xml)
         self.assertIn('name="GetInfo"', xml)
         self.assertIn("setDropOverlay", view)
+        self.assertIn("visualizerLevels", view)
+        self.assertIn("set_pivot_point(0.5, 1)", view)
+        self.assertIn("scale_y: levels[index]", view)
+        self.assertNotIn("bar.style = `height:", view)
         self.assertIn("mediaDisplayTitle", view)
         self.assertIn("setIconDirectory", view)
         self.assertTrue((ROOT / "extension/icons/user-home-symbolic.svg").is_file())
@@ -195,7 +199,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-drop-success", helper)
         self.assertIn("gtk-enable-animations", helper)
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 10)
+        self.assertEqual(metadata["version"], 11)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

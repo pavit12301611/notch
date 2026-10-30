@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### v11 — rhythmic closed-notch equalizer
+
+- The three green media bars now animate continuously with eased `scale_y`
+  targets from a looping rhythm pattern, instead of changing CSS height in
+  discrete steps. They grow from the bottom edge and stop/reset when playback,
+  visibility or animation settings turn off.
+
+
 ### v10 — visible Quick stash, reliable drop/save, real song titles
 
 - Home now uses a compact 640×360 dashboard: clock/date + quick actions, a one-row player card with wrapped song title, and a Quick stash card that stays inside the default viewport. The old 320px preset is migrated to 360px.

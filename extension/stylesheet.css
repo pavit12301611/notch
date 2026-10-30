@@ -23,7 +23,7 @@
 .notch-unread-dot { width: 5px; height: 5px; border-radius: 3px; background-color: #f5f5f7; }
 .notch-live-art { -st-icon-style: regular; border-radius: 4px; background-color: #1c1c1e; }
 .notch-live-bars { spacing: 2px; height: 16px; }
-.notch-live-bar { width: 3px; border-radius: 2px; background-color: #30d158; transition-duration: 180ms; }
+.notch-live-bar { width: 3px; height: 14px; border-radius: 2px; background-color: #30d158; }
 
 /* Open chrome: fixed gutters live in layout.js; pages share one vertical rhythm. */
 .notch-content { background-color: transparent; padding: 0; spacing: 0; }

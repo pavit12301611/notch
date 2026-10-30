@@ -72,6 +72,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Disabling routing or the extension restores native banners, including an active banner.
 - [ ] Fullscreen/overview/lock does not leave the clock hidden or expose notification content through the notch.
 - [ ] Closed notch matches panel height, shows idle clock, and grows music wings only while a player is active.
+- [ ] While music plays, the three green bars pulse rhythmically and smoothly; pause/stop, opening the notch, or disabling animations stops/resets them.
 - [ ] Open/close/page-resize spring animation is smooth, honors GNOME Enable Animations, and does not overshoot the monitor.
 - [ ] Smooth motion profile honors the configured open/close durations.
 

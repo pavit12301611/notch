@@ -95,7 +95,7 @@ notch-settings
 notch-doctor
 ```
 
-The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings, and ordinary notifications appear as compact peeks. Home always shows the clock/date, quick actions, the current song title and a Quick stash card; drag files directly onto the notch to stash them. If a player exposes empty MPRIS metadata, Notch shows “Playing in <player>” instead of a blank title. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings with a rhythmic animated equalizer, and ordinary notifications appear as compact peeks. Home always shows the clock/date, quick actions, the current song title and a Quick stash card; drag files directly onto the notch to stash them. If a player exposes empty MPRIS metadata, Notch shows “Playing in <player>” instead of a blank title. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ### Manual dependency installation
 
