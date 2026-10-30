@@ -62,7 +62,12 @@ class HelperApplication(Gio.Application):
             print(f"Notch helper: cannot load D-Bus interface: {exc}", file=sys.stderr)
             return False
         try:
-            self.registration = connection.register_object(
+            # GLib >= 2.84 deprecates register_object() in favour of the
+            # binding-friendly closures2 variant. Fall back for older Fedora/GNOME.
+            register = getattr(connection, "register_object_with_closures2", None)
+            if register is None:
+                register = connection.register_object
+            self.registration = register(
                 HELPER_PATH, node.interfaces[0], self._method_call, None, None
             )
         except (GLib.Error, TypeError) as exc:

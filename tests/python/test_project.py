@@ -96,7 +96,8 @@ class ProjectTests(unittest.TestCase):
 
     def test_pyobject_dbus_apis_match_gio(self):
         helper = (ROOT / "app/notch_app/helper.py").read_text()
-        self.assertIn("connection.register_object(", helper)
+        self.assertIn("register_object_with_closures2", helper)
+        self.assertIn("connection.register_object", helper)
         self.assertIn("connection.unregister_object(self.registration)", helper)
         self.assertNotIn("register_object_path", helper)
         self.assertNotIn("unregister_object_path", helper)
