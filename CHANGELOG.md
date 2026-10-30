@@ -4,6 +4,8 @@
 
 ### Adaptive layout and action reliability
 
+- Fixed GNOME 50 extension startup error `St.IconType is undefined`: guard St enum access with stable integer fallbacks (icon type, scroll policy, clipboard type).
+
 - Fixed Shelf/Media D-Bus result handling: GJS `call_finish()` returns a `GLib.Variant`; unpack it instead of destructuring it as an array (`{} is not iterable`).
 - Header labels now collapse to active-only/icon modes before they can ellipsize; tab labels no longer truncate.
 

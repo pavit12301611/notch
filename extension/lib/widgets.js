@@ -21,7 +21,7 @@ export function wrapLabel(text = '', style = 'notch-muted', expand = true) {
 
 export function icon(name, size = 16) {
     return new St.Icon({icon_name: name, icon_size: size,
-        icon_type: name.endsWith('-symbolic') ? St.IconType.SYMBOLIC : St.IconType.FULLCOLOR,
+        icon_type: name.endsWith('-symbolic') ? (St.IconType?.SYMBOLIC ?? 0) : (St.IconType?.FULLCOLOR ?? 1),
         y_align: Clutter.ActorAlign.CENTER});
 }
 

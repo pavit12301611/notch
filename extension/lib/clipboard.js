@@ -83,7 +83,7 @@ export class ClipboardController {
     restore(id) {
         const item = this.history.get(id);
         if (!item || this.paused) return false;
-        this.clipboard.set_text(St.ClipboardType.CLIPBOARD, item.text);
+        this.clipboard.set_text((St.ClipboardType?.CLIPBOARD ?? 0), item.text);
         this.history.add(item.text);
         this.onChange();
         return true;

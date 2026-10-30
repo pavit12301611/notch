@@ -184,7 +184,7 @@ export class NotchView {
         this.content.opacity = 0;
         this.header = box(false, 'notch-header', 6);
         this.tabsScroll = new St.ScrollView({style_class: 'notch-tabs-scroll', x_expand: true,
-            hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.NEVER});
+            hscrollbar_policy: (St.PolicyType?.NEVER ?? 2), vscrollbar_policy: (St.PolicyType?.NEVER ?? 2)});
         this.tabsBox = box(false, 'notch-tabs', 4);
         this.tabButtons = new Map();
         for (const [id, title, iconName] of TABS) {
@@ -217,7 +217,7 @@ export class NotchView {
         for (const [id, page] of Object.entries(this.pages)) {
             page.x_expand = true;
             const scroll = new St.ScrollView({style_class: 'notch-page-scroll', x_expand: true, y_expand: true,
-                hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC});
+                hscrollbar_policy: (St.PolicyType?.NEVER ?? 2), vscrollbar_policy: (St.PolicyType?.AUTOMATIC ?? 1)});
             scroll.add_child(page);
             this.pageScrolls[id] = scroll;
             this.pageStack.add_child(scroll);
@@ -1073,7 +1073,7 @@ export class NotchView {
                 for (const widget of [this.mediaArt, this.homeArt]) {
                     widget.gicon = gicon;
                     widget.icon_name = gicon ? null : 'audio-x-generic-symbolic';
-                    widget.icon_type = gicon ? St.IconType.FULLCOLOR : St.IconType.SYMBOLIC;
+                    widget.icon_type = gicon ? (St.IconType?.FULLCOLOR ?? 1) : (St.IconType?.SYMBOLIC ?? 0);
                     widget.fallback_gicon = null;
                 }
             });
