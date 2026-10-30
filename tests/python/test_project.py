@@ -189,6 +189,11 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("set_pivot_point(0.5, 1)", view)
         self.assertIn("scale_y: levels[index]", view)
         self.assertNotIn("bar.style = `height:", view)
+        self.assertIn("repeat_count: 1", view)
+        self.assertIn("_animationWatchdog", view)
+        self.assertIn("relayout storm", view)
+        self.assertIn("page.y_expand = false", view)
+        self.assertIn("query_info_async", (ROOT / "extension/lib/art.js").read_text())
         self.assertIn("mediaDisplayTitle", view)
         self.assertIn("setIconDirectory", view)
         self.assertTrue((ROOT / "extension/icons/user-home-symbolic.svg").is_file())
@@ -199,7 +204,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-drop-success", helper)
         self.assertIn("gtk-enable-animations", helper)
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 11)
+        self.assertEqual(metadata["version"], 12)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

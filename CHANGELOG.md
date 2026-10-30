@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### v12 — freeze safety for open-notch use
+
+- Geometry animation is now a single-shot Clutter timeline with a hard watchdog
+  instead of a repeating timeline. If a spring stalls, the notch snaps to the
+  target instead of repainting forever.
+- Added a relayout reentrancy guard and a 40-pass/second storm budget; a feedback
+  storm temporarily snaps geometry instead of spinning the GNOME Shell main loop.
+- Geometry application is rounded/deduplicated, and page lists are no longer
+  rebuilt on every layout pass. ScrollView pages keep natural height instead of
+  y-expanding inside automatic scrollbars, avoiding allocation feedback loops.
+- Local album-art metadata is queried asynchronously so a slow FUSE/network file
+  cannot block the Shell main thread.
+- The closed-notch equalizer stops itself if an animation error occurs.
+
+
 ### v11 — rhythmic closed-notch equalizer
 
 - The three green media bars now animate continuously with eased `scale_y`

@@ -51,6 +51,14 @@ export class NotchView {
         this.timeline = null;
         this.visualTimer = 0;
         this.visualStep = 0;
+        this._relayoutDepth = 0;
+        this._relayoutPending = null;
+        this._relayoutTimes = [];
+        this._safeUntil = 0;
+        this._animationToken = 0;
+        this._animationWatchdog = 0;
+        this._appliedGeometryKey = '';
+        this._adaptSignature = '';
         this.peekNotification = null;
         this.clockHidden = false;
         this.options = this.readOptions();
@@ -221,6 +229,9 @@ export class NotchView {
         this.pageScrolls = {};
         for (const [id, page] of Object.entries(this.pages)) {
             page.x_expand = true;
+            // ScrollView children must keep their natural height; y_expand here
+            // can create an allocation feedback loop with automatic scrollbars.
+            page.y_expand = false;
             const scroll = new St.ScrollView({style_class: 'notch-page-scroll', x_expand: true, y_expand: true,
                 hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC});
             scroll.add_child(page);
@@ -575,12 +586,18 @@ export class NotchView {
                     this.stopVisualizer();
                     return GLib.SOURCE_REMOVE;
                 }
-                const levels = visualizerLevels(this.visualStep++);
-                this.barWidgets.forEach((bar, index) => {
-                    bar.remove_all_transitions();
-                    bar.ease({scale_y: levels[index], duration: 190,
-                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD});
-                });
+                try {
+                    const levels = visualizerLevels(this.visualStep++);
+                    this.barWidgets.forEach((bar, index) => {
+                        bar.remove_all_transitions();
+                        bar.ease({scale_y: levels[index], duration: 190,
+                            mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD});
+                    });
+                } catch (e) {
+                    console.warn(`Notch: equalizer stopped after animation error: ${e.message ?? e}`);
+                    this.stopVisualizer();
+                    return GLib.SOURCE_REMOVE;
+                }
                 return GLib.SOURCE_CONTINUE;
             };
             tick();
@@ -751,10 +768,14 @@ export class NotchView {
         compactButton(this.shelfClear, layout.compact);
         compactButton(this.clipboardCapture, layout.compact);
         compactButton(this.clipboardClear, layout.compact);
-        if (this.mode === 'open') {
-            if (this.tab === 'notifications') this.updateNotifications();
-            if (this.tab === 'shelf') this.updateShelf();
-            if (this.tab === 'clipboard') this.updateClipboard();
+        const signature = `${layout.header}|${layout.compact}|${layout.narrow}|${layout.columns}|${this.tab}|${this.mode}`;
+        if (signature !== this._adaptSignature) {
+            this._adaptSignature = signature;
+            if (this.mode === 'open') {
+                if (this.tab === 'notifications') this.updateNotifications();
+                if (this.tab === 'shelf') this.updateShelf();
+                if (this.tab === 'clipboard') this.updateClipboard();
+            }
         }
     }
 
@@ -777,16 +798,43 @@ export class NotchView {
 
     relayout(kind = 'resize', immediate = false) {
         if (this.dead || !this.actor) return;
-        this.options = {...this.options, ...this.readOptions(), tab: this.tab,
-            mediaWings: this.settings.get_boolean('closed-media') && this.hasMediaWings(),
-            hovered: this.hovered && this.mode === 'closed'};
-        const rect = this.geometry(this.expanded, this.mode);
-        this.layoutPages();
-        this.animateTo(rect, kind, immediate);
-        if (this.reserve) this.updateReserve();
-        if (this.shelf.dropVisible) {
-            this.shelf.updateDropTarget(this.dropRectangle());
-            this.placeHelper();
+        // Never allow recursive layout passes to spin the Shell main loop.
+        if (this._relayoutDepth > 0) {
+            this._relayoutPending = {kind, immediate: immediate || !!this._relayoutPending?.immediate};
+            return;
+        }
+        const now = GLib.get_monotonic_time();
+        this._relayoutTimes = this._relayoutTimes.filter(time => now - time < 1_000_000);
+        this._relayoutTimes.push(now);
+        if (this._relayoutTimes.length > 40) {
+            // A hover/geometry feedback storm must degrade to snapping, not freeze GNOME.
+            this._safeUntil = now + 5_000_000;
+            this._relayoutTimes.length = 0;
+            console.warn('Notch: relayout storm detected; snapping geometry for 5 seconds');
+        }
+        this._relayoutDepth++;
+        try {
+            this.options = {...this.options, ...this.readOptions(), tab: this.tab,
+                mediaWings: this.settings.get_boolean('closed-media') && this.hasMediaWings(),
+                hovered: this.hovered && this.mode === 'closed'};
+            const rect = this.geometry(this.expanded, this.mode);
+            this.layoutPages();
+            this.animateTo(rect, kind, immediate);
+            if (this.reserve) this.updateReserve();
+            if (this.shelf.dropVisible) {
+                this.shelf.updateDropTarget(this.dropRectangle());
+                this.placeHelper();
+            }
+        } finally {
+            this._relayoutDepth--;
+            if (this._relayoutPending) {
+                const pending = this._relayoutPending;
+                this._relayoutPending = null;
+                GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                    if (!this.dead) this.relayout(pending.kind, pending.immediate);
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
         }
     }
 
@@ -796,7 +844,9 @@ export class NotchView {
         this._targetKey = key;
         this.stopTimeline();
         if (!this.springs) this.springs = new SpringGeometry(rect);
-        const animated = this.settings.get_boolean('animations') && !!St.Settings.get().enable_animations && !immediate;
+        const inSafeMode = GLib.get_monotonic_time() < this._safeUntil;
+        const animated = this.settings.get_boolean('animations') && !!St.Settings.get().enable_animations &&
+            !immediate && !inSafeMode;
         if (!animated) {
             this.springs.snap(rect);
             this.applyGeometry(rect);
@@ -805,33 +855,47 @@ export class NotchView {
         const smooth = this.settings.get_string('animation-profile') === 'smooth';
         const profile = SPRING_PROFILES[kind] ?? SPRING_PROFILES.resize;
         const from = Object.fromEntries(Object.entries(this.springs.springs).map(([k, s]) => [k, s.value]));
-        const duration = smooth ? this.settings.get_int(kind === 'close' ? 'close-animation-ms' : 'open-animation-ms') : 1400;
+        const duration = Math.max(1, smooth ?
+            this.settings.get_int(kind === 'close' ? 'close-animation-ms' : 'open-animation-ms') : 900);
         this.springs.setTarget(rect, profile);
-        this._animation = {smooth, from, to: rect, duration: Math.max(1, duration), last: 0};
-        this.timeline = new Clutter.Timeline({duration: Math.max(1, duration), repeat_count: -1, actor: this.actor});
+        const token = ++this._animationToken;
+        this._animation = {smooth, from, to: rect, duration, last: 0, token};
+        const finish = () => {
+            if (this.dead || !this._animation || this._animation.token !== token) return;
+            this.springs.snap(rect);
+            this.applyGeometry(rect);
+            this.stopTimeline();
+        };
+        // Single-shot timeline + hard watchdog. A repeating timeline could keep
+        // repainting forever if a spring never reported settled on a stalled frame.
+        this.timeline = new Clutter.Timeline({duration, repeat_count: 1, actor: this.actor});
         this.timeline.connectObject('new-frame', (_timeline, elapsed) => {
-            if (this.dead || !this._animation) return;
+            if (this.dead || !this._animation || this._animation.token !== token) return;
             const state = this._animation;
             let next;
             if (state.smooth) {
-                const progress = easeOutCubic(elapsed / state.duration);
-                next = interpolateGeometry(state.from, state.to, progress);
+                next = interpolateGeometry(state.from, state.to, easeOutCubic(elapsed / state.duration));
             } else {
                 const dt = Math.max(0, (elapsed - state.last) / 1000);
                 state.last = elapsed;
                 next = this.springs.step(dt);
             }
             this.applyGeometry(next);
-            if ((state.smooth && elapsed >= state.duration) || (!state.smooth && this.springs.settled) || elapsed > 2000) {
-                this.springs.snap(rect);
-                this.applyGeometry(rect);
-                this.stopTimeline();
-            }
-        }, this);
+            if ((state.smooth && elapsed >= state.duration) || (!state.smooth && this.springs.settled))
+                finish();
+        }, 'completed', finish, this);
+        this._animationWatchdog = GLib.timeout_add(GLib.PRIORITY_DEFAULT, duration + 750, () => {
+            this._animationWatchdog = 0;
+            finish();
+            return GLib.SOURCE_REMOVE;
+        });
         this.timeline.start();
     }
 
     stopTimeline() {
+        if (this._animationWatchdog) GLib.source_remove(this._animationWatchdog);
+        this._animationWatchdog = 0;
+        this._animationToken++;
         if (!this.timeline) return;
         this.timeline.stop();
         this.timeline.disconnectObject(this);
@@ -840,6 +904,15 @@ export class NotchView {
     }
 
     applyGeometry(rect) {
+        const rounded = {
+            x: Math.round(rect.x), y: Math.round(rect.y),
+            width: Math.round(rect.width), height: Math.round(rect.height),
+            topRadius: Math.round(rect.topRadius), bottomRadius: Math.round(rect.bottomRadius),
+        };
+        const geometryKey = JSON.stringify(rounded);
+        if (geometryKey === this._appliedGeometryKey) return;
+        this._appliedGeometryKey = geometryKey;
+        rect = rounded;
         const layout = this._layout;
         const scale = layout?.scale ?? this.options.cssScale * this.options.layoutScale;
         const css = layout?.cssScale ?? this.options.cssScale;

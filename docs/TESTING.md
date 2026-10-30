@@ -50,6 +50,10 @@ journalctl --user -b -t gnome-shell -f
 
 ### Geometry, input and animation
 
+- [ ] Open/close and hover for 10 minutes: no sustained Shell CPU spike, no freeze, no repeated `relayout storm` warnings.
+- [ ] Rapidly hover in/out and switch tabs: notch remains responsive; if a storm is detected it snaps briefly and recovers.
+- [ ] Album art on a slow/network mount does not block the Shell while opening Home/Music.
+
 - [ ] Top-center, floating and panel modes place correctly at 100%, 125%, 150% and 200% scaling.
 - [ ] Primary and secondary monitors; hotplug/unplug; monitor index out of range falls back safely.
 - [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes; pages scroll when vertical space is limited.

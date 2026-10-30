@@ -34,8 +34,13 @@ export class ArtLoader {
             let bytes;
             if (url.startsWith('file://')) {
                 const file = Gio.File.new_for_uri(url);
-                const info = file.query_info('standard::size,standard::type',
-                    Gio.FileQueryInfoFlags.NONE, this.cancellable);
+                // Never block the Shell main thread on a local/FUSE/network art path.
+                const info = await new Promise((resolve, reject) => {
+                    file.query_info_async('standard::size,standard::type', Gio.FileQueryInfoFlags.NONE,
+                        GLib.PRIORITY_DEFAULT, this.cancellable, (source, result) => {
+                            try { resolve(source.query_info_finish(result)); } catch (e) { reject(e); }
+                        });
+                });
                 if (info.get_size() > MAX_ART_BYTES || info.get_file_type() !== Gio.FileType.REGULAR) return;
                 const [, contents] = await file.load_contents_async(this.cancellable);
                 bytes = GLib.Bytes.new(contents);
