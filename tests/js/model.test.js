@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clamp, notchGeometry, containsPoint, PAGE_SIZES, surfaceRadii} from '../../extension/lib/geometry.js';
+import {contentLayout, headerMode, statColumns, availableOpenSize} from '../../extension/lib/layout.js';
 import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../extension/lib/spring.js';
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
-    formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText} from '../../extension/lib/model.js';
+    formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText,
+    helperErrorMessage} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -182,4 +184,45 @@ test('notification bridge intercepts only ordinary banners and restores the tray
 test('notification markup is rendered as plain text', () => {
     assert.equal(plainText('<b>Hello</b> &amp; <i>world</i><br/>next'), 'Hello & world next');
     assert.equal(plainText(null), '');
+});
+
+
+test('adaptive layout fits the actual notch rectangle and collapses labels before truncation', () => {
+    const options = {cssScale: 1, layoutScale: 1, panelHeight: 32, placement: 'panel'};
+    for (const monitor of [{width: 1920, height: 1080}, {width: 1366, height: 768},
+        {width: 800, height: 600}, {width: 500, height: 400}, {width: 360, height: 640}]) {
+        const rect = notchGeometry({...monitor, x: 0, y: 0}, {...options, tab: 'system'}, true);
+        const layout = contentLayout(rect, options);
+        assert.ok(layout.width * layout.scale <= rect.width + 0.001);
+        assert.ok(layout.height * layout.scale <= rect.height - options.panelHeight + 0.001);
+        assert.ok(layout.pageHeight > 0);
+        assert.ok(rect.x >= 0 && rect.x + rect.width <= monitor.width);
+    }
+    assert.equal(headerMode(640), 'labels');
+    assert.equal(headerMode(480), 'active');
+    assert.equal(headerMode(320), 'icons');
+    assert.equal(statColumns(640), 4);
+    assert.equal(statColumns(480), 2);
+    assert.equal(statColumns(300), 1);
+    const hidpi = {cssScale: 2, layoutScale: 1.25, panelHeight: 64, placement: 'panel'};
+    const rect = notchGeometry({x: 0, y: 0, width: 1366, height: 768}, {...hidpi, tab: 'home'}, true);
+    const layout = contentLayout(rect, hidpi);
+    assert.ok(layout.width * layout.scale <= rect.width);
+    assert.ok(layout.height * layout.scale <= rect.height - 64);
+    const available = availableOpenSize({width: 500, height: 400}, options);
+    assert.ok(available.width < 500 && available.height < 400);
+    const largeText = {cssScale: 1, layoutScale: 2, contentScale: 1, textScale: 2, panelHeight: 32, placement: 'panel'};
+    const largeRect = notchGeometry({x: 0, y: 0, width: 1920, height: 1080}, {...largeText, tab: 'home'}, true);
+    const largeLayout = contentLayout(largeRect, largeText);
+    assert.ok(largeLayout.width * largeLayout.scale <= largeRect.width);
+    assert.ok(largeLayout.effectiveWidth < largeLayout.width);
+    assert.equal(largeLayout.layoutScale, 1);
+});
+
+test('helper activation errors become actionable instead of raw D-Bus dumps', () => {
+    assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer'), /Retry/);
+    assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown'), /notch-doctor/);
+    assert.match(helperErrorMessage('Timeout was reached'), /Retry/);
+    assert.match(helperErrorMessage('Unknown method'), /installer/);
+    assert.equal(helperErrorMessage(''), 'File shelf is unavailable. Press Retry on the Shelf page.');
 });

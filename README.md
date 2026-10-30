@@ -43,7 +43,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
 | File shelf | Drag local files near the notch onto a GTK target, or choose files through GTK/portal; open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
-| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, per-page sizes, scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
+| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, label collapse, scrollable pages, scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
 | Behavior | Mac-style damped-spring opening from the top edge, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
 | Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
 
@@ -52,6 +52,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 - **No physical camera-cutout detection.** Configure the notch geometry for your display. The utility draws a notch-shaped overlay; it does not identify camera hardware.
 - **The default MacBook mode replaces the centered top-bar clock.** The original clock is restored when the notch hides, on other monitors, or when `replace-panel-clock` is off. Legacy below-panel and floating modes remain optional; floating mode is the Dynamic-Island-like layout, not the default.
 - **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return for critical alerts and when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
+- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Header labels collapse before truncating, pages scroll when vertical space is limited, and helper/action failures appear in a dismissible status bar with Retry where applicable.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel, and Mutter may apply the inset as a top-edge work-area reduction. It is not a pixel-perfect window mask.
 - **The shelf stores references, not copies.** Removing a shelf item never removes the original. Dragging files *out* of the Shell notch is not implemented; use Open, Reveal, or Copy URI.
 - **Clipboard history is text-only and off by default.** Known password-manager hints and mixed-format offers are skipped, but a password manager that exposes plain text without a hint cannot be detected reliably. Keep history off when handling secrets.
@@ -175,6 +176,7 @@ notch/
 │       ├── view.js                      # chrome actor, spring animation, pages, peeks, drag positioning
 │       ├── surface.js                   # Cairo top flares + St bottom-radius body
 │       ├── spring.js                    # bounded damped-spring geometry integrator
+│       ├── layout.js                    # monitor/text-aware content layout and breakpoints
 │       ├── widgets.js                   # accessible St controls
 │       ├── geometry.js                  # pure placement/clamping logic
 │       ├── model.js                     # pure parsers, formatters, clipboard ring buffer

@@ -159,3 +159,18 @@ export function plainText(value) {
         .replace(/\s+/g, ' ')
         .trim();
 }
+
+/** Turn low-level helper activation failures into a short, actionable message. */
+export function helperErrorMessage(message) {
+    const text = String(message ?? '');
+    if (/NameHasNoOwner|ServiceUnknown|Could not activate|startup request failed|Spawn/i.test(text))
+        return 'File shelf helper could not start. Press Retry on the Shelf page, or run notch-doctor.';
+    if (/AccessDenied|not allowed/i.test(text))
+        return 'File shelf helper was blocked by session policy. Run notch-doctor for details.';
+    if (/NoReply|Timeout|timed out/i.test(text))
+        return 'File shelf helper did not respond. Press Retry on the Shelf page.';
+    if (/UnknownMethod|Unknown method/i.test(text))
+        return 'File shelf helper is outdated. Re-run the Notch installer and log out/in.';
+    return text ? `File shelf: ${text.replace(/\s+/g, ' ').slice(0, 180)}` :
+        'File shelf is unavailable. Press Retry on the Shelf page.';
+}

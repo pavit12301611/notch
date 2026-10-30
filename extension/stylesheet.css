@@ -87,3 +87,21 @@
 .notch-peek-icon { border-radius: 8px; }
 .notch-peek-title { font-weight: 700; font-size: 1em; color: #f5f5f7; }
 .notch-peek-body { color: #c7c7cc; font-size: 0.9em; }
+
+/* Adaptive chrome: labels collapse before they truncate; pages scroll instead of clipping. */
+.notch-tabs-scroll { padding: 0; }
+.notch-tabs { spacing: 4px; }
+.notch-tab-icon { padding: 5px 7px; }
+.notch-page-scroll { padding: 0 2px 0 0; }
+.notch-status-bar { spacing: 6px; padding: 4px 0 0; }
+.notch-status { color: #ffd60a; font-size: 0.85em; }
+.notch-status-error { color: #ff9f0a; }
+.notch-action-compact { padding: 7px 9px; font-size: 0.9em; }
+.notch-action-active, .notch-action-active:hover, .notch-action-active:focus {
+  background-color: #f5f5f7;
+  color: #000000;
+  border-color: transparent;
+}
+.notch-action:insensitive { color: #636366; background-color: #1c1c1e; }
+.notch-notification { spacing: 6px; }
+.notch-drop { font-size: 0.9em; }

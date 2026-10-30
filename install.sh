@@ -54,8 +54,10 @@ fi
 if $ENABLE && [[ $MODE == user ]]; then
   if [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} || -S ${XDG_RUNTIME_DIR:-/run/user/$UID}/bus ]]; then
     systemctl --user daemon-reload
+    systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS 2>/dev/null || true
+    systemctl --user reset-failed notch-helper.service 2>/dev/null || true
     systemctl --user enable notch-helper.service
-    systemctl --user restart notch-helper.service || echo "Helper will start on first use after graphical login."
+    systemctl --user restart notch-helper.service || echo "Helper will start on first use; if Shelf stays offline run: journalctl --user -u notch-helper.service -b"
     gnome-extensions enable "$UUID" 2>/dev/null || echo "Extension will be discovered after you log out and back in."
   fi
 fi

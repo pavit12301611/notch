@@ -4,7 +4,7 @@
 
 1. **GNOME Shell extension (GJS/St/Clutter)** owns all always-visible chrome. It is loaded by Shell, not by systemd. `enable()` creates the actor, controllers, keybinding and a private session-bus object; `disable()` reverses those operations.
 2. **Preferences** are shown inline by `extension/prefs.js` in the separate GNOME Extensions GTK4/Libadwaita process, bound directly to the extension GSettings schema. The optional **Python companion app** (`notch-settings`) runs only when opened and provides the same schema plus shelf/file-chooser/status tools; it calls the extension’s private bus name for state/history operations.
-3. **Helper (Python/Gio, lazy GTK4)** owns file-drop input and shelf storage. It is session-bus activatable and systemd-user supervised. It exits cleanly after five minutes without interaction and no visible drop target/dialog.
+3. **Helper (Python/Gio, lazy GTK4)** owns file-drop input and shelf storage. The systemd user unit starts it at graphical login; the D-Bus service file also provides direct first-use activation as a fallback. It exits cleanly after five minutes without interaction and no visible drop target/dialog.
 
 ## Notification routing
 
@@ -36,6 +36,7 @@ This is the most compositor-sensitive part of the project and must be tested wit
 
 - `Main.layoutManager.addChrome()` registers the notch with Shell’s input-region tracking.
 - The actor clips its expanding content. A bounded damped-spring geometry integrator drives a Clutter frame timeline only while moving; content crossfades separately. Reduced motion / disabled animations snap to the final state.
+- `layout.js` resolves content width/height from the actual open rectangle, monitor margins, panel height, notch scale and text scale. Header labels collapse at breakpoints; each page lives in a vertical ScrollView so limited height scrolls rather than hiding controls. Geometry reserves extra space for text scaling without double-scaling the content actor.
 - A separate, invisible edge actor optionally reserves **collapsed** space. Expanded content never changes struts.
 - Fullscreen and overview visibility are evaluated for the configured monitor. The extension does not fight Shell’s own `trackFullscreen` visibility binding.
 - Escape/outside-click handling does not install a modal grab. Slider grabs postpone pointer-leave/auto-hide collapse.

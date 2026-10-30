@@ -7,8 +7,88 @@ import platform
 import re
 import shutil
 import subprocess
+from pathlib import Path
 
 from .config import APP_ID, EXTENSION_ID, HELPER_ID, HELPER_PATH, OBJECT_PATH, extension_dir
+
+
+def _data_dirs() -> list[Path]:
+    home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
+    dirs = [home]
+    dirs += [
+        Path(p)
+        for p in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")
+        if p
+    ]
+    return dirs
+
+
+def helper_service_file() -> Path | None:
+    name = f"{HELPER_ID}.service"
+    return next(
+        (
+            d / "dbus-1/services" / name
+            for d in _data_dirs()
+            if (d / "dbus-1/services" / name).is_file()
+        ),
+        None,
+    )
+
+
+def inspect_helper_service() -> list[tuple[str, str, str]]:
+    results = []
+    service = helper_service_file()
+    if service:
+        results.append(("PASS", "Helper D-Bus service", str(service)))
+    else:
+        results.append(("FAIL", "Helper D-Bus service", "Missing; re-run install.sh"))
+    try:
+        output = subprocess.run(
+            [
+                "systemctl",
+                "--user",
+                "show",
+                "notch-helper.service",
+                "-p",
+                "LoadState",
+                "-p",
+                "ActiveState",
+                "-p",
+                "UnitFileState",
+                "-p",
+                "Result",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        ).stdout
+        state = dict(line.split("=", 1) for line in output.splitlines() if "=" in line)
+        if not state:
+            results.append(("WARN", "Helper systemd unit", "systemctl returned no unit state"))
+        elif state.get("LoadState") == "not-found":
+            results.append(
+                ("FAIL", "Helper systemd unit", "Not loaded; re-run install.sh and daemon-reload")
+            )
+        elif state.get("ActiveState") == "failed" or state.get("Result") not in (None, "success"):
+            results.append(
+                (
+                    "FAIL",
+                    "Helper systemd unit",
+                    "Failed; run: journalctl --user -u notch-helper.service -b",
+                )
+            )
+        else:
+            results.append(
+                (
+                    "PASS",
+                    "Helper systemd unit",
+                    f"{state.get('UnitFileState', 'unknown')} / {state.get('ActiveState', 'unknown')}",
+                )
+            )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        results.append(("WARN", "Helper systemd unit", str(exc)))
+    return results
 
 
 def inspect_project() -> list[tuple[str, str, str]]:
@@ -102,6 +182,7 @@ def inspect_bus() -> list[tuple[str, str, str]]:
             (HELPER_ID, HELPER_PATH, HELPER_ID, "Ping"),
         ]:
             try:
+                is_helper = name == HELPER_ID
                 value = bus.call_sync(
                     name,
                     path,
@@ -109,8 +190,8 @@ def inspect_bus() -> list[tuple[str, str, str]]:
                     method,
                     None,
                     None,
-                    Gio.DBusCallFlags.NO_AUTO_START,
-                    1500,
+                    Gio.DBusCallFlags.NONE if is_helper else Gio.DBusCallFlags.NO_AUTO_START,
+                    8000 if is_helper else 1500,
                     None,
                 )
                 results.append(("PASS", name, str(value.deepUnpack()[0])))
@@ -149,6 +230,7 @@ def main(argv=None):
     parser.add_argument("--offline", action="store_true", help="skip session-bus checks")
     args = parser.parse_args(argv)
     results = inspect_project()
+    results += inspect_helper_service()
     if not args.offline:
         results += inspect_bus()
     for level, name, detail in results:

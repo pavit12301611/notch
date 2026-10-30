@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Adaptive layout and action reliability
+
+- Replaced fixed content sizing with monitor-aware geometry and a pure adaptive layout resolver. Header labels collapse to active-only/icon-only before truncating; every page scrolls instead of clipping.
+- Added a wrapping, dismissible status bar with actionable helper Retry, replacing clipped raw D-Bus errors.
+- Quick actions now keep stable button actors, expose on/off/locked state, and report success/failure instead of silently rebuilding during clicks.
+- Shelf helper client has explicit offline/starting/ready states, serialized activation, retry, and friendly activation errors; Copy URI uses a typed GObject value.
+- Helper systemd unit no longer depends on a desktop-environment condition; installer resets failed units and imports session environment. `notch-doctor` checks helper service/unit state and can activate the helper.
+
 ### MacBook-native redesign v2
 
 - Studied pinned native macOS sources from boring.notch, DynamicNotchKit and NotchDrop; recorded findings and licenses in `docs/DESIGN_STUDY.md`.

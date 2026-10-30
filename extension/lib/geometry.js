@@ -1,4 +1,5 @@
-export const clamp = (value, lower, upper) => Math.max(lower, Math.min(upper, value));
+import {availableOpenSize, clamp} from './layout.js';
+export {clamp};
 
 /** Logical page sizes inspired by native MacBook notch apps; never one giant window. */
 export const PAGE_SIZES = Object.freeze({
@@ -6,7 +7,7 @@ export const PAGE_SIZES = Object.freeze({
     media: {width: 640, height: 300},
     notifications: {width: 560, height: 320},
     system: {width: 640, height: 260},
-    shelf: {width: 640, height: 240},
+    shelf: {width: 640, height: 260},
     clipboard: {width: 580, height: 300},
 });
 
@@ -27,14 +28,15 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
     const state = mode ?? (expanded ? 'open' : 'closed');
     const page = PAGE_SIZES[options.tab] ?? PAGE_SIZES.home;
     const panelHeight = Math.max(1, options.panelHeight ?? 32);
+    const available = availableOpenSize(monitor, options);
     let width;
     let height;
     if (state === 'open') {
-        width = Math.min(page.width * scale, (options.expandedWidth ?? 640) * scale);
-        height = Math.min(page.height * scale, (options.expandedHeight ?? 320) * scale);
+        width = Math.min(page.width * scale, (options.expandedWidth ?? 640) * scale, available.width);
+        height = Math.min(page.height * scale, (options.expandedHeight ?? 320) * scale, available.height);
     } else if (state === 'peek') {
-        width = 440 * scale;
-        height = panelHeight + 112 * scale;
+        width = Math.min(440 * scale, available.width);
+        height = Math.min(panelHeight + 112 * scale, available.height);
     } else {
         width = Math.max(options.collapsedWidth ?? 185, 150) * scale;
         if (options.mediaWings) width += 64 * scale;
@@ -42,7 +44,7 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
         height = options.matchPanelHeight === true ? panelHeight : (options.collapsedHeight ?? 32) * scale;
         if (options.hovered && options.placement === 'panel') height += 4 * scale;
     }
-    width = Math.round(clamp(width, 1, monitor.width));
+    width = Math.round(clamp(width, 1, Math.min(monitor.width, available.width)));
     height = Math.round(clamp(height, 1, monitor.height));
     const x = Math.round(monitor.x + clamp((monitor.width - width) / 2 +
         (options.horizontalOffset ?? 0) * scale, 0, monitor.width - width));

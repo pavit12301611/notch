@@ -56,7 +56,11 @@ class HelperApplication(Gio.Application):
         if not Gio.Application.do_dbus_register(self, connection, object_path):
             return False
         self.connection = connection
-        node = Gio.DBusNodeInfo.new_for_xml(interface_xml(f"{HELPER_ID}.xml"))
+        try:
+            node = Gio.DBusNodeInfo.new_for_xml(interface_xml(f"{HELPER_ID}.xml"))
+        except (OSError, GLib.Error) as exc:
+            print(f"Notch helper: cannot load D-Bus interface: {exc}", file=sys.stderr)
+            return False
         self.registration = connection.register_object_path(
             HELPER_PATH, node.interfaces[0], self._method_call, None, None
         )
@@ -122,7 +126,7 @@ class HelperApplication(Gio.Application):
                 return
             signature = "(s)" if result is not None else None
             invocation.return_value(GLib.Variant(signature, result) if result is not None else None)
-        except (ValueError, RuntimeError, TypeError, OverflowError) as exc:
+        except (ValueError, RuntimeError, TypeError, OverflowError, OSError) as exc:
             invocation.return_dbus_error(DBUS_ERROR, str(exc))
         except GLib.Error as exc:
             invocation.return_dbus_error(DBUS_ERROR, exc.message)
@@ -132,10 +136,10 @@ class HelperApplication(Gio.Application):
             return
         gi.require_version("Gtk", "4.0")
         gi.require_version("Gdk", "4.0")
-        from gi.repository import Gdk, Gtk
+        from gi.repository import Gdk, GObject, Gtk
 
         Gtk.init()
-        self.gtk, self.gdk = Gtk, Gdk
+        self.gtk, self.gdk, self.gobject = Gtk, Gdk, GObject
         css = Gtk.CssProvider()
         css.load_from_data(
             """
@@ -272,7 +276,9 @@ class HelperApplication(Gio.Application):
     def copy_uri(self, uri):
         self._load_gtk()
         clipboard = self.gdk.Display.get_default().get_clipboard()
-        clipboard.set_content(self.gdk.ContentProvider.new_for_value(uri))
+        value = self.gobject.Value(self.gobject.TYPE_STRING)
+        value.set_string(uri)
+        clipboard.set_content(self.gdk.ContentProvider.new_for_value(value))
 
 
 def main(argv=None):

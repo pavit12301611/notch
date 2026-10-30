@@ -52,7 +52,9 @@ journalctl --user -b -t gnome-shell -f
 
 - [ ] Top-center, floating and panel modes place correctly at 100%, 125%, 150% and 200% scaling.
 - [ ] Primary and secondary monitors; hotplug/unplug; monitor index out of range falls back safely.
-- [ ] Expanded content is clipped, readable and keyboard-focusable at minimum and maximum sizes.
+- [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes; pages scroll when vertical space is limited.
+- [ ] Header labels collapse to active-only/icon-only on narrow widths instead of truncating every tab.
+- [ ] 100%/125%/150%/200% display scaling and large text settings do not double-scale or clip the closed clock.
 - [ ] Hover dwell, click, Super+grave, Escape and outside-click behave as documented.
 - [ ] Slider dragging outside the notch does not collapse it mid-gesture.
 - [ ] Fullscreen video/game hides the notch on its monitor and restores it afterward.
@@ -91,6 +93,9 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Battery percentage/state updates on AC plug/unplug; desktop without battery shows AC.
 - [ ] DND, Night Light and Dark Mode reflect and change GNOME’s actual settings.
 - [ ] Hiding a quick action removes it without breaking the others.
+- [ ] Quick-action buttons show on/off state, survive repeated clicks, and report locked/failed settings writes.
+- [ ] Shelf offline state shows Retry; Retry starts the helper and buttons stop silently no-oping.
+- [ ] `notch-doctor` reports helper D-Bus service/systemd unit state and activation failures.
 - [ ] No diagnostics timer remains after leaving System or collapsing the notch.
 
 ### Shelf and external drag (highest-risk integration)

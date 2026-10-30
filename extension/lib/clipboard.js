@@ -55,9 +55,9 @@ export class ClipboardController {
     }
 
     async capture() {
-        if (this.pending || this.paused || this.dead) return;
+        if (this.pending || this.paused || this.dead) return false;
         const mime = safeTextMimetype(this.selection.get_mimetypes(Meta.SelectionType.CLIPBOARD));
-        if (!mime) return;
+        if (!mime) return false;
         this.pending = true;
         const stream = Gio.MemoryOutputStream.new_resizable();
         try {
@@ -67,11 +67,13 @@ export class ClipboardController {
                         try { selection.transfer_finish(result); resolve(); } catch (e) { reject(e); }
                     });
             });
-            if (this.dead || this.paused || stream.get_data_size() > MAX_BYTES) return;
+            if (this.dead || this.paused || stream.get_data_size() > MAX_BYTES) return false;
             const text = new TextDecoder('utf-8', {fatal: true}).decode(stream.steal_as_bytes().get_data());
             if (this.history.add(text)) this.onChange();
+            return true;
         } catch {
             // A closed source, non-UTF8 data, cancellation or an oversized clip is skipped.
+            return false;
         } finally {
             try { stream.close(null); } catch { /* already closed */ }
             this.pending = false;

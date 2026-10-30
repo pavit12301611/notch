@@ -10,14 +10,15 @@ import {AudioController} from './audio.js';
 import {ArtLoader} from './art.js';
 import {ClipboardController} from './clipboard.js';
 import {Diagnostics} from './diagnostics.js';
-import {notchGeometry, containsPoint, PAGE_SIZES} from './geometry.js';
+import {notchGeometry, containsPoint} from './geometry.js';
+import {contentLayout} from './layout.js';
 import {MediaController} from './media.js';
 import {NotificationBridge} from './notifications.js';
 import {QuickActions} from './actions.js';
 import {ShelfController} from './shelf.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
-import {box, button, icon, label, setText, slider} from './widgets.js';
+import {box, button, icon, label, wrapLabel, setText, slider} from './widgets.js';
 import {formatBytes, formatTime, plainText} from './model.js';
 
 const TABS = [
@@ -90,11 +91,11 @@ export class NotchView {
     readOptions() {
         const theme = St.ThemeContext.get_for_stage(global.stage);
         const cssScale = Math.max(1, theme.scale_factor || 1);
-        const textScale = this.interfaceSettings.get_double('text-scaling-factor') || 1;
-        const layoutScale = Math.max(0.75, Math.min(1.5, this.settings.get_double('notch-scale'))) *
-            Math.max(0.8, Math.min(2, textScale));
+        const textScale = Math.max(0.8, Math.min(2, this.interfaceSettings.get_double('text-scaling-factor') || 1));
+        const notchScale = Math.max(0.75, Math.min(1.5, this.settings.get_double('notch-scale')));
+        const layoutScale = notchScale * textScale;
         return {
-            cssScale, layoutScale,
+            cssScale, layoutScale, contentScale: notchScale, textScale,
             placement: this.settings.get_string('placement'),
             collapsedWidth: this.settings.get_int('collapsed-width'),
             collapsedHeight: this.settings.get_int('collapsed-height'),
@@ -180,16 +181,19 @@ export class NotchView {
         this.content = box(true, 'notch-content', 0);
         this.content.visible = false;
         this.content.opacity = 0;
-        this.header = box(false, 'notch-header', 4);
+        this.header = box(false, 'notch-header', 6);
+        this.tabsScroll = new St.ScrollView({style_class: 'notch-tabs-scroll', x_expand: true,
+            hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.NEVER});
+        this.tabsBox = box(false, 'notch-tabs', 4);
         this.tabButtons = new Map();
         for (const [id, title, iconName] of TABS) {
             const tab = button({text: title, iconName, style: 'notch-tab', accessibleName: title,
                 onClick: () => this.selectTab(id)});
-            this.header.add_child(tab);
+            this.tabsBox.add_child(tab);
             this.tabButtons.set(id, tab);
         }
-        const spacer = new St.Widget({x_expand: true});
-        this.header.add_child(spacer);
+        this.tabsScroll.add_child(this.tabsBox);
+        this.header.add_child(this.tabsScroll);
         this.header.add_child(button({iconName: 'emblem-system-symbolic', style: 'notch-icon-button',
             accessibleName: 'Notch settings', onClick: () => this.extension.openPreferences()}));
         this.header.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button',
@@ -204,10 +208,27 @@ export class NotchView {
             shelf: this.buildShelf(),
             clipboard: this.buildClipboard(),
         };
-        for (const page of Object.values(this.pages)) this.pageStack.add_child(page);
+        this.pageScrolls = {};
+        for (const [id, page] of Object.entries(this.pages)) {
+            page.x_expand = true;
+            const scroll = new St.ScrollView({style_class: 'notch-page-scroll', x_expand: true, y_expand: true,
+                hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC});
+            scroll.add_child(page);
+            this.pageScrolls[id] = scroll;
+            this.pageStack.add_child(scroll);
+        }
         this.content.add_child(this.pageStack);
-        this.statusLabel = label('', 'notch-status');
-        this.content.add_child(this.statusLabel);
+        this.statusBar = box(false, 'notch-status-bar', 6);
+        this.statusBar.visible = false;
+        this.statusLabel = wrapLabel('', 'notch-status', true);
+        this.statusActionButton = button({text: 'Retry', style: 'notch-small-button',
+            onClick: () => this.statusAction?.()});
+        this.statusActionButton.visible = false;
+        this.statusBar.add_child(this.statusLabel);
+        this.statusBar.add_child(this.statusActionButton);
+        this.statusBar.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button',
+            accessibleName: 'Dismiss status message', onClick: () => this.clearStatus()}));
+        this.content.add_child(this.statusBar);
         this.actor.add_child(this.content);
 
         this.actor.connectObject('enter-event', () => {
@@ -240,6 +261,7 @@ export class NotchView {
     buildHome() {
         const stack = new St.Widget({layout_manager: new Clutter.BinLayout()});
         this.homeMedia = box(false, 'notch-home-media', 14);
+        this.homeMedia.x_expand = true;
         this.homeArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 72,
             style_class: 'notch-art', y_align: Clutter.ActorAlign.CENTER});
         const info = box(true, '', 5);
@@ -257,8 +279,9 @@ export class NotchView {
         controls.add_child(this.homePrevious);
         controls.add_child(this.homePlay);
         controls.add_child(this.homeNext);
-        controls.add_child(button({text: 'Full player', style: 'notch-link',
-            onClick: () => this.selectTab('media')}));
+        this.homeFullPlayer = button({text: 'Full player', style: 'notch-link',
+            onClick: () => this.selectTab('media')});
+        controls.add_child(this.homeFullPlayer);
         info.add_child(this.homeTitle);
         info.add_child(this.homeArtist);
         info.add_child(controls);
@@ -267,6 +290,7 @@ export class NotchView {
         stack.add_child(this.homeMedia);
 
         this.homeIdle = box(false, 'notch-home-idle', 18);
+        this.homeIdle.x_expand = true;
         const timeBox = box(true, '', 2);
         timeBox.x_expand = true;
         timeBox.y_align = Clutter.ActorAlign.CENTER;
@@ -288,17 +312,15 @@ export class NotchView {
         const header = box(false, '', 8);
         this.notificationCount = label('0 notifications', 'notch-title', true);
         header.add_child(this.notificationCount);
-        header.add_child(button({text: 'Clear all', iconName: 'edit-clear-all-symbolic',
-            onClick: () => this.clearNotifications()}));
+        this.notificationClear = button({text: 'Clear all', iconName: 'edit-clear-all-symbolic',
+            onClick: () => this.clearNotifications()});
+        header.add_child(this.notificationClear);
         page.add_child(header);
         this.calendarLabel = label(new Date().toLocaleDateString([], {weekday: 'long', month: 'long', day: 'numeric'}), 'notch-muted');
         page.add_child(this.calendarLabel);
         this.notificationList = box(true, '', 6);
         this.notificationList.x_expand = true;
-        const scroll = new St.ScrollView({style_class: 'notch-scroll', hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC, y_expand: true});
-        scroll.add_child(this.notificationList);
-        page.add_child(scroll);
+        page.add_child(this.notificationList);
         return page;
     }
 
@@ -338,10 +360,7 @@ export class NotchView {
         text.x_expand = true;
         const title = label(plainText(notification.title || notification.source?.title || 'Notification'),
             'notch-peek-title', true);
-        const body = label(plainText(notification.body || ''), 'notch-peek-body', true);
-        body.clutter_text.line_wrap = true;
-        body.clutter_text.line_wrap_mode = 2;
-        body.clutter_text.ellipsize = 0;
+        const body = wrapLabel(plainText(notification.body || ''), 'notch-peek-body', true);
         text.add_child(title);
         text.add_child(body);
         row.add_child(image);
@@ -405,7 +424,7 @@ export class NotchView {
         setText(this.notificationCount, `${count} notification${count === 1 ? '' : 's'}`);
         this.unreadDot.visible = count > 0 && this.settings.get_boolean('idle-clock');
         const tab = this.tabButtons.get('notifications');
-        if (tab) tab.child.get_last_child().text = count ? `Alerts ${count}` : 'Alerts';
+        if (tab) tab.accessible_name = count ? `Alerts, ${count} notifications` : 'Alerts';
     }
 
     updateNotifications() {
@@ -418,31 +437,32 @@ export class NotchView {
         for (const source of sources) {
             for (const notification of source.notifications) {
                 total++;
-                const row = box(false, 'notch-notification', 8);
+                const card = box(true, 'notch-notification', 6);
+                const top = box(false, '', 8);
                 const gicon = notification.gicon ?? source.icon ?? null;
-                row.add_child(new St.Icon({gicon, icon_name: gicon ? null : 'application-x-executable-symbolic',
-                    icon_size: 24, y_align: Clutter.ActorAlign.START}));
-                const text = box(true, '', 2);
-                text.x_expand = true;
-                text.add_child(label(plainText(notification.title || source.title), 'notch-title', true));
-                const body = label(plainText(notification.body || ''), 'notch-muted', true);
-                body.clutter_text.line_wrap = true;
-                body.clutter_text.line_wrap_mode = 2;
-                body.clutter_text.ellipsize = 0;
-                text.add_child(body);
-                row.add_child(text);
-                const actions = box(true, '', 4);
-                for (const action of (notification.actions ?? []).slice(0, 2)) {
-                    actions.add_child(button({text: plainText(action.label), style: 'notch-small-button',
-                        onClick: () => action.activate()}));
-                }
-                actions.add_child(button({iconName: 'user-trash-symbolic', style: 'notch-icon-button',
+                top.add_child(new St.Icon({gicon, icon_name: gicon ? null : 'application-x-executable-symbolic',
+                    icon_size: 22, y_align: Clutter.ActorAlign.CENTER}));
+                top.add_child(label(plainText(notification.title || source.title), 'notch-title', true));
+                top.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button',
                     accessibleName: 'Dismiss notification', onClick: () => notification.destroy()}));
-                row.add_child(actions);
-                this.notificationList.add_child(row);
+                card.add_child(top);
+                const body = plainText(notification.body || '');
+                if (body) card.add_child(wrapLabel(body));
+                const nativeActions = (notification.actions ?? []).slice(0, 2);
+                if (nativeActions.length) {
+                    const actions = box(!this._layout?.compact, '', 6);
+                    for (const action of nativeActions) {
+                        const actionButton = button({text: plainText(action.label), style: 'notch-small-button',
+                            onClick: () => action.activate()});
+                        actionButton.x_expand = !!this._layout?.compact;
+                        actions.add_child(actionButton);
+                    }
+                    card.add_child(actions);
+                }
+                this.notificationList.add_child(card);
             }
         }
-        if (!total) this.notificationList.add_child(label('No notifications. New alerts will peek here.'));
+        if (!total) this.notificationList.add_child(wrapLabel('No notifications. New alerts will peek here.'));
     }
 
     updateClock() {
@@ -465,7 +485,7 @@ export class NotchView {
         this.homePrevious.reactive = state.canGoPrevious;
         this.homeNext.reactive = state.canGoNext;
         this.homePlay.reactive = state.canControl && (state.canPlay || state.canPause);
-        this.homePlay.child.get_last_child().icon_name = state.status === 'Playing' ?
+        this.homePlay._notchIcon.icon_name = state.status === 'Playing' ?
             'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
     }
 
@@ -519,7 +539,7 @@ export class NotchView {
         if (!this.pages[id]) return;
         this.tab = id;
         this.options.tab = id;
-        for (const [pageId, page] of Object.entries(this.pages)) page.visible = pageId === id;
+        for (const [pageId, scroll] of Object.entries(this.pageScrolls)) scroll.visible = pageId === id;
         for (const [tabId, tab] of this.tabButtons) {
             if (tabId === id) tab.add_style_class_name('notch-tab-active');
             else tab.remove_style_class_name('notch-tab-active');
@@ -530,7 +550,6 @@ export class NotchView {
         if (id === 'system') this.updateSystem();
         if (id === 'shelf') this.updateShelf();
         if (id === 'clipboard') this.updateClipboard();
-        this.layoutPages();
         if (animate && this.expanded) this.relayout('resize');
     }
 
@@ -604,16 +623,73 @@ export class NotchView {
 
     layoutPages() {
         if (!this.content) return;
-        const page = PAGE_SIZES[this.tab] ?? PAGE_SIZES.home;
-        const css = this.options.cssScale;
-        const panelLogical = this.options.panelHeight / (css * this.options.layoutScale);
-        const width = Math.max(280, Math.min(page.width, this.options.expandedWidth) - 40);
-        const height = Math.max(90, Math.min(page.height, this.options.expandedHeight) - panelLogical - 16);
-        this._contentLogicalWidth = width;
-        this.content.set_size(width * css, height * css);
-        this.header.set_size(width * css, 32 * css);
-        this.statusLabel.set_size(width * css, 14 * css);
-        this.pageStack.set_size(width * css, Math.max(40, height - 46) * css);
+        const openRect = this.geometry(true, 'open');
+        const statusText = this.statusBar?.visible ? this.statusLabel.text : '';
+        const layout = contentLayout(openRect, this.options, statusText);
+        this._layout = layout;
+        const css = layout.cssScale;
+        this.content.set_size(layout.width * css, layout.height * css);
+        this.header.set_size(layout.width * css, layout.headerHeight * css);
+        this.pageStack.set_size(layout.width * css, layout.pageHeight * css);
+        this.statusBar.set_size(layout.width * css, layout.footerHeight * css);
+        this.adaptPages(layout);
+    }
+
+    adaptPages(layout) {
+        for (const [id, tab] of this.tabButtons) {
+            const showLabel = layout.header === 'labels' || (layout.header === 'active' && id === this.tab);
+            if (tab._notchLabel) tab._notchLabel.visible = showLabel;
+            if (layout.header === 'icons') tab.add_style_class_name('notch-tab-icon');
+            else tab.remove_style_class_name('notch-tab-icon');
+        }
+        if (this.homeIdle) {
+            this.homeIdle.vertical = layout.compact;
+            this.homeIdle.x_align = layout.compact ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.FILL;
+            this.homeActions.x_align = layout.compact ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.END;
+            this.homeFullPlayer.visible = !layout.narrow;
+            this.homeArt.icon_size = layout.compact ? 56 : 72;
+        }
+        if (this.mediaRow) {
+            this.mediaRow.vertical = layout.narrow;
+            this.mediaArt.icon_size = layout.compact ? 56 : 72;
+            this.playerVolumeRow.vertical = layout.narrow;
+            this.outputVolumeRow.vertical = layout.narrow;
+        }
+        if (this.statsGrid) this.layoutSystemCards(layout.columns);
+        if (this.actionsRow) {
+            this.actionsRow.vertical = layout.compact;
+            for (const {widget} of this.actionButtons ?? []) widget.x_expand = layout.compact;
+        }
+        const compactButton = (widget, compact) => {
+            if (widget?._notchLabel) widget._notchLabel.visible = !compact;
+        };
+        compactButton(this.notificationClear, layout.compact);
+        compactButton(this.shelfAdd, layout.compact);
+        compactButton(this.shelfClear, layout.compact);
+        compactButton(this.clipboardCapture, layout.compact);
+        compactButton(this.clipboardClear, layout.compact);
+        if (this.mode === 'open') {
+            if (this.tab === 'notifications') this.updateNotifications();
+            if (this.tab === 'shelf') this.updateShelf();
+            if (this.tab === 'clipboard') this.updateClipboard();
+        }
+    }
+
+    layoutSystemCards(columns) {
+        if (!this.statsGrid || this._statColumns === columns) return;
+        this._statColumns = columns;
+        for (const card of Object.values(this.statCards)) card.get_parent()?.remove_child(card);
+        this.statsGrid.destroy_all_children();
+        const ids = ['cpu', 'ram', 'battery', 'network'];
+        for (let i = 0; i < ids.length; i += columns) {
+            const row = box(false, '', 8);
+            for (const id of ids.slice(i, i + columns)) {
+                const card = this.statCards[id];
+                card.x_expand = true;
+                row.add_child(card);
+            }
+            this.statsGrid.add_child(row);
+        }
     }
 
     relayout(kind = 'resize', immediate = false) {
@@ -682,22 +758,30 @@ export class NotchView {
     }
 
     applyGeometry(rect) {
-        const scale = this.options.cssScale * this.options.layoutScale;
-        const layout = this.options.layoutScale;
+        const layout = this._layout;
+        const scale = layout?.scale ?? this.options.cssScale * this.options.layoutScale;
+        const css = layout?.cssScale ?? this.options.cssScale;
+        const contentScale = layout?.layoutScale ?? this.options.layoutScale;
         this.actor.set_position(Math.round(rect.x), Math.round(rect.y));
         this.actor.set_size(Math.round(rect.width), Math.round(rect.height));
-        this.surface.setGeometry(rect.width, rect.height, rect.topRadius, rect.bottomRadius, this.options.cssScale);
+        this.surface.setGeometry(rect.width, rect.height, rect.topRadius, rect.bottomRadius, css);
         this.surface.opacity = Math.round(this.options.opacity * 255);
         const panelHeight = this.options.panelHeight;
-        this.closedLayer.set_size(rect.width / layout, panelHeight / layout);
-        this.closedLayer.set_scale(layout, layout);
+        const textScale = layout?.textScale ?? this.options.textScale ?? 1;
+        const closedScale = Math.min(contentScale, panelHeight / Math.max(1, 32 * css * textScale));
+        this.closedLayer.set_size(rect.width / closedScale, panelHeight / closedScale);
+        this.closedLayer.set_scale(closedScale, closedScale);
         this.closedLayer.set_position(0, 0);
-        const page = PAGE_SIZES[this.tab] ?? PAGE_SIZES.home;
-        const contentWidth = (this._contentLogicalWidth ?? (page.width - 40)) * scale;
-        this.content.set_scale(layout, layout);
-        this.content.set_position(Math.round((rect.width - contentWidth) / 2), panelHeight);
-        this.peek.set_scale(layout, layout);
-        this.peek.set_size((rect.width - 32 * scale) / layout, (rect.height - panelHeight - 12 * scale) / layout);
+        if (layout) {
+            const contentWidth = layout.width * scale;
+            this.content.set_scale(contentScale, contentScale);
+            this.content.set_position(Math.round((rect.width - contentWidth) / 2),
+                panelHeight + layout.paddingTop * scale);
+        }
+        const peekWidth = Math.max(120, rect.width / scale - 32);
+        const peekHeight = Math.max(48, (rect.height - panelHeight) / scale - 12);
+        this.peek.set_scale(contentScale, contentScale);
+        this.peek.set_size(peekWidth * css, peekHeight * css);
         this.peek.set_position(16 * scale, panelHeight + 4 * scale);
     }
 
@@ -808,6 +892,7 @@ export class NotchView {
         if (key.startsWith('show-')) {
             this.actions.destroy();
             this.actions = new QuickActions(this.settings, () => this.updateActions());
+            this._actionSignature = null;
             this.updateActions();
         }
         if (key === 'notifications-in-notch' || key === 'auto-open-notifications')
@@ -888,27 +973,28 @@ export class NotchView {
     }
 
     buildMedia() {
-        const page = box(true, '', 8);
-        const row = box(false, '', 14);
+        const page = box(true, '', 10);
+        this.mediaRow = box(false, '', 14);
         this.mediaArt = new St.Icon({icon_name: 'audio-x-generic-symbolic', icon_size: 72,
             style_class: 'notch-art', y_align: Clutter.ActorAlign.CENTER});
-        row.add_child(this.mediaArt);
+        this.mediaRow.add_child(this.mediaArt);
         const info = box(true, '', 4);
         info.x_expand = true;
-        this.mediaTitle = label('Nothing playing', 'notch-title', true);
-        this.mediaArtist = label('Start a song in an MPRIS-compatible player');
-        this.mediaAlbum = label('');
+        this.mediaTitle = wrapLabel('Nothing playing', 'notch-title', true);
+        this.mediaArtist = wrapLabel('Start a song in an MPRIS-compatible player');
+        this.mediaAlbum = wrapLabel('');
         this.mediaPlayer = button({text: 'No media player', iconName: 'view-more-symbolic',
             accessibleName: 'Switch media player', onClick: () => this.media.cyclePlayer()});
         info.add_child(this.mediaTitle);
         info.add_child(this.mediaArtist);
         info.add_child(this.mediaAlbum);
         info.add_child(this.mediaPlayer);
-        row.add_child(info);
-        page.add_child(row);
+        this.mediaRow.add_child(info);
+        page.add_child(this.mediaRow);
         const progress = box(false, '', 8);
         this.mediaElapsed = label('0:00');
         this.mediaSeek = slider(0, value => this.media.seekTo(value), 'Playback position');
+        this.mediaSeek.x_expand = true;
         this.mediaDuration = label('0:00');
         progress.add_child(this.mediaElapsed);
         progress.add_child(this.mediaSeek);
@@ -928,21 +1014,23 @@ export class NotchView {
         controls.add_child(button({iconName: 'view-reveal-symbolic', accessibleName: 'Raise media player',
             onClick: () => this.media.raise()}));
         page.add_child(controls);
-        const playerVolume = box(false, '', 8);
-        playerVolume.add_child(label('Player volume'));
+        this.playerVolumeRow = box(false, '', 8);
+        this.playerVolumeRow.add_child(label('Player volume'));
         this.playerVolume = slider(1, value => this.media.setVolume(value), 'Player volume');
+        this.playerVolume.x_expand = true;
         this.playerVolumeLabel = label('100%');
-        playerVolume.add_child(this.playerVolume);
-        playerVolume.add_child(this.playerVolumeLabel);
-        page.add_child(playerVolume);
-        const outputVolume = box(false, '', 8);
-        outputVolume.add_child(label('System output'));
+        this.playerVolumeRow.add_child(this.playerVolume);
+        this.playerVolumeRow.add_child(this.playerVolumeLabel);
+        page.add_child(this.playerVolumeRow);
+        this.outputVolumeRow = box(false, '', 8);
+        this.outputVolumeRow.add_child(label('System output'));
         this.outputVolume = slider(0, value => this.audio.setVolume(value), 'System output volume');
+        this.outputVolume.x_expand = true;
         this.outputMute = button({iconName: 'audio-volume-high-symbolic', accessibleName: 'Mute system output',
             onClick: () => this.audio.toggleMute()});
-        outputVolume.add_child(this.outputVolume);
-        outputVolume.add_child(this.outputMute);
-        page.add_child(outputVolume);
+        this.outputVolumeRow.add_child(this.outputVolume);
+        this.outputVolumeRow.add_child(this.outputMute);
+        page.add_child(this.outputVolumeRow);
         return page;
     }
 
@@ -950,6 +1038,7 @@ export class NotchView {
         if (this.dead || !this.mediaTitle) return;
         const state = this.media.snapshot();
         setText(this.mediaTitle, state.title);
+        this.mediaTitle.accessible_name = state.title;
         this.updateHome(state);
         this.updateSummary();
         setText(this.mediaArtist, state.artist || state.identity);
@@ -962,10 +1051,11 @@ export class NotchView {
         this.mediaPrevious.reactive = state.canGoPrevious;
         this.mediaNext.reactive = state.canGoNext;
         this.mediaPlay.reactive = state.canControl && (state.canPlay || state.canPause);
-        this.mediaPlay.child.get_last_child().icon_name = state.status === 'Playing' ?
+        this.mediaPlay._notchIcon.icon_name = state.status === 'Playing' ?
             'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
-        this.mediaPlayer.child.get_last_child().text = state.names.length > 1 ?
-            `${state.identity}  ·  ${state.names.length} players ›` : state.identity;
+        this.mediaPlay.accessible_name = state.status === 'Playing' ? 'Pause' : 'Play';
+        setText(this.mediaPlayer._notchLabel, state.names.length > 1 ?
+            `${state.identity}  ·  ${state.names.length} players ›` : state.identity);
         this.mediaPlayer.reactive = state.names.length > 1;
         this.playerVolume._notchSet(state.volume);
         this.playerVolume.reactive = state.canControl;
@@ -975,11 +1065,12 @@ export class NotchView {
             this.artKey = artKey;
             this.art.load(state.artUrl, gicon => {
                 if (this.dead) return;
-                this.mediaArt.gicon = gicon;
-                this.mediaArt.icon_name = gicon ? null : 'audio-x-generic-symbolic';
-                this.mediaArt.fallback_gicon = null;
-                this.homeArt.gicon = gicon;
-                this.homeArt.icon_name = gicon ? null : 'audio-x-generic-symbolic';
+                for (const widget of [this.mediaArt, this.homeArt]) {
+                    widget.gicon = gicon;
+                    widget.icon_name = gicon ? null : 'audio-x-generic-symbolic';
+                    widget.icon_type = gicon ? St.IconType.FULLCOLOR : St.IconType.SYMBOLIC;
+                    widget.fallback_gicon = null;
+                }
             });
         }
         this.updateAudio();
@@ -991,14 +1082,16 @@ export class NotchView {
         this.outputVolume._notchSet(state.volume);
         this.outputVolume.reactive = state.available;
         this.outputMute.reactive = state.available;
-        this.outputMute.child.get_first_child().icon_name = state.muted || state.volume === 0 ?
+        this.outputMute._notchIcon.icon_name = state.muted || state.volume === 0 ?
             'audio-volume-muted-symbolic' : 'audio-volume-high-symbolic';
+        this.outputMute.accessible_name = state.muted ? 'Unmute system output' : 'Mute system output';
     }
 
     buildSystem() {
-        const page = box(true, '', 14);
-        const cards = box(false, '', 10);
+        const page = box(true, '', 12);
+        this.statsGrid = box(true, '', 8);
         this.stats = {};
+        this.statCards = {};
         for (const [id, title, iconName] of [['cpu', 'Processor', 'utilities-system-monitor-symbolic'],
             ['ram', 'Memory', 'drive-harddisk-symbolic'],
             ['battery', 'Battery', 'battery-symbolic'],
@@ -1009,19 +1102,18 @@ export class NotchView {
             heading.add_child(icon(iconName));
             heading.add_child(label(title));
             const value = label('—', 'notch-value');
-            const detail = label('Waiting for sample');
+            const detail = wrapLabel('Waiting for sample');
             card.add_child(heading);
             card.add_child(value);
             card.add_child(detail);
-            cards.add_child(card);
+            this.statCards[id] = card;
             this.stats[id] = {value, detail};
         }
-        page.add_child(cards);
+        page.add_child(this.statsGrid);
         page.add_child(label('QUICK ACTIONS', 'notch-muted'));
         this.actionsRow = box(false, '', 8);
         page.add_child(this.actionsRow);
-        page.add_child(label('Sampling runs only while this page is visible. Network uses the default IPv4 interface.',
-            'notch-muted'));
+        page.add_child(wrapLabel('Sampling runs only while this page is visible. Network uses the default IPv4 interface.'));
         this.updateActions();
         return page;
     }
@@ -1052,60 +1144,106 @@ export class NotchView {
 
     updateActions() {
         if (this.dead || !this.actionsRow) return;
-        this.actionsRow.destroy_all_children();
-        this.actionButtons = [];
-        this.homeActions?.destroy_all_children();
-        for (const item of this.actions.items) {
-            const widget = button({text: item.label, iconName: item.icon, style: 'notch-action',
-                onClick: () => this.actions.toggle(item)});
-            widget.toggle_mode = true;
-            this.actionsRow.add_child(widget);
-            this.actionButtons.push({item, widget});
-            if (this.homeActions) {
-                const compact = button({iconName: item.icon, style: 'notch-action', accessibleName: item.label,
-                    onClick: () => this.actions.toggle(item)});
-                compact.toggle_mode = true;
-                this.homeActions.add_child(compact);
-                this.actionButtons.push({item, widget: compact});
+        const signature = this.actions.items.map(item => item.id).join(',');
+        if (this._actionSignature !== signature) {
+            this._actionSignature = signature;
+            this.actionsRow.destroy_all_children();
+            this.homeActions?.destroy_all_children();
+            this.actionButtons = [];
+            for (const item of this.actions.items) {
+                const widget = button({text: item.label, iconName: item.icon, style: 'notch-action',
+                    accessibleName: item.label, onClick: () => this.toggleAction(item)});
+                this.actionsRow.add_child(widget);
+                const entry = {item, widget};
+                if (this.homeActions) {
+                    entry.compact = button({text: item.short, iconName: item.icon,
+                        style: 'notch-action notch-action-compact', accessibleName: item.label,
+                        onClick: () => this.toggleAction(item)});
+                    this.homeActions.add_child(entry.compact);
+                }
+                this.actionButtons.push(entry);
+            }
+            if (!this.actions.items.length)
+                this.actionsRow.add_child(wrapLabel('Enable quick actions in Notch Settings.'));
+        }
+        this.syncActions();
+    }
+
+    syncActions() {
+        for (const {item, widget, compact} of this.actionButtons ?? []) {
+            const active = this.actions.snapshot(item);
+            const writable = this.actions.writable(item);
+            for (const target of [widget, compact]) {
+                if (!target) continue;
+                target.reactive = writable;
+                target.accessible_name = `${item.label}: ${active ? 'on' : 'off'}${writable ? '' : ', locked'}`;
+                if (active) target.add_style_class_name('notch-action-active');
+                else target.remove_style_class_name('notch-action-active');
             }
         }
-        if (!this.actions.items.length)
-            this.actionsRow.add_child(label('Enable quick actions in Notch Settings.'));
-        for (const {item, widget} of this.actionButtons) {
-            const active = this.actions.snapshot(item);
-            widget.checked = active;
-            if (active) widget.add_style_class_name('notch-action-active');
-            else widget.remove_style_class_name('notch-action-active');
-        }
+    }
+
+    toggleAction(item) {
+        const result = this.actions.toggle(item);
+        this.syncActions();
+        if (result.ok)
+            this.showStatus(`${result.label} ${result.active ? 'on' : 'off'}`, {timeout: 2200});
+        else
+            this.showError(result.error || `${result.label} could not be changed.`);
     }
 
     buildShelf() {
         const page = box(true, '', 8);
         const header = box(false, '', 8);
         header.add_child(label('Quick stash', 'notch-title', true));
-        header.add_child(button({text: 'Add files', iconName: 'list-add-symbolic', onClick: () => this.shelf.choose()}));
-        header.add_child(button({text: 'Clear', onClick: () => this.shelf.clear(), accessibleName: 'Clear shelf references'}));
+        this.shelfAdd = button({text: 'Add files', iconName: 'list-add-symbolic',
+            onClick: () => this.shelf.choose()});
+        this.shelfClear = button({text: 'Clear', iconName: 'edit-clear-all-symbolic',
+            accessibleName: 'Clear shelf references', onClick: () => {
+            this.shelf.clear().then(ok => { if (ok) this.showStatus('Shelf references cleared.', {timeout: 1800}); });
+        }});
+        this.shelfRetry = button({text: 'Retry', iconName: 'view-refresh-symbolic',
+            accessibleName: 'Retry file shelf helper', onClick: () => this.retryShelf()});
+        header.add_child(this.shelfAdd);
+        header.add_child(this.shelfClear);
+        header.add_child(this.shelfRetry);
         page.add_child(header);
-        this.shelfStatus = label('Drop files near the notch, or add them here. Originals stay in place.');
+        this.shelfStatus = wrapLabel('Drop files near the notch, or add them here. Originals stay in place.');
         page.add_child(this.shelfStatus);
         this.shelfList = box(true, '', 6);
         this.shelfList.x_expand = true;
-        const scroll = new St.ScrollView({style_class: 'notch-scroll', hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC, y_expand: true});
-        scroll.add_child(this.shelfList);
-        page.add_child(scroll);
-        page.add_child(label('Drop files when the GTK target appears', 'notch-drop'));
+        page.add_child(this.shelfList);
+        page.add_child(wrapLabel('Drop files when the GTK target appears. Only references are saved.', 'notch-drop'));
         return page;
+    }
+
+    retryShelf() {
+        this.shelfRetry.reactive = false;
+        setText(this.shelfRetry._notchLabel, 'Starting…');
+        this.shelf.start().then(ok => {
+            if (this.dead) return;
+            this.shelfRetry.reactive = true;
+            setText(this.shelfRetry._notchLabel, 'Retry');
+            if (ok) this.showStatus('File shelf connected.', {timeout: 2200});
+            else this.showError(this.shelf.lastError || 'File shelf helper could not start. Run notch-doctor.');
+        });
     }
 
     updateShelf() {
         if (this.dead || !this.shelfList) return;
         this.shelfList.destroy_all_children();
-        setText(this.shelfStatus, this.shelf.ready ?
+        const state = this.shelf.state;
+        setText(this.shelfStatus, state === 'ready' ?
             'Drop files near the notch, or add them here. Originals stay in place.' :
-            'Helper is idle or offline. Shelf actions will start it; use notch-doctor if it stays offline.');
+            state === 'starting' ? 'Starting file shelf helper…' :
+                (this.shelf.lastError || 'File shelf helper is offline. Press Retry to start it.'));
+        this.shelfRetry.visible = state !== 'ready';
+        this.shelfRetry.reactive = state !== 'starting';
+        this.shelfClear.reactive = state === 'ready' && this.shelf.items.length > 0;
         if (!this.shelf.items.length) {
-            this.shelfList.add_child(label('Your shelf is empty. Stash a few files for later.'));
+            this.shelfList.add_child(wrapLabel(state === 'ready' ?
+                'Your shelf is empty. Stash a few files for later.' :
+                'Shelf files appear here once the helper is connected.'));
             return;
         }
         for (const item of this.shelf.items) {
@@ -1115,12 +1253,16 @@ export class NotchView {
             open.x_expand = true;
             open.child.x_align = Clutter.ActorAlign.START;
             row.add_child(open);
-            row.add_child(button({iconName: 'edit-copy-symbolic', accessibleName: `Copy URI of ${item.name}`,
-                onClick: () => this.shelf.copy(item.uri)}));
-            row.add_child(button({iconName: 'folder-open-symbolic', accessibleName: `Reveal ${item.name}`,
-                onClick: () => this.shelf.reveal(item.uri)}));
-            row.add_child(button({iconName: 'user-trash-symbolic', accessibleName: `Remove ${item.name} from shelf`,
-                onClick: () => this.shelf.remove(item.uri)}));
+            row.add_child(button({iconName: 'edit-copy-symbolic', style: 'notch-icon-button',
+                accessibleName: `Copy URI of ${item.name}`, onClick: () => {
+                this.shelf.copy(item.uri).then(ok => { if (ok) this.showStatus('File URI copied.', {timeout: 1800}); });
+            }}));
+            row.add_child(button({iconName: 'folder-open-symbolic', style: 'notch-icon-button',
+                accessibleName: `Reveal ${item.name}`, onClick: () => this.shelf.reveal(item.uri)}));
+            row.add_child(button({iconName: 'user-trash-symbolic', style: 'notch-icon-button',
+                accessibleName: `Remove ${item.name} from shelf`, onClick: () => {
+                this.shelf.remove(item.uri).then(ok => { if (ok) this.showStatus('Removed from shelf.', {timeout: 1800}); });
+            }}));
             this.shelfList.add_child(row);
         }
     }
@@ -1130,16 +1272,23 @@ export class NotchView {
         const header = box(false, '', 8);
         this.clipboardStatus = label('Clipboard history is off', 'notch-title', true);
         header.add_child(this.clipboardStatus);
-        header.add_child(button({text: 'Capture now', onClick: () => this.clipboard.capture()}));
-        header.add_child(button({text: 'Clear history', onClick: () => this.clipboard.clear()}));
+        this.clipboardCapture = button({text: 'Capture now', iconName: 'edit-paste-symbolic',
+            onClick: async () => {
+                const ok = await this.clipboard.capture();
+                this.showStatus(ok ? 'Clipboard captured.' : 'No eligible plain-text clipboard item found.', {timeout: 2400});
+            }});
+        this.clipboardClear = button({text: 'Clear history', iconName: 'edit-clear-all-symbolic',
+            onClick: () => {
+                this.clipboard.clear();
+                this.showStatus('Clipboard history cleared.', {timeout: 1800});
+            }});
+        header.add_child(this.clipboardCapture);
+        header.add_child(this.clipboardClear);
         page.add_child(header);
-        page.add_child(label('RAM only. Cleared on lock/logout. Mixed-format and known password-manager clips are skipped.'));
+        page.add_child(wrapLabel('RAM only. Cleared on lock/logout. Mixed-format and known password-manager clips are skipped.'));
         this.clipboardList = box(true, '', 6);
         this.clipboardList.x_expand = true;
-        const scroll = new St.ScrollView({style_class: 'notch-scroll', hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC, y_expand: true});
-        scroll.add_child(this.clipboardList);
-        page.add_child(scroll);
+        page.add_child(this.clipboardList);
         return page;
     }
 
@@ -1147,19 +1296,21 @@ export class NotchView {
         if (this.dead || !this.clipboardList) return;
         const enabled = this.settings.get_boolean('clipboard-enabled');
         setText(this.clipboardStatus, enabled ? 'Clipboard history · on' : 'Clipboard history · manual only');
+        this.clipboardClear.reactive = this.clipboard.history.items.length > 0;
         this.clipboardList.destroy_all_children();
         if (!this.clipboard.history.items.length) {
-            this.clipboardList.add_child(label(enabled ? 'Copy plain text to begin.' :
+            this.clipboardList.add_child(wrapLabel(enabled ? 'Copy plain text to begin.' :
                 'Enable automatic history in Settings, or capture the current text explicitly.'));
             return;
         }
+        const narrow = this._layout?.narrow;
         for (const item of this.clipboard.history.items) {
-            const row = box(false, 'notch-row', 8);
+            const row = box(!narrow, 'notch-row', 8);
             const preview = item.text.replace(/\s+/g, ' ').slice(0, 160);
             const copy = button({text: preview, iconName: 'edit-paste-symbolic',
                 accessibleName: 'Restore this clipboard entry',
                 onClick: () => {
-                    if (this.clipboard.restore(item.id)) Main.notify('Notch', 'Selected text copied to the clipboard.');
+                    if (this.clipboard.restore(item.id)) this.showStatus('Copied to clipboard.', {timeout: 1800});
                 }});
             copy.x_expand = true;
             copy.child.x_align = Clutter.ActorAlign.START;
@@ -1169,23 +1320,44 @@ export class NotchView {
         }
     }
 
+    showStatus(message, {timeout = 0, actionLabel = '', onAction = null} = {}) {
+        if (this.dead || !this.statusLabel) return;
+        this.clearTimer('statusTimer');
+        setText(this.statusLabel, message);
+        this.statusLabel.remove_style_class_name('notch-status-error');
+        this.statusBar.visible = !!message;
+        this.statusAction = onAction;
+        this.statusActionButton.visible = !!actionLabel && !!onAction;
+        setText(this.statusActionButton._notchLabel, actionLabel);
+        this.layoutPages();
+        if (timeout > 0) this.setTimer('statusTimer', timeout, () => this.clearStatus());
+    }
+
+    clearStatus() {
+        this.clearTimer('statusTimer');
+        this.statusAction = null;
+        if (this.statusBar) this.statusBar.visible = false;
+        this.layoutPages();
+    }
+
     showError(message) {
         if (this.dead) return;
-        setText(this.statusLabel, message);
-        if (message !== this.lastError) Main.notify('Notch', message);
         this.lastError = message;
+        const shelfError = /shelf|helper/i.test(message);
+        this.showStatus(message, shelfError ? {actionLabel: 'Retry', onAction: () => this.retryShelf()} : {});
+        this.statusLabel.add_style_class_name('notch-status-error');
     }
 
     state() {
         return JSON.stringify({version: '0.1.0', mode: this.mode, expanded: this.expanded, visible: this.allowed,
             media: this.media.snapshot().identity, clipboardCount: this.clipboard.history.items.length,
-            shelfCount: this.shelf.items.length, notificationCount: this.notifications?.count ?? 0,
+            shelfCount: this.shelf.items.length, shelfState: this.shelf.state, notificationCount: this.notifications?.count ?? 0,
             activeNotification: !!this.notifications?.active});
     }
 
     destroy() {
         this.dead = true;
-        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer']) this.clearTimer(name);
+        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer']) this.clearTimer(name);
         this.stopTimeline();
         if (this.visualTimer) GLib.source_remove(this.visualTimer);
         this.visualTimer = 0;

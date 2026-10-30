@@ -94,6 +94,30 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("new NotchSurface", view)
         self.assertIn("SpringGeometry", view)
 
+    def test_helper_activation_is_not_blocked_by_desktop_condition(self):
+        unit = (ROOT / "data/notch-helper.service.in").read_text()
+        self.assertNotIn("ConditionEnvironment", unit)
+        service = (ROOT / "data/io.github.pavit12301611.Notch.Helper.service.in").read_text()
+        self.assertNotIn("SystemdService=", service)
+        self.assertIn("Exec=@bindir@/notch-helper", service)
+        self.assertIn("BusName=io.github.pavit12301611.Notch.Helper", unit)
+        installer = (ROOT / "install.sh").read_text()
+        self.assertIn("reset-failed notch-helper.service", installer)
+        self.assertIn("import-environment", installer)
+        helper = (ROOT / "app/notch_app/helper.py").read_text()
+        self.assertIn("self.gobject.Value", helper)
+        self.assertIn("OSError", helper)
+
+    def test_adaptive_view_has_scrollable_pages_and_stable_actions(self):
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("contentLayout", view)
+        self.assertIn("pageScrolls", view)
+        self.assertIn("headerMode", (ROOT / "extension/lib/layout.js").read_text())
+        self.assertIn("syncActions", view)
+        self.assertIn("retryShelf", view)
+        self.assertIn("showStatus", view)
+        self.assertNotIn("Main.notify('Notch', message)", view)
+
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:
             subprocess.run(
