@@ -1,14 +1,13 @@
 import {availableOpenSize, clamp} from './layout.js';
 export {clamp};
 
-/** Logical page sizes inspired by native MacBook notch apps; never one giant window. */
+/** Fixed, centered page budgets. Only Alerts owns a scroll view; the other
+ * pages are natural-height centered blocks. */
 export const PAGE_SIZES = Object.freeze({
-    home: {width: 640, height: 360},
-    media: {width: 640, height: 300},
-    notifications: {width: 560, height: 320},
-    system: {width: 640, height: 260},
-    shelf: {width: 640, height: 260},
-    clipboard: {width: 580, height: 300},
+    home: {width: 640, height: 220},
+    media: {width: 640, height: 320},
+    notifications: {width: 640, height: 380},
+    system: {width: 640, height: 360},
 });
 
 export function surfaceRadii(mode, options = {}) {
@@ -33,7 +32,16 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
     let height;
     if (state === 'open') {
         width = Math.min(page.width * scale, (options.expandedWidth ?? 640) * scale, available.width);
-        height = Math.min(page.height * scale, (options.expandedHeight ?? 320) * scale, available.height);
+        const textScale = Math.max(0.8, options.textScale ?? 1);
+        const effectiveWidth = Math.min(page.width, options.expandedWidth ?? 640) / textScale;
+        // Narrow/large-text layouts wrap more. Reserve extra height instead of
+        // introducing scrollbars on non-Alert pages.
+        const narrowBoost = effectiveWidth < 420 ? 80 : 0;
+        const veryNarrowBoost = effectiveWidth < 340 ? 160 : 0;
+        const statusExtra = Math.max(0, options.statusExtra ?? 0);
+        height = Math.min(page.height * scale, (options.expandedHeight ?? 480) * scale, available.height) +
+            (narrowBoost + veryNarrowBoost + statusExtra) * scale;
+        height = Math.min(height, available.height);
     } else if (state === 'peek') {
         width = Math.min(440 * scale, available.width);
         height = Math.min(panelHeight + 112 * scale, available.height);
@@ -57,24 +65,4 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
 
 export function containsPoint(rect, x, y) {
     return x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height;
-}
-
-/** Drop surface starts at the physical notch, so a file can be dropped directly
- * on the closed notch instead of aiming for a separate window below the panel. */
-export function notchDropGeometry(monitor, options = {}) {
-    const scale = Math.max(1, options.cssScale ?? 1) * Math.max(0.5, options.layoutScale ?? 1);
-    const open = notchGeometry(monitor, {...options, hovered: false}, true, 'open');
-    const closed = notchGeometry(monitor, {...options, hovered: false}, false, 'closed');
-    const width = Math.min(monitor.width, Math.max(open.width, closed.width + 64 * scale));
-    const availableHeight = Math.max(1, monitor.height - (closed.y - monitor.y));
-    const height = clamp(Math.max(open.height, (options.panelHeight ?? 32) + 180 * scale),
-        Math.min(120 * scale, availableHeight), availableHeight);
-    const x = Math.round(monitor.x + clamp((monitor.width - width) / 2 +
-        (options.horizontalOffset ?? 0) * scale, 0, monitor.width - width));
-    return {x, y: closed.y, width: Math.round(width), height: Math.round(height)};
-}
-
-export function nearDropTarget(x, y, target, margin = 48) {
-    return x >= target.x - margin && x <= target.x + target.width + margin &&
-        y >= target.y - margin && y <= target.y + target.height + margin;
 }

@@ -23,8 +23,8 @@ if $WITH_DEPS; then
   SUDO=()
   [[ $EUID -ne 0 ]] && SUDO=(sudo)
   "${SUDO[@]}" dnf install -y python3 python3-gobject gtk4 libadwaita glib2 glib2-devel \
-    gobject-introspection gnome-shell gnome-extensions-app upower libsoup3 \
-    adwaita-icon-theme hicolor-icon-theme xdg-desktop-portal-gnome make
+    gobject-introspection gnome-shell gnome-extensions-app upower \
+    adwaita-icon-theme hicolor-icon-theme make
 fi
 for command in make glib-compile-schemas; do
   command -v "$command" >/dev/null || { echo "Missing $command. Run ./install.sh --with-deps on Fedora." >&2; exit 1; }
@@ -32,7 +32,7 @@ done
 [[ -x /usr/bin/python3 ]] || { echo "Missing /usr/bin/python3 (python3 package)." >&2; exit 1; }
 /usr/bin/python3 - <<'PY'
 import gi
-for namespace, version in [('Gio','2.0'), ('Gtk','4.0'), ('Adw','1'), ('Soup','3.0')]:
+for namespace, version in [('Gio','2.0'), ('Gtk','4.0'), ('Adw','1')]:
     try:
         gi.require_version(namespace, version)
     except (ValueError, ImportError) as exc:
@@ -42,10 +42,13 @@ UUID='notch@pavit12301611.github.io'
 if [[ $MODE == user ]]; then
   PREFIX="$HOME/.local"; SYSCONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}"
   DATADIR="${XDG_DATA_HOME:-$HOME/.local/share}"
-  # Stop an old instance before replacing its files. Settings and shelf data are retained.
+  # Stop the extension before replacing its files, and retire the old helper.
   if $ENABLE && command -v gnome-extensions >/dev/null && [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} ]]; then
     gnome-extensions disable "$UUID" 2>/dev/null || true
-    systemctl --user stop notch-helper.service 2>/dev/null || true
+  fi
+  if command -v systemctl >/dev/null && [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} || -S ${XDG_RUNTIME_DIR:-/run/user/$UID}/bus ]]; then
+    systemctl --user disable --now notch-helper.service 2>/dev/null || true
+    systemctl --user reset-failed notch-helper.service 2>/dev/null || true
   fi
   make -C "$ROOT" install PREFIX="$PREFIX" DATADIR="$DATADIR" SYSCONFDIR="$SYSCONFDIR"
 else
@@ -56,9 +59,6 @@ if $ENABLE && [[ $MODE == user ]]; then
   if [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} || -S ${XDG_RUNTIME_DIR:-/run/user/$UID}/bus ]]; then
     systemctl --user daemon-reload
     systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS 2>/dev/null || true
-    systemctl --user reset-failed notch-helper.service 2>/dev/null || true
-    systemctl --user enable notch-helper.service
-    systemctl --user restart notch-helper.service || echo "Helper will start on first use; if Shelf stays offline run: journalctl --user -u notch-helper.service -b"
     if command -v gnome-extensions >/dev/null && gnome-extensions enable "$UUID"; then
       echo "Extension enable requested. If this is a new install or update, log out/in to load it."
     else
@@ -74,7 +74,6 @@ IMPORTANT: log out and back in on Wayland to load/reload Shell extension code.
 Then run: gnome-extensions enable $UUID
 Open settings: $PREFIX/bin/notch-settings
 Check installation: $PREFIX/bin/notch-doctor
-Add files without drag-and-drop: $PREFIX/bin/notch-shelf add ~/Downloads/example.pdf
 Toggle: Super + \` (or click the notch).
 
 If GNOME says the extension does not exist even though notch-doctor sees build files,

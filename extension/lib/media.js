@@ -1,14 +1,14 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {call, newProxy, errorMessage} from './dbus.js';
-import {mediaMetadata, seekTarget} from './model.js';
+import {mediaMetadata, seekTarget, mediaErrorMessage} from './model.js';
 
 const PLAYER = 'org.mpris.MediaPlayer2.Player';
 const PREFIX = 'org.mpris.MediaPlayer2.';
 const OBJECT = '/org/mpris/MediaPlayer2';
 const NO_PLAYER = {names: [], name: '', identity: 'No media player', title: 'Nothing playing',
-    artist: '', album: '', artUrl: '', status: 'Stopped', lengthUs: 0, positionUs: 0,
-    trackId: '', volume: 1, rate: 1, canControl: false, canPlay: false, canPause: false,
+    artist: '', status: 'Stopped', lengthUs: 0, positionUs: 0,
+    trackId: '', rate: 1, canControl: false, canPlay: false, canPause: false,
     canSeek: false, canGoNext: false, canGoPrevious: false};
 
 /** MPRIS v2 client. Name/property/seek events do the work; only visible Position polls. */
@@ -126,7 +126,6 @@ export class MediaController {
         return {names: [...this.players.keys()], name: this.selected,
             identity: entry.root.Identity || this.selected.slice(PREFIX.length),
             ...metadata, status: p.PlaybackStatus || 'Stopped', positionUs,
-            volume: typeof p.Volume === 'number' ? Math.max(0, Math.min(1, p.Volume)) : 1,
             rate: p.Rate || 1, canControl: !!p.CanControl, canPlay: !!p.CanPlay,
             canPause: !!p.CanPause, canSeek: !!p.CanSeek,
             canGoNext: !!p.CanGoNext, canGoPrevious: !!p.CanGoPrevious};
@@ -210,25 +209,9 @@ export class MediaController {
         this.scheduleChange();
     }
 
-    setVolume(value) {
-        const entry = this.players.get(this.selected);
-        if (!entry) return;
-        const next = Math.max(0, Math.min(1, value));
-        if (typeof entry.player.Volume === 'number' && Math.abs(entry.player.Volume - next) < 0.002) return;
-        const parameters = new GLib.Variant('(ssv)', [PLAYER, 'Volume',
-            new GLib.Variant('d', next)]);
-        call(entry.player, 'org.freedesktop.DBus.Properties.Set', parameters)
-            .catch(e => this.report(e));
-    }
-
-    raise() {
-        const root = this.players.get(this.selected)?.root;
-        if (root?.CanRaise) call(root, 'Raise').catch(e => this.report(e));
-    }
-
     report(error) {
         const message = errorMessage(error);
-        if (message && !this.dead) this.onError(message);
+        if (message && !this.dead) this.onError(mediaErrorMessage(message));
     }
 
     destroy() {

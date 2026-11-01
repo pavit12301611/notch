@@ -45,11 +45,13 @@ export const NotchSurface = GObject.registerClass({
         cr.setSourceRGBA(0, 0, 0, 1);
         cr.setOperator(Cairo.Operator.SOURCE);
         if (!mirrored) {
+            // Left outward flare: top edge -> body edge -> concave curve back.
+            // The previous path filled the lower-left square and looked like a
+            // separate rectangle outside the notch.
             cr.moveTo(0, 0);
             cr.lineTo(r, 0);
-            // Quadratic (0,0) -> control (r,0) -> (r,r), expressed as a cubic.
-            cr.curveTo(2 * r / 3, 0, r, r / 3, r, r);
-            cr.lineTo(0, r);
+            cr.lineTo(r, r);
+            cr.curveTo(r, r / 3, 2 * r / 3, 0, 0, 0);
         } else {
             cr.moveTo(r, 0);
             cr.lineTo(0, 0);

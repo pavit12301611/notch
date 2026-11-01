@@ -1,11 +1,8 @@
 import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
 
 export const APP_ID = 'io.github.pavit12301611.Notch';
 export const EXTENSION_PATH = '/io/github/pavit12301611/Notch';
 export const EXTENSION_ID = `${APP_ID}.Extension`;
-export const HELPER_ID = `${APP_ID}.Helper`;
-export const HELPER_PATH = `${EXTENSION_PATH}/Shelf`;
 
 export function interfaceXml(directory, filename) {
     const [ok, bytes] = directory.get_child('dbus').get_child(filename).load_contents(null);
@@ -36,12 +33,4 @@ export function call(proxy, method, parameters = null, timeout = 1500) {
 export function errorMessage(error) {
     if (error?.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) return '';
     return error?.message ?? String(error);
-}
-
-export function timeout(milliseconds, callback) {
-    const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, milliseconds, () => {
-        callback();
-        return GLib.SOURCE_REMOVE;
-    });
-    return id;
 }

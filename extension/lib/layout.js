@@ -12,24 +12,45 @@ export const LAYOUT_LIMITS = Object.freeze({
 });
 
 export function headerMode(width) {
-    // Six labelled tabs plus settings/close need ~760 logical px; below that
-    // show only the active label, then icons. Never ellipsize tab text.
-    if (width >= 760) return 'labels';
-    if (width >= 420) return 'active';
-    return 'icons';
+    // Four fixed-width tabs fit with labels at the default 640 px notch.
+    // Narrow/large-text layouts collapse to a centered icon rail.
+    return width >= 560 ? 'labels' : 'icons';
+}
+
+/** Fixed header metrics. The rail, gutters and controls must fit without spill. */
+export function headerLayout(width, textScale = 1) {
+    const effective = width / Math.max(0.5, textScale);
+    const ultra = width < 360;
+    const metrics = mode => {
+        const gutter = ultra ? 30 : 76;
+        const tabWidth = mode === 'labels' ? 92 : (ultra ? 28 : 40);
+        const tabSpacing = ultra ? 2 : 6;
+        const headerSpacing = ultra ? 4 : 6;
+        // Rail padding 3px + border 1px on each side. Tab slots are unthemed
+        // fixed-size bins, so these are outer widths (St.Button padding is inside).
+        const railWidth = 4 * tabWidth + 3 * tabSpacing + 8;
+        const requiredWidth = 2 * gutter + railWidth + 2 * headerSpacing;
+        return {mode, ultra, gutter, controlsWidth: gutter, tabWidth, tabSpacing,
+            headerSpacing, railWidth, requiredWidth, showSettings: !ultra};
+    };
+    // Labels must fit both the text-scaled rail and the physical notch width.
+    // Small GNOME text cannot keep labels on a physically narrow notch.
+    let result = metrics(headerMode(effective));
+    if (result.mode === 'labels' && result.requiredWidth > width)
+        result = metrics('icons');
+    return result;
 }
 
 export function statColumns(width) {
-    if (width >= 560) return 4;
-    if (width >= 320) return 2;
-    return 1;
+    // A 2x2 metric grid gives values room to breathe; very narrow pages stack.
+    return width >= 320 ? 2 : 1;
 }
 
 export function statusHeight(text, width) {
     if (!text) return 0;
     const charsPerLine = Math.max(18, Math.floor(width / 7));
     const lines = clamp(Math.ceil(String(text).length / charsPerLine), 1, 3);
-    return lines * 18 + 10;
+    return lines * 18 + 18;
 }
 
 /**
@@ -50,14 +71,18 @@ export function contentLayout(rect, options = {}, statusText = '') {
     const height = Math.max(LAYOUT_LIMITS.minContentHeight,
         rect.height / scale - panelLogical - LAYOUT_LIMITS.paddingTop - LAYOUT_LIMITS.paddingBottom);
     const effectiveWidth = width / textScale;
+    // Header slots are fixed logical widths; labels also depend on text scale.
+    // headerLayout() receives the physical width and downgrades labels if needed.
+    const headerWidth = width;
     const footer = statusHeight(statusText, effectiveWidth);
     const pageHeight = Math.max(48, height - LAYOUT_LIMITS.headerHeight - footer);
+    const header = headerLayout(width, textScale);
     return {
         scale, cssScale, layoutScale: contentScale, reserveScale: cssScale * reserveScale,
-        textScale, panelLogical, width, height, pageHeight, effectiveWidth,
+        textScale, panelLogical, width, height, pageHeight, effectiveWidth, headerWidth,
         headerHeight: LAYOUT_LIMITS.headerHeight,
         footerHeight: footer,
-        header: headerMode(effectiveWidth),
+        header: header.mode,
         columns: statColumns(effectiveWidth),
         compact: effectiveWidth < 420,
         narrow: effectiveWidth < 340,

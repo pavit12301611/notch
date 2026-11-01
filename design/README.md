@@ -1,89 +1,80 @@
-# Notch design review workbook
+# Notch design baseline (build 19)
 
-Canonical file: **`../Notch-Design-Review.pptx`** (repo root).
+The old six-page design-review PPTX and its generator were removed. They described
+clipboard history, Quick stash and a helper daemon that no longer exist. This
+document is the current design baseline; the implementation lives in
+`extension/lib/view.js`, `extension/lib/layout.js`, `extension/lib/geometry.js`
+and `extension/stylesheet.css`.
 
-This is the editable design handoff for the current v8 UI. It started from the
-PPT uploaded to `main`, preserved the meaningful edits found in that upload, and
-was expanded into a more complete review workbook.
+## Product shape
 
-## What is inside
+- MacBook-style top-edge notch, not a floating Dynamic Island.
+- Closed: 185×32 logical px base, panel-height matched, centered idle clock.
+- Music wings: +64 px width while a player is active; 28 px wings, 16 px glyph,
+  3×14 px equalizer bars, centered vertically; hover affordance +12×4 px.
+- Peek: 440×(panel + 112) logical px.
+- Open pages: Home 640×220, Music 640×320, Alerts 640×380, System 640×360.
+- Default maximum expanded preset: 640×480. Narrow/large-text layouts reserve
+  extra height instead of introducing scrollbars outside Alerts.
 
-- 61 slides, 16:9, dark review theme.
-- Closed / peek / open modes and all six pages.
-- Empty, loading, paused, disabled, locked, offline, error, narrow and compact states.
-- Settings pages for inline extension prefs and the GTK4/Adw companion app.
-- Adaptive layout, text scaling, motion, visibility, components and guardrails.
-- `REVIEW / EDIT HERE` boxes on mockup slides.
-- Native editable PowerPoint tables:
-  - **N45** imported-edit provenance
-  - **N59–N60** review worksheets
-  - **N41** decision log
-- **N42** slide → source-file mapping.
-- **N61** preserves the curl command added in the uploaded PPT.
-- Speaker notes on every slide.
+## Pages
 
-All mockups are native PowerPoint shapes/text boxes. There are no embedded
-screenshots, so colors, spacing, labels and geometry can be edited directly.
+| Page | Primary | Secondary | Controls |
+|---|---|---|---|
+| Home | Large clock | Small date | None |
+| Music | Large title | Small artist, player name, timestamps | Previous / play-pause / next, seek, player switch |
+| Alerts | Bold notification title | Small body preview, count badge | Show more/less, native actions, dismiss, clear all |
+| System | Large metric values | Small labels and details | DND / Night Light / Dark Mode |
 
-## Preserved uploaded edits
+## Typography
 
-The uploaded `main` PPT was compared against the generated v8 baseline.
-Meaningful edits were preserved:
+- Base: 10.5 pt.
+- Home clock: 3 em, weight 700.
+- Music title: 1.45 em, weight 700; artist 0.95 em muted.
+- System value: 1.65 em, weight 700; label 0.75 em muted; detail 0.8 em muted.
+- Alert title: 1.02 em, weight 700; body 0.9 em.
+- Page title: 1.1 em, weight 700.
+- Tab label: 0.9 em, weight 600.
 
-- Home idle clock/date moved left toward the content gutter.
-- Music player switcher moved to the right side of the metadata block.
-- Alerts count/date indented toward notification-card padding.
-- The added curl install command was moved to appendix slide N61 so it does not
-  cover the notification peek mockup.
+## Depth and surfaces
 
-Minor PowerPoint font-rounding differences were normalized to the deck token
-scale. No application UI/behavior code was changed by this workbook.
+- Notch body: pure black.
+- Cards: `#17171a`, 1 px border `rgba(255,255,255,0.07)`, radius 16, inset top
+  highlight `rgba(255,255,255,0.04)`.
+- Tab rail: translucent white 6%, radius 13, 3 px padding.
+- Active tab: translucent white 16%, inset highlight.
+- Quick action: `#1c1c1e`, radius 12; active state translucent white 18%.
+- Play button: white surface with inverse monochrome glyph.
+- Status footer: translucent white 6%, radius 12, in-flow reserved height.
 
-## How to edit
+## Layout rules
 
-1. Keep the slide ID (`N01`…`N61`) in the footer.
-2. Select a mockup group; ungroup if you need to move one control.
-3. Change shapes/text/colors/spacing directly, or write exact values in the
-   yellow `REVIEW / EDIT HERE` box.
-4. For a new state, duplicate the closest slide and name it `Nxx-A`.
-5. Fill worksheets N59–N60 and decision log N41, then save as `.pptx`.
+- Header: 44 px, centered four-tab rail between two expanding gutters (76 px
+  minimum; 30 px ultra-narrow). Settings/close live inside the right gutter.
+- Labels at effective width ≥560 only if the pure header budget fits; otherwise
+  icon rail. Ultra-narrow hides settings and keeps close inside the notch.
+- System metrics: 2×2 grid at effective width ≥320; single column below.
+- Only Alerts owns a ScrollView. Home/Music/System are centered natural blocks.
+- Content padding: 20 px horizontal, 8 px top, 16 px bottom.
+- No text ellipsis; long text wraps. Long alert bodies preview at 140 chars with
+  Show more/Show less. Rendering caps at 50 cards while the badge shows the true
+  total.
 
-Useful explicit edit format:
+## Motion
 
-```text
-N12 / Music page
-- Art: 72 → 80 px, radius 14 → 16
-- Title: 14.7 → 16 px, max 2 lines
-- Transport spacing: 10 → 12 px
-- Keep disabled state visible
-```
+- Open: 420 ms smooth / mac-spring 0.42 s damping 0.8.
+- Close: 450 ms smooth / mac-spring 0.45 s damping 1.0.
+- Page switch: 160 ms fade/translate.
+- Equalizer: 8-step pattern, 210 ms timer, 190 ms eased `scale_y`, only while
+  closed, visible, playing and animations enabled.
+- Charging cue: green bolt + percentage on plug-in transition, ~1.76 s total
+  (140 ms in / hold / 120 ms out), closed notch only, first sample ignored.
+- Reduced motion snaps to final geometry.
 
-## Regenerate (optional)
+## Removed in build 18
 
-```bash
-python3 -m pip install python-pptx pillow
-python3 scripts/build_design_review.py \
-  --output Notch-Design-Review.pptx \
-  --preview .cache/design-review/preview \
-  --warnings .cache/design-review/warnings.txt
-```
-
-`pillow` is only needed for optional PNG proof previews. Preview images are
-written to `.cache/` and are not part of the deck.
-
-## QA performed
-
-- PPTX parses with `python-pptx`; 61 slides, speaker notes on all slides.
-- No out-of-bounds shapes in structural check.
-- No duplicate slide IDs.
-- Optional Pillow proof renderer reports no text overflow warnings.
-- No embedded raster media; mockups remain editable.
-- No application UI/behavior code was changed for this deck.
-
-## v9 implementation note
-
-The user explicitly requested code changes after this deck: a non-empty Home dashboard, direct file drop onto the notch, and coordinated iPhone-like motion. Those v9 code changes supersede the older Home/drop/motion mockups in this baseline deck. The deck remains the review reference for pages not explicitly changed by that request.
-
-## v10 implementation note
-
-A later user screenshot showed Quick stash below the Home viewport, blue theme icons and missing song titles. v10 supersedes the v9 Home/drop/icon/media mockups: Home is 640×360 with a compact player + stash card, chrome icons are bundled monochrome SVGs, MPRIS titles are parsed recursively, and the GTK drop surface receives the drop by temporarily replacing the Shell chrome over the notch.
+- Clipboard history tab, controller, schema keys, D-Bus method and prefs.
+- Quick stash / file shelf tab, drop target, helper process, systemd unit,
+  D-Bus service, CLI, storage module and packaging payload.
+- Pagination, album art, volume controls, decorative empty-state icons,
+  duplicate headings and helper retry/status clutter.

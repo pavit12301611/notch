@@ -1,6 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import {cpuSample, memorySample, networkSample, defaultRouteInterface} from './model.js';
+import {cpuSample, memorySample, networkSample, defaultRouteInterface, chargingStarted} from './model.js';
 import {newProxy, errorMessage} from './dbus.js';
 
 function read(path) {
@@ -12,9 +12,11 @@ function read(path) {
 
 /** No worker process and no sampling while the System page is hidden. */
 export class Diagnostics {
-    constructor(directory, onUpdate) {
+    constructor(directory, onUpdate, onChargeStart = null) {
         this.directory = directory;
         this.onUpdate = onUpdate;
+        this.onChargeStart = onChargeStart;
+        this._batteryInitialized = false;
         this.cancellable = new Gio.Cancellable();
         this.dead = false;
         this.timer = 0;
@@ -38,8 +40,13 @@ export class Diagnostics {
 
     updateBattery() {
         const p = this.proxy;
-        this.battery = {available: !!p && p.Type === 2 && !!p.IsPresent,
+        const previous = this.battery;
+        const next = {available: !!p && p.Type === 2 && !!p.IsPresent,
             percent: p?.Percentage ?? null, state: p?.State ?? 0, watts: p?.EnergyRate ?? null};
+        const started = this._batteryInitialized && chargingStarted(previous, next);
+        this.battery = next;
+        this._batteryInitialized = true;
+        if (started) this.onChargeStart?.(next);
         this.onUpdate();
     }
 

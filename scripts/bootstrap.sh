@@ -13,7 +13,7 @@ Notch remote installer for Fedora 44 / GNOME Wayland.
 
 Usage: bash bootstrap.sh [--with-deps] [--no-enable] [--user]
   --with-deps   Install Fedora dependencies using sudo/dnf.
-  --no-enable   Install without enabling the extension or helper.
+  --no-enable   Install without enabling the extension.
   --user        Install for the current user (the default).
 
 Environment:
@@ -23,7 +23,7 @@ Environment:
 Example:
   curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/main/scripts/bootstrap.sh | bash -s -- --with-deps
 
-After installation, log out and back in. Settings and shelf data are retained.
+After installation, log out and back in. Existing Notch settings are retained.
 Do not run this script with sudo; the dependency step requests sudo itself.
 EOF
   exit 0

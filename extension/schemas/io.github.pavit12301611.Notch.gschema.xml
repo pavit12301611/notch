@@ -30,7 +30,7 @@
       <summary>Expanded width in logical pixels</summary>
     </key>
     <key name="expanded-height" type="i">
-      <default>360</default><range min="200" max="720"/>
+      <default>480</default><range min="200" max="720"/>
       <summary>Expanded height in logical pixels</summary>
     </key>
     <key name="floating-margin" type="i">
@@ -80,7 +80,7 @@
       <default>true</default><summary>Use smaller closed corners and larger open corners</summary>
     </key>
     <key name="closed-media" type="b">
-      <default>true</default><summary>Show compact album-art and playback wings while music plays</summary>
+      <default>true</default><summary>Show compact music indicator and playback wings while music plays</summary>
     </key>
     <key name="animation-profile" enum="io.github.pavit12301611.Notch.AnimationProfile">
       <default>'mac-spring'</default><summary>Mac-style damped spring or smooth easing</summary>
@@ -112,9 +112,7 @@
     <key name="reserve-space" type="b">
       <default>false</default><summary>Reserve collapsed notch space in the monitor work area (experimental)</summary>
     </key>
-    <key name="remote-art" type="b">
-      <default>true</default><summary>Download HTTP(S) album art supplied by media players</summary>
-    </key>
+
     <key name="show-dnd" type="b">
       <default>true</default><summary>Show the Do Not Disturb quick action</summary>
     </key>
@@ -123,13 +121,6 @@
     </key>
     <key name="show-dark-mode" type="b">
       <default>true</default><summary>Show the Dark Mode quick action</summary>
-    </key>
-    <key name="clipboard-enabled" type="b">
-      <default>false</default><summary>Keep a bounded, RAM-only text clipboard history</summary>
-    </key>
-    <key name="clipboard-limit" type="i">
-      <default>20</default><range min="5" max="50"/>
-      <summary>Maximum number of remembered text clips</summary>
     </key>
     <key name="toggle-notch" type="as">
       <default><![CDATA[['<Super>grave']]]></default>

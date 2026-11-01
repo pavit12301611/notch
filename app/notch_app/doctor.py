@@ -9,16 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .config import (
-    APP_ID,
-    EXTENSION_ID,
-    HELPER_ID,
-    HELPER_PATH,
-    OBJECT_PATH,
-    UUID,
-    extension_dir,
-    state_dir,
-)
+from .config import APP_ID, EXTENSION_ID, OBJECT_PATH, UUID, extension_dir
 
 
 def _data_dirs() -> list[Path]:
@@ -32,72 +23,45 @@ def _data_dirs() -> list[Path]:
     return dirs
 
 
-def helper_service_file() -> Path | None:
-    name = f"{HELPER_ID}.service"
-    return next(
-        (
-            d / "dbus-1/services" / name
-            for d in _data_dirs()
-            if (d / "dbus-1/services" / name).is_file()
-        ),
-        None,
-    )
+def legacy_artifacts() -> list[Path]:
+    """Return installed build-17-and-older helper/shelf files that should be gone."""
+    found = []
+    service = f"{APP_ID}.Helper.service"
+    for data in _data_dirs():
+        candidate = data / "dbus-1/services" / service
+        if candidate.is_file():
+            found.append(candidate)
+    config = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    unit_dirs = [
+        config / "systemd/user",
+        Path("/etc/systemd/user"),
+        Path("/usr/lib/systemd/user"),
+        Path("/usr/local/lib/systemd/user"),
+    ]
+    for directory in unit_dirs:
+        candidate = directory / "notch-helper.service"
+        if candidate.is_file():
+            found.append(candidate)
+    for name in ("notch-helper", "notch-shelf"):
+        resolved = shutil.which(name)
+        if resolved:
+            found.append(Path(resolved))
+    return found
 
 
-def inspect_helper_service() -> list[tuple[str, str, str]]:
-    results = []
-    service = helper_service_file()
-    if service:
-        results.append(("PASS", "Helper D-Bus service", str(service)))
-    else:
-        results.append(("FAIL", "Helper D-Bus service", "Missing; re-run install.sh"))
-    try:
-        output = subprocess.run(
-            [
-                "systemctl",
-                "--user",
-                "show",
-                "notch-helper.service",
-                "-p",
-                "LoadState",
-                "-p",
-                "ActiveState",
-                "-p",
-                "UnitFileState",
-                "-p",
-                "Result",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        ).stdout
-        state = dict(line.split("=", 1) for line in output.splitlines() if "=" in line)
-        if not state:
-            results.append(("WARN", "Helper systemd unit", "systemctl returned no unit state"))
-        elif state.get("LoadState") == "not-found":
-            results.append(
-                ("FAIL", "Helper systemd unit", "Not loaded; re-run install.sh and daemon-reload")
+def inspect_legacy_artifacts() -> list[tuple[str, str, str]]:
+    found = legacy_artifacts()
+    if found:
+        return [
+            (
+                "WARN",
+                "Legacy helper",
+                "Old clipboard/shelf helper files are still installed: "
+                + ", ".join(str(p) for p in found)
+                + ". Re-run install.sh (build 18+) to remove them.",
             )
-        elif state.get("ActiveState") == "failed" or state.get("Result") not in (None, "success"):
-            results.append(
-                (
-                    "FAIL",
-                    "Helper systemd unit",
-                    "Failed; run: journalctl --user -u notch-helper.service -b",
-                )
-            )
-        else:
-            results.append(
-                (
-                    "PASS",
-                    "Helper systemd unit",
-                    f"{state.get('UnitFileState', 'unknown')} / {state.get('ActiveState', 'unknown')}",
-                )
-            )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        results.append(("WARN", "Helper systemd unit", str(exc)))
-    return results
+        ]
+    return [("PASS", "Legacy helper", "No clipboard/shelf helper artifacts")]
 
 
 def inspect_project() -> list[tuple[str, str, str]]:
@@ -154,7 +118,7 @@ def inspect_project() -> list[tuple[str, str, str]]:
         import gi
 
         check("PASS", "PyGObject", gi.__version__)
-        for namespace, ver in [("Gio", "2.0"), ("Gtk", "4.0"), ("Adw", "1"), ("Soup", "3.0")]:
+        for namespace, ver in [("Gio", "2.0"), ("Gtk", "4.0"), ("Adw", "1")]:
             try:
                 gi.require_version(namespace, ver)
                 check("PASS", f"Typelib {namespace}", ver)
@@ -286,40 +250,6 @@ def extension_revision_result(payload: str, installed_version: object) -> tuple[
     return ("PASS", name, f"Loaded and installed build {installed_version}")
 
 
-def helper_revision_result(payload: str, installed_version: object) -> tuple[str, str, str]:
-    name = "Helper build"
-    try:
-        state = json.loads(payload)
-        if not isinstance(state, dict):
-            raise ValueError("state is not an object")
-    except (TypeError, ValueError):
-        return (
-            "WARN",
-            name,
-            "The running helper returned invalid state; restart notch-helper.service",
-        )
-    loaded = state.get("build")
-    if loaded is None:
-        return (
-            "WARN",
-            name,
-            "Older helper is running; run: systemctl --user restart notch-helper.service",
-        )
-    if installed_version is not None and str(loaded) != str(installed_version):
-        return (
-            "WARN",
-            name,
-            f"Loaded build {loaded}, installed build {installed_version}. Restart notch-helper.service.",
-        )
-    shelf = state.get("shelfPath") or str(state_dir() / "shelf.json")
-    count = state.get("itemCount", 0)
-    error = state.get("loadError")
-    detail = f"Build {loaded}; {count} stashed file(s); {shelf}"
-    if error:
-        return ("FAIL", name, f"Shelf storage needs repair: {error}")
-    return ("PASS", name, detail)
-
-
 def inspect_bus() -> list[tuple[str, str, str]]:
     results = []
     try:
@@ -336,52 +266,29 @@ def inspect_bus() -> list[tuple[str, str, str]]:
         from gi.repository import Gio, GLib
 
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-        for name, path, interface, method in [
-            (EXTENSION_ID, OBJECT_PATH, APP_ID, "GetState"),
-            (HELPER_ID, HELPER_PATH, HELPER_ID, "Ping"),
-        ]:
-            try:
-                is_helper = name == HELPER_ID
-                value = bus.call_sync(
-                    name,
-                    path,
-                    interface,
-                    method,
-                    None,
-                    None,
-                    Gio.DBusCallFlags.NONE if is_helper else Gio.DBusCallFlags.NO_AUTO_START,
-                    8000 if is_helper else 1500,
-                    None,
+        try:
+            value = bus.call_sync(
+                EXTENSION_ID,
+                OBJECT_PATH,
+                APP_ID,
+                "GetState",
+                None,
+                None,
+                Gio.DBusCallFlags.NO_AUTO_START,
+                1500,
+                None,
+            )
+            detail = str(value.unpack()[0])
+            results.append(("PASS", EXTENSION_ID, detail))
+            results.append(extension_revision_result(detail, installed_version))
+        except GLib.Error:
+            results.append(
+                (
+                    "WARN",
+                    EXTENSION_ID,
+                    "Not running; if files were installed/updated in this session, log out/in and enable it",
                 )
-                detail = str(value.unpack()[0])
-                results.append(("PASS", name, detail))
-                if name == EXTENSION_ID:
-                    results.append(extension_revision_result(detail, installed_version))
-                elif name == HELPER_ID:
-                    try:
-                        info = bus.call_sync(
-                            name,
-                            path,
-                            interface,
-                            "GetInfo",
-                            None,
-                            None,
-                            Gio.DBusCallFlags.NONE,
-                            2000,
-                            None,
-                        )
-                        results.append(
-                            helper_revision_result(str(info.unpack()[0]), installed_version)
-                        )
-                    except GLib.Error:
-                        results.append(helper_revision_result("{}", installed_version))
-            except GLib.Error as exc:
-                detail = (
-                    "Not running; if files were installed/updated in this session, log out/in and enable it"
-                    if name == EXTENSION_ID
-                    else f"Not running (the helper may be idle): {exc.message}"
-                )
-                results.append(("WARN", name, detail))
+            )
         value = bus.call_sync(
             "org.freedesktop.DBus",
             "/org/freedesktop/DBus",
@@ -413,7 +320,7 @@ def main(argv=None):
     parser.add_argument("--offline", action="store_true", help="skip session-bus checks")
     args = parser.parse_args(argv)
     results = inspect_project()
-    results += inspect_helper_service()
+    results += inspect_legacy_artifacts()
     if not args.offline:
         results += inspect_shell_registration()
         results += inspect_bus()

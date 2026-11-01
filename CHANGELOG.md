@@ -2,6 +2,95 @@
 
 ## Unreleased
 
+### v19 — bounded header, corrected flare, closed music wings, charging cue
+
+- Replace the sun-like settings glyph with a sliders icon.
+- Fix expanded header spill: tab buttons now live in fixed unthemed slots, the
+  rail is centered between two expanding gutters, and settings/close are kept
+  inside a fixed right gutter. Label/icon mode is chosen from a pure width budget
+  so themed button padding cannot push controls outside the notch.
+- Correct the left Cairo top flare to mirror the right flare; it no longer paints
+  a square-ish rectangle outside the notch body.
+- Restore closed music wings with explicit proportions: 28 px wings, 16 px music
+  glyph, 3×14 px equalizer bars, centered vertically and hidden when no player is
+  active.
+- Add a plug-in charging cue: UPower discharging/pending → charging transitions
+  show a green bolt + “Charging · NN%” badge in the closed notch for ~1.76 s total
+  (140 ms in, hold, 120 ms out). The first battery sample is ignored, and the cue
+  is cancelled when the notch opens/hides or the extension is disabled.
+- Bump build to 19.
+
+### v18 — remove Clipboard/Quick stash, four-page design overhaul
+
+- Remove clipboard history and Quick stash/file shelf from the root: tabs,
+  controllers, models, schema keys, D-Bus methods/interfaces, prefs, Python
+  helper/storage/CLI modules, systemd unit, D-Bus activation service, launcher
+  templates, packaging payload and tests.
+- Installer/uninstaller now retire legacy `notch-helper`, `notch-shelf`, Helper
+  D-Bus service, `notch-helper.service` and old Python modules. `notch-doctor`
+  warns if any legacy artifact remains.
+- Rebuild the open UI around four pages: Home, Music, Alerts, System. Home is a
+  large clock with a small date; Music is text-first with large title and quiet
+  artist/transport; Alerts uses bold titles, compact previews and a real count;
+  System uses 2×2 metric tiles with large values and small labels.
+- Add visual depth with layered dark cards, subtle borders, inset highlights,
+  a centered tab rail and consistent radii. Remove decorative empty-state icons,
+  duplicate headings, pagers, album art, volume controls and helper clutter.
+- Show tab labels at the default width and collapse to a centered icon rail when
+  narrow. Only Alerts scrolls. Media errors become short actionable messages.
+- Remove the obsolete six-page design-review PPTX and generator.
+- Bump build to 18.
+
+### v17 — stable centered layout, compact Alerts, clean empty states
+
+- Replace the shifting active-tab label with a fixed, centered icon rail at normal
+  widths. All six labels appear only when they genuinely fit; active/inactive
+  icons use opacity instead of theme-blue symbolic recoloring.
+- Alerts: count actual notification cards, remove the duplicate date heading,
+  keep long bodies compact with Show more/Show less, render native actions in a
+  centered row, and cap rendering at 50 cards to protect the Shell main loop.
+- Music: show a clean empty state when no MPRIS player is connected instead of
+  disabled transport/seek clutter. The white play button now uses inverse
+  monochrome play/pause icons so the glyph is visible.
+- Status messages render in an in-flow footer with reserved height, so errors no
+  longer overlay page content. `Invalid GType` becomes a short restart-helper
+  message with Retry.
+- Hide Shelf/Clips pagers when there is only one page. Bundle missing
+  previous/next monochrome icons. Fix the MacBook preset maximum height to 480.
+- Bump build to 17.
+
+
+### v16 — minimal MacBook-notch Home/Music, no volume UI
+
+- Home is now only a centered clock and date. Remove the Home media card, quick
+  actions, Quick stash card and recent-file row; Shelf remains the file surface.
+- Music removes player volume, system output volume/mute and the raise button.
+  It keeps only title/artist/player switcher, progress/seek and previous/play/next.
+- Remove the Gvc `AudioController` module entirely so the extension no longer
+  connects to the Shell mixer for volume UI.
+- Compact open page budgets: Home 640×220, Music 640×300, Alerts 640×380,
+  System 640×320, Shelf/Clips 640×400. Only Alerts scrolls.
+- Bump build to 16.
+
+
+### v15 — clean centered UI, Alerts-only scrolling, reliable file stash
+
+- Fix the GTK drop target raising `Invalid GType`: `set_gtypes` now receives
+  `Gdk.FileList.__gtype__` and `GObject.TYPE_STRING`, not Python wrapper classes.
+  Direct file drops can initialize the stash surface again.
+- Remove album-art loading and broken cover placeholders. Music is a clean,
+  centered text-first player: title, artist, player switcher, progress, transport
+  controls and symmetric player/output volume controls.
+- Only Alerts owns a ScrollView. Home/Music/System use fixed centered layouts;
+  Shelf and Clips use bounded pagination instead of hidden scrolling.
+- Center headers, cards, empty states, file rows, pagers and status messages.
+  The tab cluster is centered with equal side gutters.
+- Increase default page height budget to 480 px and migrate untouched v14 presets
+  so non-scrolling pages fit without clipping. Narrow/large-text layouts reserve
+  extra height instead of introducing scrollbars.
+- Remove the remote-art setting and outbound art requests.
+
+
 ### v14 — atomic extension installation and discovery diagnostics
 
 - Publish the extension from a validated staging directory instead of writing

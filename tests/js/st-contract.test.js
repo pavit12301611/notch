@@ -81,7 +81,7 @@ const Gio = {FileIcon, ThemedIcon: {new: name => ({themed: name})}};
 const GLib = {get_monotonic_time: () => 1_000_000};
 const St = {Icon, Label, Button, BoxLayout};
 const Clutter = {ActorAlign: {START: 0, CENTER: 1, FILL: 2, END: 3}};
-const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}};
+const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}, Alignment: {CENTER: 1}};
 const stubs = new Map([
     ['gi://St', {default: St}],
     ['gi://Gio', {default: Gio}],
@@ -117,8 +117,8 @@ hooks.deregister();
 delete globalThis[globalKey];
 
 test('icon helper constructs a valid GNOME 50 St.Icon without icon_type', () => {
-    const widget = widgets.icon('folder-symbolic', 22);
-    assert.equal(widget.gicon.file.name, 'folder-symbolic.svg');
+    const widget = widgets.icon('user-home-symbolic', 22);
+    assert.equal(widget.gicon.file.name, 'user-home-symbolic.svg');
     assert.equal(widget.icon_name, null);
     assert.equal(widget.icon_size, 22);
     assert.equal(Object.hasOwn(widget, 'icon_type'), false);
@@ -139,10 +139,10 @@ test('artwork switching keeps the loaded gicon and restores a themed fallback', 
 });
 
 test('button, label and box helpers use valid St construction properties', () => {
-    const widget = widgets.button({text: 'Shelf', iconName: 'folder-symbolic', accessibleName: 'Shelf'});
-    assert.equal(widget.accessible_name, 'Shelf');
-    assert.equal(widget._notchLabel.text, 'Shelf');
-    assert.equal(widget._notchIcon.gicon.file.name, 'folder-symbolic.svg');
+    const widget = widgets.button({text: 'Home', iconName: 'user-home-symbolic', accessibleName: 'Home'});
+    assert.equal(widget.accessible_name, 'Home');
+    assert.equal(widget._notchLabel.text, 'Home');
+    assert.equal(widget._notchIcon.gicon.file.name, 'user-home-symbolic.svg');
     const wrapped = widgets.wrapLabel('A long status message');
     assert.equal(wrapped.clutter_text.line_wrap, true);
     assert.equal(wrapped.clutter_text.ellipsize, Pango.EllipsizeMode.NONE);
@@ -151,17 +151,16 @@ test('button, label and box helpers use valid St construction properties', () =>
     assert.match(container.style, /spacing: 6px/);
 });
 
-test('empty states are centered symbolic cards with title and body', () => {
-    const widget = widgets.emptyState('folder-symbolic', 'Shelf is empty', 'Stash files for later.');
+test('empty states are centered text cards with title and body', () => {
+    const widget = widgets.emptyState('Nothing playing', 'Start a song to see controls.');
     assert.equal(widget.vertical, true);
-    assert.equal(widget.children.length, 3);
-    assert.equal(widget.children[0].gicon.file.name, 'folder-symbolic.svg');
-    assert.equal(widget.children[1].text, 'Shelf is empty');
-    assert.equal(widget.children[2].clutter_text.line_wrap, true);
+    assert.equal(widget.children.length, 2);
+    assert.equal(widget.children[0].text, 'Nothing playing');
+    assert.equal(widget.children[1].clutter_text.line_wrap, true);
 });
 
 test('disabled controls lose focus and look disabled', () => {
-    const widget = widgets.button({text: 'Play', iconName: 'media-playback-start-symbolic'});
+    const widget = widgets.button({text: 'Play', iconName: 'media-playback-start-inverse-symbolic'});
     widgets.setSensitive(widget, false);
     assert.equal(widget.reactive, false);
     assert.equal(widget.can_focus, false);

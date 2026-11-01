@@ -2,8 +2,6 @@ import Adw from 'gi://Adw?version=1';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-import {APP_ID, EXTENSION_ID, EXTENSION_PATH} from './lib/dbus.js';
-import {launchSettings} from './lib/launcher.js';
 
 /** Native Libadwaita preferences shown directly by GNOME Extensions. */
 export default class NotchPreferences extends ExtensionPreferences {
@@ -70,7 +68,7 @@ export default class NotchPreferences extends ExtensionPreferences {
             settings.set_int('collapsed-width', 185);
             settings.set_int('collapsed-height', 32);
             settings.set_int('expanded-width', 640);
-            settings.set_int('expanded-height', 360);
+            settings.set_int('expanded-height', 480);
             settings.set_int('corner-radius', 24);
             settings.set_double('notch-scale', 1.0);
             settings.set_boolean('match-panel-height', true);
@@ -168,46 +166,6 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(actions, 'show-dnd', 'Do Not Disturb');
         addSwitch(actions, 'show-night-light', 'Night Light');
         addSwitch(actions, 'show-dark-mode', 'Dark Mode');
-        const media = group(behavior, 'Media');
-        addSwitch(media, 'remote-art', 'Download remote album art');
         window.add(behavior);
-
-        const privacy = new Adw.PreferencesPage({title: 'Privacy',
-            icon_name: 'security-high-symbolic'});
-        const clipboard = group(privacy, 'Clipboard history',
-            'RAM-only, cleared on lock/disable. Keep off when handling secrets.');
-        addSwitch(clipboard, 'clipboard-enabled', 'Remember copied text');
-        addSpin(clipboard, 'clipboard-limit', 'History size', 5, 50, 5);
-        const clearRow = new Adw.ActionRow({title: 'Clear clipboard history',
-            subtitle: 'Does not erase the current system clipboard'});
-        const clearButton = new Gtk.Button({label: 'Clear', valign: Gtk.Align.CENTER});
-        clearButton.connect('clicked', () => {
-            Gio.DBus.session.call(EXTENSION_ID, EXTENSION_PATH, APP_ID, 'ClearClipboard',
-                null, null, Gio.DBusCallFlags.NONE, 1000, null, (connection, result) => {
-                    try {
-                        connection.call_finish(result);
-                        window.add_toast(new Adw.Toast({title: 'Clipboard history cleared'}));
-                    } catch (e) {
-                        window.add_toast(new Adw.Toast({title: `Notch is not running: ${e.message}`}));
-                    }
-                });
-        });
-        clearRow.add_suffix(clearButton);
-        clearRow.set_activatable_widget(clearButton);
-        clipboard.add(clearRow);
-        const shelf = group(privacy, 'File shelf',
-            'Stores local file references only. Originals are never moved or deleted.');
-        const companion = new Adw.ActionRow({title: 'Companion app',
-            subtitle: 'File chooser, shelf tools and installation status'});
-        const openButton = new Gtk.Button({label: 'Open', valign: Gtk.Align.CENTER});
-        openButton.connect('clicked', () => {
-            try { launchSettings(); } catch (e) {
-                window.add_toast(new Adw.Toast({title: e.message}));
-            }
-        });
-        companion.add_suffix(openButton);
-        companion.set_activatable_widget(openButton);
-        shelf.add(companion);
-        window.add(privacy);
     }
 }

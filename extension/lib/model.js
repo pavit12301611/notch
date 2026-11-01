@@ -27,8 +27,6 @@ export function mediaMetadata(raw) {
     return {
         title: string('xesam:title'),
         artist: artistList.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()).join(', '),
-        album: string('xesam:album'),
-        artUrl: string('mpris:artUrl'),
         lengthUs: number('mpris:length'),
         trackId: /^\/[A-Za-z0-9_/.]*$/.test(trackId) ? trackId : '',
     };
@@ -66,6 +64,12 @@ export function visualizerLevels(step) {
     const length = VISUALIZER_PATTERN.length;
     const index = ((Math.trunc(Number(step) || 0) % length) + length) % length;
     return VISUALIZER_PATTERN[index];
+}
+
+/** True only on a real plug-in transition, never on the first UPower sample. */
+export function chargingStarted(previous, next) {
+    return !!next?.available && next.state === 1 && !!previous?.available &&
+        (previous.state === 2 || previous.state === 5 || previous.state === 6);
 }
 
 export function seekTarget(lengthUs, fraction) {
@@ -153,47 +157,6 @@ export function formatTime(microseconds) {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-export function safeTextMimetype(types) {
-    const allowed = new Set(['text/plain', 'text/plain;charset=utf-8', 'UTF8_STRING',
-        'STRING', 'TEXT', 'COMPOUND_TEXT', 'TARGETS', 'TIMESTAMP', 'MULTIPLE', 'SAVE_TARGETS']);
-    if (!types.length) return '';
-    // Be conservative: mixed rich/secret clipboard offers are never read.
-    if (types.some(t => /password|conceal|secret|sensitive|privacy/i.test(t) || !allowed.has(t)))
-        return '';
-    return ['text/plain;charset=utf-8', 'UTF8_STRING', 'text/plain', 'STRING']
-        .find(t => types.includes(t)) ?? '';
-}
-
-export class ClipboardHistory {
-    constructor(limit = 20, maxCharacters = 65536) {
-        this.limit = Math.max(1, Math.min(50, limit));
-        this.maxCharacters = maxCharacters;
-        this.items = [];
-        this.nextId = 1;
-    }
-
-    add(text, now = Date.now()) {
-        if (typeof text !== 'string' || !text.trim() || text.length > this.maxCharacters) return false;
-        if ([...text].some(character => {
-            const code = character.charCodeAt(0);
-            return code < 32 && code !== 9 && code !== 10 && code !== 13;
-        })) return false;
-        if (this.items[0]?.text === text) return false;
-        this.items = this.items.filter(item => item.text !== text);
-        this.items.unshift({id: this.nextId++, text, now});
-        this.items.length = Math.min(this.items.length, this.limit);
-        return true;
-    }
-
-    setLimit(limit) {
-        this.limit = Math.max(1, Math.min(50, limit));
-        this.items.length = Math.min(this.items.length, this.limit);
-    }
-
-    get(id) { return this.items.find(item => item.id === id); }
-    clear() { this.items = []; }
-}
-
 /** Convert GNOME notification markup to safe single-line/plain display text. */
 export function plainText(value) {
     return String(value ?? '')
@@ -205,17 +168,29 @@ export function plainText(value) {
         .trim();
 }
 
-/** Turn low-level helper activation failures into a short, actionable message. */
-export function helperErrorMessage(message) {
+/** Count the actual notification cards, not GNOME's unread/banner counter. */
+export function countNotifications(sources) {
+    let total = 0;
+    for (const source of sources ?? []) total += source?.notifications?.length ?? 0;
+    return total;
+}
+
+/** Keep long notification bodies compact without hiding the full text forever. */
+export function previewText(value, limit = 160) {
+    const text = plainText(value);
+    const max = Math.max(24, Math.floor(Number(limit) || 160));
+    if (text.length <= max) return {text, truncated: false};
+    return {text: `${text.slice(0, max).trimEnd()}…`, truncated: true};
+}
+
+/** Keep MPRIS failures short and actionable instead of dumping raw D-Bus text. */
+export function mediaErrorMessage(message) {
     const text = String(message ?? '');
-    if (/NameHasNoOwner|ServiceUnknown|Could not activate|startup request failed|Spawn/i.test(text))
-        return 'File shelf helper could not start. Press Retry on the Shelf page, or run notch-doctor.';
+    if (/NotSupported|UnknownMethod|Unknown method/i.test(text))
+        return 'This player does not support that control.';
+    if (/NameHasNoOwner|ServiceUnknown|NoReply|Timeout|timed out/i.test(text))
+        return 'The media player is not responding.';
     if (/AccessDenied|not allowed/i.test(text))
-        return 'File shelf helper was blocked by session policy. Run notch-doctor for details.';
-    if (/NoReply|Timeout|timed out/i.test(text))
-        return 'File shelf helper did not respond. Press Retry on the Shelf page.';
-    if (/UnknownMethod|Unknown method/i.test(text))
-        return 'File shelf helper is outdated. Re-run the Notch installer and log out/in.';
-    return text ? `File shelf: ${text.replace(/\s+/g, ' ').slice(0, 180)}` :
-        'File shelf is unavailable. Press Retry on the Shelf page.';
+        return 'The media player blocked that command.';
+    return text ? `Media: ${text.replace(/\s+/g, ' ').slice(0, 160)}` : 'Media command failed.';
 }

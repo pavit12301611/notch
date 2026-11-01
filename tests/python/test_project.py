@@ -16,6 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
+        self.assertEqual(metadata["version"], 19)
         self.assertIn("50", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
         keys = {key.attrib["name"] for key in schema.findall(".//key")}
@@ -27,14 +28,45 @@ class ProjectTests(unittest.TestCase):
             )
             self.assertTrue(used <= keys, f"Unknown keys in {source}: {used - keys}")
 
+    def test_removed_features_are_absent_from_runtime_and_schema(self):
+        schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
+        keys = {key.attrib["name"] for key in schema.findall(".//key")}
+        self.assertNotIn("clipboard-enabled", keys)
+        self.assertNotIn("clipboard-limit", keys)
+        for path in (
+            "extension/lib/clipboard.js",
+            "extension/lib/shelf.js",
+            "extension/lib/pagination.js",
+            "extension/lib/launcher.js",
+            "extension/dbus/io.github.pavit12301611.Notch.Helper.xml",
+            "app/notch_app/helper.py",
+            "app/notch_app/storage.py",
+            "app/notch_app/shelf_cli.py",
+            "data/notch-helper.in",
+            "data/notch-shelf.in",
+            "data/notch-helper.service.in",
+            "data/io.github.pavit12301611.Notch.Helper.service.in",
+        ):
+            self.assertFalse((ROOT / path).exists(), path)
+        for source in (ROOT / "extension").rglob("*.js"):
+            text = source.read_text()
+            self.assertNotRegex(
+                text, r"ClipboardHistory|ClearClipboard|notchDropGeometry|nearDropTarget"
+            )
+            self.assertNotIn("clipboard-enabled", text)
+        for source in (ROOT / "app/notch_app").glob("*.py"):
+            text = source.read_text()
+            self.assertNotIn("HELPER_ID", text)
+            self.assertNotIn("helper_call", text)
+        xml = (ROOT / "extension/dbus/io.github.pavit12301611.Notch.xml").read_text()
+        self.assertNotIn("ClearClipboard", xml)
+
     def test_xml_interfaces_parse(self):
         for path in (ROOT / "extension/dbus").glob("*.xml"):
             with self.subTest(path=path):
                 self.assertTrue(ET.parse(path).getroot().findall("interface"))
 
     def test_shell_resource_import_paths(self):
-        # prefs.js lives in the separate org.gnome.Shell.Extensions resource bundle,
-        # not in the main org.gnome.Shell bundle used by extension.js.
         prefs = (ROOT / "extension/prefs.js").read_text()
         self.assertIn("resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js", prefs)
         self.assertNotIn("resource:///org/gnome/shell/extensions/prefs.js", prefs)
@@ -46,10 +78,13 @@ class ProjectTests(unittest.TestCase):
         self.assertNotRegex(widgets, r"new St\.BoxLayout\(\{[^}]*\bspacing\s*[,}]")
         self.assertIn("spacing: ${Number(spacing) || 0}px;", widgets)
 
-    def test_prefs_are_inline_libadwaita(self):
+    def test_prefs_are_inline_libadwaita_without_privacy_page(self):
         prefs = (ROOT / "extension/prefs.js").read_text()
-        for control in ("Adw.SwitchRow", "Adw.SpinRow", "Adw.ComboRow", "clipboard-enabled"):
+        for control in ("Adw.SwitchRow", "Adw.SpinRow", "Adw.ComboRow"):
             self.assertIn(control, prefs)
+        self.assertNotIn("Privacy", prefs)
+        self.assertNotIn("clipboard", prefs.lower())
+        self.assertNotIn("shelf", prefs.lower())
         self.assertNotIn("Open Notch Settings", prefs)
         self.assertNotIn("openPreferences()", (ROOT / "extension/extension.js").read_text())
 
@@ -68,6 +103,7 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(keys["placement"].find("default").text, "'panel'")
         self.assertEqual(keys["collapsed-width"].find("default").text, "185")
         self.assertEqual(keys["expanded-width"].find("default").text, "640")
+        self.assertEqual(keys["expanded-height"].find("default").text, "480")
         self.assertEqual(keys["animation-profile"].find("default").text, "'mac-spring'")
         for name in (
             "notch-scale",
@@ -102,6 +138,8 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("-st-icon-style: symbolic", css)
         self.assertIn(".notch-page", css)
         self.assertIn(".notch-empty", css)
+        self.assertIn(".notch-stat-value", css)
+        self.assertIn(".notch-home-clock", css)
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("emptyState(", view)
         self.assertIn("notch-page-header", view)
@@ -115,76 +153,44 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("export function setIconSource", widgets)
         self.assertIn("widget.icon_name = null;\n        widget.gicon = gicon;", widgets)
         view = (ROOT / "extension/lib/view.js").read_text()
-        self.assertIn("setIconSource(widget, gicon", view)
         self.assertIn("sourceIcon(gicon", view)
-        clipboard = (ROOT / "extension/lib/clipboard.js").read_text()
-        self.assertIn("St.ClipboardType.CLIPBOARD", clipboard)
-        self.assertNotIn("ClipboardType?.CLIPBOARD ?? 0", clipboard)
 
     def test_gjs_dbus_results_are_unpacked_not_destructured(self):
-        shelf = (ROOT / "extension/lib/shelf.js").read_text()
         media = (ROOT / "extension/lib/media.js").read_text()
-        self.assertIn("result.deepUnpack()[0]", shelf)
         self.assertIn("result.deepUnpack()[0]", media)
-        self.assertNotIn("const [json] = await call", shelf)
         self.assertNotIn(".then(([names])", media)
         self.assertNotIn(".then(([variant])", media)
-        view = (ROOT / "extension/lib/view.js").read_text()
-        self.assertIn("Pango.EllipsizeMode.NONE", view)
 
     def test_pyobject_dbus_apis_match_gio(self):
-        helper = (ROOT / "app/notch_app/helper.py").read_text()
-        self.assertIn("register_object_with_closures2", helper)
-        self.assertIn("connection.register_object", helper)
-        self.assertIn("connection.unregister_object(self.registration)", helper)
-        self.assertNotIn("register_object_path", helper)
-        self.assertNotIn("unregister_object_path", helper)
         for name in ("doctor.py", "settings.py"):
             source = (ROOT / "app/notch_app" / name).read_text()
             self.assertNotIn("deepUnpack", source)
             self.assertIn(".unpack()", source)
 
-    def test_helper_activation_is_not_blocked_by_desktop_condition(self):
-        unit = (ROOT / "data/notch-helper.service.in").read_text()
-        self.assertNotIn("ConditionEnvironment", unit)
-        service = (ROOT / "data/io.github.pavit12301611.Notch.Helper.service.in").read_text()
-        self.assertNotIn("SystemdService=", service)
-        self.assertIn("Exec=@bindir@/notch-helper", service)
-        self.assertIn("BusName=io.github.pavit12301611.Notch.Helper", unit)
-        installer = (ROOT / "install.sh").read_text()
-        self.assertIn("reset-failed notch-helper.service", installer)
-        self.assertIn("import-environment", installer)
-        helper = (ROOT / "app/notch_app/helper.py").read_text()
-        self.assertIn("self.gobject.Value", helper)
-        self.assertIn("OSError", helper)
-
-    def test_adaptive_view_has_scrollable_pages_and_stable_actions(self):
+    def test_adaptive_view_has_four_pages_and_only_alerts_scrolls(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("contentLayout", view)
-        self.assertIn("pageScrolls", view)
+        self.assertIn("pageContainers", view)
+        self.assertIn("notificationScroll", view)
+        self.assertEqual(view.count("new St.ScrollView"), 1)
         self.assertIn("headerMode", (ROOT / "extension/lib/layout.js").read_text())
         self.assertIn("syncActions", view)
-        self.assertIn("retryShelf", view)
         self.assertIn("showStatus", view)
         self.assertNotIn("Main.notify('Notch', message)", view)
+        self.assertNotIn("pageSlice", view)
+        self.assertNotIn("shelfPager", view)
+        self.assertNotIn("clipboardPager", view)
+        for tab in ("'home'", "'media'", "'notifications'", "'system'"):
+            self.assertIn(tab, view)
+        self.assertNotIn("'shelf'", view)
+        self.assertNotIn("'clipboard'", view)
 
-    def test_v10_home_direct_drop_media_and_stash_contracts(self):
+    def test_home_music_system_and_stability_contracts(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("notch-home-page", view)
-        self.assertIn("this.homeIdle.visible = true", view)
-        self.assertIn("notchDropGeometry", view)
-        self.assertIn("dropCompleted", view)
+        self.assertIn("notch-home-clock", view)
+        self.assertIn("notch-home-date", view)
         self.assertIn("translation_y", view)
-        self.assertNotIn("this.homeIdle.visible = !playing", view)
-        shelf = (ROOT / "extension/lib/shelf.js").read_text()
-        self.assertIn("DropCompleted", shelf)
-        self.assertIn("prepareDropTarget", shelf)
-        xml = (ROOT / "extension/dbus/io.github.pavit12301611.Notch.Helper.xml").read_text()
-        self.assertIn('name="PrepareDropTarget"', xml)
-        self.assertIn('name="DropCompleted"', xml)
-        self.assertIn('name="DropFailed"', xml)
-        self.assertIn('name="GetInfo"', xml)
-        self.assertIn("setDropOverlay", view)
         self.assertIn("visualizerLevels", view)
         self.assertIn("set_pivot_point(0.5, 1)", view)
         self.assertIn("scale_y: levels[index]", view)
@@ -193,22 +199,51 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("_animationWatchdog", view)
         self.assertIn("relayout storm", view)
         self.assertIn("page.y_expand = false", view)
-        self.assertIn("query_info_async", (ROOT / "extension/lib/art.js").read_text())
         media = (ROOT / "extension/lib/media.js").read_text()
         self.assertIn("scheduleChange", media)
         self.assertIn("suppressUntil", (ROOT / "extension/lib/widgets.js").read_text())
-        self.assertIn("_loadingUrl", (ROOT / "extension/lib/art.js").read_text())
         self.assertIn("mediaDisplayTitle", view)
         self.assertIn("setIconDirectory", view)
         self.assertTrue((ROOT / "extension/icons/user-home-symbolic.svg").is_file())
-        self.assertTrue((ROOT / "data/notch-shelf.in").is_file())
-        helper = (ROOT / "app/notch_app/helper.py").read_text()
-        self.assertIn("set_gtypes", helper)
-        self.assertIn("_persistent_uri", helper)
-        self.assertIn("notch-drop-success", helper)
-        self.assertIn("gtk-enable-animations", helper)
-        metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 14)
+        self.assertNotIn("ArtLoader", view)
+        self.assertNotIn("remote-art", view)
+        self.assertNotIn("AudioController", view)
+        self.assertNotIn("playerVolume", view)
+        self.assertNotIn("outputVolume", view)
+        self.assertNotIn("notch-home-media", view)
+        self.assertIn("mediaEmpty", view)
+        self.assertIn("countNotifications", view)
+        self.assertIn("previewText", view)
+        self.assertIn("notch-stat-value", view)
+        self.assertIn("notch-stat-label", view)
+
+    def test_build19_header_icons_and_charging_contract(self):
+        view = (ROOT / "extension/lib/view.js").read_text()
+        layout = (ROOT / "extension/lib/layout.js").read_text()
+        surface = (ROOT / "extension/lib/surface.js").read_text()
+        diagnostics = (ROOT / "extension/lib/diagnostics.js").read_text()
+        self.assertIn("settings-sliders-symbolic", view)
+        self.assertNotIn("emblem-system-symbolic", view)
+        self.assertTrue((ROOT / "extension/icons/settings-sliders-symbolic.svg").is_file())
+        self.assertTrue((ROOT / "extension/icons/battery-charging-symbolic.svg").is_file())
+        self.assertFalse((ROOT / "extension/icons/emblem-system-symbolic.svg").exists())
+        # Fixed unthemed tab slots keep themed button padding inside the rail budget.
+        self.assertIn("tabSlots", view)
+        self.assertIn("headerLayout", layout)
+        self.assertIn("requiredWidth", layout)
+        self.assertIn("headerRight", view)
+        # The left flare must mirror the right flare, not fill a square outside the body.
+        self.assertIn("cr.lineTo(r, r);", surface)
+        self.assertIn("cr.curveTo(r, r / 3, 2 * r / 3, 0, 0, 0);", surface)
+        # Charging feedback is transition-gated and strictly under two seconds.
+        self.assertIn("onChargeStart", diagnostics)
+        self.assertIn("_batteryInitialized", diagnostics)
+        self.assertIn("chargingStarted", diagnostics)
+        self.assertIn("showChargingBadge", view)
+        self.assertIn("chargeBadgeTimer", view)
+        self.assertIn("this.setTimer('chargeBadgeTimer', 1640", view)
+        self.assertIn("duration: this.motionDuration(120)", view)
+        self.assertIn("this.mode !== 'closed'", view)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -218,13 +253,28 @@ class ProjectTests(unittest.TestCase):
                 check=True,
                 capture_output=True,
             )
+            names = {path.name for path in Path(temp).iterdir()}
+            self.assertEqual(names, {"notch-settings", "notch-doctor", f"{APP_ID}.desktop"})
             for path in Path(temp).iterdir():
                 self.assertNotIn("@bindir@", path.read_text())
                 self.assertNotIn("@pkgdatadir@", path.read_text())
                 self.assertNotIn("@python@", path.read_text())
-            self.assertIn(
-                "/usr/bin/notch-helper", (Path(temp) / "notch-helper.service").read_text()
-            )
+
+    def test_installer_retires_legacy_helper(self):
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertIn("rm -f $(DESTDIR)$(BINDIR)/notch-helper", makefile)
+        self.assertIn("rm -f $(DESTDIR)$(BINDIR)/notch-shelf", makefile)
+        self.assertIn("$(APP_ID).Helper.service", makefile)
+        self.assertIn("notch-helper.service", makefile)
+        self.assertIn("helper.py", makefile)
+        installer = (ROOT / "install.sh").read_text()
+        self.assertIn("disable --now notch-helper.service", installer)
+        self.assertNotIn("enable notch-helper.service", installer)
+        self.assertNotIn("Soup", installer)
+        spec = (ROOT / "packaging/rpm/notch.spec").read_text()
+        self.assertNotIn("notch-helper", spec)
+        self.assertNotIn("notch-shelf", spec)
+        self.assertNotIn("libsoup3", spec)
 
     def test_remote_bootstrap_syntax_and_help(self):
         script = ROOT / "scripts/bootstrap.sh"

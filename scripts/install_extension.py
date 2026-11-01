@@ -7,8 +7,8 @@ upgrade is running.  This helper stages and validates the whole extension next
 to the extensions directory, then publishes it with directory renames.  If the
 final rename fails, the previous complete directory is restored.
 
-Only the extension payload is handled here.  Settings/shelf data live elsewhere
-and are never touched.  Linux-only (GNOME Shell target).
+Only the extension payload is handled here.  User settings live elsewhere and
+are never touched.  Linux-only (GNOME Shell target).
 """
 
 from __future__ import annotations

@@ -21,27 +21,31 @@ all: stage
 
 stage:
 	mkdir -p $(STAGE)
-	@for name in notch-settings notch-helper notch-doctor notch-shelf; do \
+	@for name in notch-settings notch-doctor; do \
 	  sed -e 's|@bindir@|$(BINDIR)|g' -e 's|@extdir@|$(DATADIR)/gnome-shell/extensions/$(UUID)|g' \
 	      -e 's|@pkgdatadir@|$(DATADIR)/notch|g' -e 's|@python@|$(PYTHON)|g' \
 	      data/$$name.in > $(STAGE)/$$name; \
 	done
 	sed 's|@bindir@|$(BINDIR)|g' data/$(APP_ID).desktop.in > $(STAGE)/$(APP_ID).desktop
-	sed 's|@bindir@|$(BINDIR)|g' data/$(APP_ID).Helper.service.in > $(STAGE)/$(APP_ID).Helper.service
-	sed 's|@bindir@|$(BINDIR)|g' data/notch-helper.service.in > $(STAGE)/notch-helper.service
 
 install: stage
 	install -d $(PKGDATA)/python/notch_app
 	install -d $(DESTDIR)$(BINDIR) $(SCHEMADIR) $(DESTDIR)$(DATADIR)/applications
-	install -d $(DESTDIR)$(DATADIR)/dbus-1/services $(SYSTEMDUSERDIR)
 	install -d $(DESTDIR)$(DATADIR)/icons/hicolor/scalable/apps
 	$(PYTHON) scripts/install_extension.py --source extension --data-dir "$(DESTDIR)$(DATADIR)" --uuid "$(UUID)" $(EXTENSION_SCHEMA_COMPILE)
 	install -m644 extension/schemas/*.gschema.xml $(SCHEMADIR)/
+	# Remove retired clipboard/shelf companion artifacts from older builds.
+	rm -f $(DESTDIR)$(BINDIR)/notch-helper
+	rm -f $(DESTDIR)$(BINDIR)/notch-shelf
+	rm -f $(DESTDIR)$(DATADIR)/dbus-1/services/$(APP_ID).Helper.service
+	rm -f $(SYSTEMDUSERDIR)/notch-helper.service
+	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/notch-helper.service
+	rm -f $(DESTDIR)$(PREFIX)/local/lib/systemd/user/notch-helper.service
+	rm -f $(PKGDATA)/python/notch_app/helper.py $(PKGDATA)/python/notch_app/storage.py $(PKGDATA)/python/notch_app/shelf_cli.py
+	rm -rf $(PKGDATA)/python/notch_app/__pycache__
 	install -m644 app/notch_app/*.py $(PKGDATA)/python/notch_app/
-	install -m755 $(STAGE)/notch-settings $(STAGE)/notch-helper $(STAGE)/notch-doctor $(STAGE)/notch-shelf $(DESTDIR)$(BINDIR)/
+	install -m755 $(STAGE)/notch-settings $(STAGE)/notch-doctor $(DESTDIR)$(BINDIR)/
 	install -m644 $(STAGE)/$(APP_ID).desktop $(DESTDIR)$(DATADIR)/applications/
-	install -m644 $(STAGE)/$(APP_ID).Helper.service $(DESTDIR)$(DATADIR)/dbus-1/services/
-	install -m644 $(STAGE)/notch-helper.service $(SYSTEMDUSERDIR)/
 	install -m644 data/$(APP_ID).svg $(DESTDIR)$(DATADIR)/icons/hicolor/scalable/apps/
 	install -m644 README.md LICENSE $(PKGDATA)/
 ifeq ($(DESTDIR),)
@@ -51,11 +55,16 @@ endif
 
 uninstall:
 	rm -rf $(EXTDIR) $(PKGDATA)
+	rm -f $(DESTDIR)$(DATADIR)/gnome-shell/.$(UUID).install.lock
 	rm -f $(SCHEMADIR)/$(APP_ID).gschema.xml
-	rm -f $(DESTDIR)$(BINDIR)/notch-settings $(DESTDIR)$(BINDIR)/notch-helper $(DESTDIR)$(BINDIR)/notch-doctor $(DESTDIR)$(BINDIR)/notch-shelf
+	rm -f $(DESTDIR)$(BINDIR)/notch-settings $(DESTDIR)$(BINDIR)/notch-doctor
+	rm -f $(DESTDIR)$(BINDIR)/notch-helper
+	rm -f $(DESTDIR)$(BINDIR)/notch-shelf
 	rm -f $(DESTDIR)$(DATADIR)/applications/$(APP_ID).desktop
 	rm -f $(DESTDIR)$(DATADIR)/dbus-1/services/$(APP_ID).Helper.service
 	rm -f $(SYSTEMDUSERDIR)/notch-helper.service
+	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/notch-helper.service
+	rm -f $(DESTDIR)$(PREFIX)/local/lib/systemd/user/notch-helper.service
 	rm -f $(DESTDIR)$(DATADIR)/icons/hicolor/scalable/apps/$(APP_ID).svg
 ifeq ($(DESTDIR),)
 	-glib-compile-schemas $(SCHEMADIR)

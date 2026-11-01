@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clamp, notchGeometry, containsPoint, PAGE_SIZES, surfaceRadii} from '../../extension/lib/geometry.js';
-import {contentLayout, headerMode, statColumns, availableOpenSize} from '../../extension/lib/layout.js';
+import {contentLayout, headerMode, headerLayout, statColumns, availableOpenSize} from '../../extension/lib/layout.js';
 import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../extension/lib/spring.js';
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
-    formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText,
-    helperErrorMessage, mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from '../../extension/lib/model.js';
+    formatBytes, formatTime, seekTarget, plainText, mediaErrorMessage,
+    mediaDisplayTitle, mediaDisplayArtist, visualizerLevels,
+    previewText, countNotifications, chargingStarted} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -71,6 +72,35 @@ test('closed-notch equalizer loops through bounded rhythmic levels', () => {
     assert.ok(seen.size >= 6, 'equalizer should visibly vary instead of staying static');
 });
 
+test('charging badge triggers only on a real plug-in transition', () => {
+    const battery = state => ({available: true, percent: 42, state});
+    assert.equal(chargingStarted(null, battery(1)), false);
+    assert.equal(chargingStarted(battery(2), battery(1)), true);
+    assert.equal(chargingStarted(battery(6), battery(1)), true);
+    assert.equal(chargingStarted(battery(5), battery(1)), true);
+    assert.equal(chargingStarted(battery(1), battery(1)), false);
+    assert.equal(chargingStarted(battery(4), battery(1)), false);
+    assert.equal(chargingStarted(battery(2), battery(2)), false);
+    assert.equal(chargingStarted({available: false, state: 2}, battery(1)), false);
+    assert.equal(chargingStarted(battery(2), {available: false, state: 1}), false);
+});
+
+test('header budget keeps settings and close inside the notch', () => {
+    for (const width of [194, 220, 300, 359, 360, 480, 559, 560, 600, 800]) {
+        for (const textScale of [0.8, 1, 1.25, 1.5, 2]) {
+            const hl = headerLayout(width, textScale);
+            assert.ok(hl.requiredWidth <= width,
+                `header ${hl.mode} needs ${hl.requiredWidth}px in ${width}px @${textScale}`);
+            assert.equal(hl.showSettings, !hl.ultra);
+            assert.equal(hl.controlsWidth, hl.gutter);
+        }
+    }
+    assert.equal(headerLayout(600, 1).mode, 'labels');
+    assert.equal(headerLayout(600, 1.25).mode, 'icons');
+    assert.equal(headerLayout(500, 0.8).mode, 'icons');
+    assert.equal(headerLayout(300, 1).ultra, true);
+});
+
 test('CPU deltas exclude guest double-counting and handle first sample/reset', () => {
     const first = cpuSample('cpu  10 0 10 70 10 0 0 0 5 0\ncpu0 1 2 3');
     assert.equal(first.percent, null);
@@ -100,29 +130,6 @@ test('network rates use elapsed time, default route and reject counter resets', 
     assert.equal(defaultRouteInterface('Iface Destination Gateway Flags RefCnt Use Metric Mask\nwlan0 00000000 0100A8C0 0003 0 0 100 00000000'), 'wlan0');
 });
 
-test('clipboard offers are conservative and history is bounded/deduplicated', () => {
-    assert.equal(safeTextMimetype(['text/plain;charset=utf-8', 'UTF8_STRING']), 'text/plain;charset=utf-8');
-    assert.equal(safeTextMimetype(['text/plain', 'x-kde-passwordManagerHint']), '');
-    assert.equal(safeTextMimetype(['image/png', 'text/plain']), '');
-    assert.equal(safeTextMimetype([]), '');
-    const history = new ClipboardHistory(3);
-    assert.ok(history.add('one', 1));
-    assert.ok(history.add('two', 2));
-    assert.ok(history.add('three', 3));
-    assert.ok(history.add('four', 4));
-    assert.deepEqual(history.items.map(i => i.text), ['four', 'three', 'two']);
-    assert.ok(history.add('two', 5));
-    assert.equal(history.items[0].text, 'two');
-    assert.equal(history.items.length, 3);
-    assert.ok(!history.add('two', 6));
-    assert.ok(!history.add('bad\0text'));
-    assert.ok(!history.add('x'.repeat(65537)));
-    history.setLimit(1);
-    assert.equal(history.items.length, 1);
-    history.clear();
-    assert.equal(history.items.length, 0);
-});
-
 test('formatting is stable for missing values and boundaries', () => {
     assert.equal(formatBytes(null), '—');
     assert.equal(formatBytes(1024, '/s'), '1.0 KiB/s');
@@ -133,7 +140,7 @@ test('formatting is stable for missing values and boundaries', () => {
 
 test('MacBook notch attaches to the top edge and expands around the same center', () => {
     const mac = {...options, placement: 'panel', collapsedWidth: 185, collapsedHeight: 32,
-        expandedWidth: 640, expandedHeight: 360, matchPanelHeight: true, tab: 'home'};
+        expandedWidth: 640, expandedHeight: 480, matchPanelHeight: true, tab: 'home'};
     const closed = notchGeometry(monitor, mac, false);
     const open = notchGeometry(monitor, mac, true);
     assert.equal(closed.y, 0);
@@ -227,10 +234,11 @@ test('adaptive layout fits the actual notch rectangle and collapses labels befor
         assert.ok(rect.x >= 0 && rect.x + rect.width <= monitor.width);
     }
     assert.equal(headerMode(800), 'labels');
-    assert.equal(headerMode(640), 'active');
-    assert.equal(headerMode(480), 'active');
+    assert.equal(headerMode(640), 'labels');
+    assert.equal(headerMode(560), 'labels');
+    assert.equal(headerMode(480), 'icons');
     assert.equal(headerMode(320), 'icons');
-    assert.equal(statColumns(640), 4);
+    assert.equal(statColumns(640), 2);
     assert.equal(statColumns(480), 2);
     assert.equal(statColumns(300), 1);
     const hidpi = {cssScale: 2, layoutScale: 1.25, panelHeight: 64, placement: 'panel'};
@@ -248,10 +256,25 @@ test('adaptive layout fits the actual notch rectangle and collapses labels befor
     assert.equal(largeLayout.layoutScale, 1);
 });
 
-test('helper activation errors become actionable instead of raw D-Bus dumps', () => {
-    assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer'), /Retry/);
-    assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown'), /notch-doctor/);
-    assert.match(helperErrorMessage('Timeout was reached'), /Retry/);
-    assert.match(helperErrorMessage('Unknown method'), /installer/);
-    assert.equal(helperErrorMessage(''), 'File shelf is unavailable. Press Retry on the Shelf page.');
+test('notification previews stay compact but reveal the full body on demand', () => {
+    const short = previewText('<b>Hello</b> world', 140);
+    assert.equal(short.text, 'Hello world');
+    assert.equal(short.truncated, false);
+    const long = previewText('x'.repeat(200), 140);
+    assert.equal(long.truncated, true);
+    assert.equal(long.text.length, 141);
+    assert.ok(long.text.endsWith('…'));
+    assert.equal(countNotifications([{notifications: [1, 2]}, {notifications: []}, {}]), 2);
+    assert.equal(countNotifications(null), 0);
+});
+
+test('media errors become short and actionable instead of raw D-Bus dumps', () => {
+    assert.equal(mediaErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NotSupported'),
+        'This player does not support that control.');
+    assert.equal(mediaErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner'),
+        'The media player is not responding.');
+    assert.equal(mediaErrorMessage('Timeout was reached'), 'The media player is not responding.');
+    assert.equal(mediaErrorMessage('AccessDenied'), 'The media player blocked that command.');
+    assert.equal(mediaErrorMessage(''), 'Media command failed.');
+    assert.match(mediaErrorMessage('x'.repeat(300)), /^Media: x{160}$/);
 });

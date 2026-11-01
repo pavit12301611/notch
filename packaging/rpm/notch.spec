@@ -1,7 +1,7 @@
 Name:           notch
 Version:        0.1.0
-Release:        1%{?dist}
-Summary:        Native GNOME notch with media, diagnostics and a file shelf
+Release:        3%{?dist}
+Summary:        Native GNOME notch with media, notifications and system status
 License:        GPL-3.0-or-later
 URL:            https://github.com/pavit12301611/notch
 Source0:        %{name}-%{version}.tar.gz
@@ -10,25 +10,22 @@ BuildArch:      noarch
 BuildRequires:  make
 BuildRequires:  glib2-devel
 BuildRequires:  desktop-file-utils
-BuildRequires:  systemd-rpm-macros
 Requires:       gnome-shell >= 46
 Requires:       python3-gobject
 Requires:       gtk4
 Requires:       libadwaita >= 1.4
 Requires:       glib2
-Requires:       libsoup3
 Requires:       upower
 Requires:       adwaita-icon-theme
 Requires:       hicolor-icon-theme
 Recommends:     gnome-extensions-app
-%{?systemd_requires}
 
 %description
-Notch is a hybrid GNOME Shell extension and GTK4/Libadwaita application.
-The extension owns the animated overlay; Python companions provide settings,
-a GTK file-drop surface and a bounded local file-reference shelf. MPRIS media,
-procfs diagnostics, UPower battery state and RAM-only clipboard history are
-integrated without a polling media daemon. Primary target: Fedora 44, GNOME 50.
+Notch is a hybrid GNOME Shell extension and GTK4/Libadwaita settings app.
+The extension owns the animated MacBook-style top-edge overlay: idle clock,
+in-notch notifications, MPRIS media controls, procfs diagnostics, UPower
+battery state and GNOME quick actions. There is no background helper daemon,
+clipboard history or file shelf. Primary target: Fedora 44, GNOME 50.
 
 %prep
 %autosetup -n %{name}-%{version}
@@ -42,30 +39,25 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/io.github.pavit123016
 # The shared schema directory is compiled by Fedora's glib2 file trigger.
 glib-compile-schemas %{buildroot}%{_datadir}/gnome-shell/extensions/notch@pavit12301611.github.io/schemas
 
-%post
-%systemd_user_post notch-helper.service
-
-%preun
-%systemd_user_preun notch-helper.service
-
-%postun
-%systemd_user_postun_with_restart notch-helper.service
-
 %files
 %license LICENSE
 %doc README.md
 %{_bindir}/notch-settings
-%{_bindir}/notch-helper
 %{_bindir}/notch-doctor
-%{_bindir}/notch-shelf
 %{_datadir}/notch/
 %{_datadir}/gnome-shell/extensions/notch@pavit12301611.github.io/
 %{_datadir}/glib-2.0/schemas/io.github.pavit12301611.Notch.gschema.xml
 %{_datadir}/applications/io.github.pavit12301611.Notch.desktop
-%{_datadir}/dbus-1/services/io.github.pavit12301611.Notch.Helper.service
 %{_datadir}/icons/hicolor/scalable/apps/io.github.pavit12301611.Notch.svg
-%{_userunitdir}/notch-helper.service
 
 %changelog
+* Sun Nov 01 2026 Notch contributors <noreply@github.com> - 0.1.0-3
+- Bound the expanded header, correct the left top flare, restore closed music
+  wings and add a sub-two-second plug-in charging cue.
+
+* Sun Nov 01 2026 Notch contributors <noreply@github.com> - 0.1.0-2
+- Remove clipboard history and the file shelf/helper completely.
+- Four-page UI overhaul: Home, Music, Alerts, System.
+
 * Thu Oct 29 2026 Notch contributors <noreply@github.com> - 0.1.0-1
 - Initial Fedora-ready hybrid extension and GTK4 companion package.

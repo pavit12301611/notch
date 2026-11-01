@@ -12,8 +12,7 @@ jobs:
       - name: Install build and test dependencies
         run: |
           dnf install -y make git-core python3 python3-gobject gtk4 libadwaita glib2-devel \
-            gjs gnome-shell libsoup3 desktop-file-utils nodejs npm dbus-daemon \
-            rpm-build systemd-rpm-macros
+            gjs gnome-shell desktop-file-utils nodejs npm dbus-daemon rpm-build
       - run: npm ci
       - run: make stage PREFIX=/usr SYSCONFDIR=/etc
       - name: Compile schemas for GJS smoke tests

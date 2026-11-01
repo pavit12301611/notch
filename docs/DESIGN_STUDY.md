@@ -8,9 +8,9 @@ Pinned references inspected on 2026-10-30:
 
 | Project | Commit | License | What we learned |
 |---|---|---|---|
-| [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) | `23e7705a4ffcb5d97a54fb1d4135e180084a566d` | GPL-3.0 | Closed notch follows the real cutout/menu-bar height; open home is 640×190 pt; closed radii 6/14, open 19/24; spring open 0.42 s / damping 0.8, close 0.45 s / damping 1.0; compact music wings, hover growth, shelf and live-activity peeks. |
+| [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) | `23e7705a4ffcb5d97a54fb1d4135e180084a566d` | GPL-3.0 | Closed notch follows the real cutout/menu-bar height; open home is 640×190 pt; closed radii 6/14, open 19/24; spring open 0.42 s / damping 0.8, close 0.45 s / damping 1.0; compact music wings, hover growth and live-activity peeks. |
 | [mrkai77/DynamicNotchKit](https://github.com/mrkai77/DynamicNotchKit) | `cd0b3e52d537db115ad3a9d89601f20e0bee8d27` | MIT | The original flared `NotchShape`, separate compact leading/trailing content, top-anchored expansion, fixed expanded content with opacity/scale transition, and distinct notch vs floating styles. |
-| [Lakr233/NotchDrop](https://github.com/Lakr233/NotchDrop) | `e70b3d715a99e47de6eb823540282eafc7401a3a` | MIT | A focused 600×160 pt shelf, drag-to-open, dashed drop target, temporary file storage and a single interactive spring for state changes. |
+| [Aatman09/boring-notch-linux](https://github.com/Aatman09/boring-notch-linux) | `main` | GPL-3.0 | GNOME 50 implementation pattern: fixed pre-laid-out tab pages, fade on switching, header subtracted from page height, sysmon/player polling gated by active tab. |
 
 ## Concrete decisions for Notch on GNOME
 
@@ -19,12 +19,11 @@ Pinned references inspected on 2026-10-30:
   rectangle or a floating Dynamic Island. The flare is drawn with Cairo; the body
   uses St CSS bottom radii.
 - **Closed state:** match the GNOME panel height by default, base width 185
-  logical px, centered idle clock. While music plays, small album-art and playback
+  logical px, centered idle clock. While music plays, small music/equalizer
   indicator wings grow from the sides without increasing height. Hover adds a
   restrained 12×4 px affordance.
 - **Opening:** top edge stays pinned; width/height/radii move together with a
-  damped spring. Open home is 640×210 logical px (the extra height accommodates a
-  compact tab header). Other pages size to their content instead of forcing every
+  damped spring. Open pages size to their content instead of forcing every
   page into one large utility window.
 - **Motion:** open response 0.42 s / damping 0.8; close 0.45 s / damping 1.0;
   page resize 0.38 s / damping 0.8. The frame timeline runs only while a spring is
@@ -33,8 +32,13 @@ Pinned references inspected on 2026-10-30:
   native actions; they remain in GNOME's notification history. Critical
   notifications keep the native banner path. Opening the full Alerts page is an
   explicit click, not an automatic full-window interruption.
-- **Shelf:** keep the existing reversible GTK drop helper and reference-only
-  storage, but present it as a focused shelf page with a clear drop affordance.
+- **Four pages only:** Home, Music, Alerts, System. Clipboard history and the file
+  shelf were removed in build 18; no drop target, helper daemon or pagination
+  remains.
+- **Hierarchy and depth:** primary values/titles are large; labels and secondary
+  details are smaller and muted. Layered dark cards, subtle borders and inset
+  highlights separate content from the black notch body. Decorative headings,
+  empty-state icons, album art and volume sliders were removed.
 - **Settings:** Libadwaita remains the native settings surface; the notch itself
   uses a dark, compact, Mac-inspired visual language.
 

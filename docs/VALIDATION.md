@@ -1,41 +1,63 @@
-# Validation record — 2026-10-30
+# Validation log
 
-## Environment used for repository development
+## Build 19 — 2026-11-01
 
-- Debian 12 sandbox, Node.js 22, Python 3.11.
-- No GNOME Shell, PyGObject, GTK4 runtime, GJS, `glib-compile-schemas`, `desktop-file-validate` or `rpmbuild` available in the sandbox.
+Scope: replace the settings glyph; keep the expanded header inside the notch;
+correct the left top flare; restore proportioned closed music wings; add a
+sub-two-second plug-in charging cue.
 
-## Checks executed successfully
+### Executed in the development sandbox
 
-- ESLint over extension and JavaScript tests.
-- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **22 passed**.
-- Python compilation and unittest suite: **50 passed**.
-- Atomic extension publication tests: fresh install, upgrade/stale-file removal, invalid-source rollback, interrupted-transaction recovery and Makefile/installer wiring.
-- Doctor Shell-registration tests: undiscovered extension, active build, D-Bus double build numbers, load errors and stale session registration.
-- Ruff lint and formatting checks.
-- GSettings XML validated against GNOME GLib’s `gschema.dtd`.
-- Bash syntax checks for `install.sh`, `uninstall.sh` and `scripts/bootstrap.sh`.
-- Remote bootstrap help and invalid-ref rejection checks (no network needed).
-- Regression check for the separate GNOME Extensions prefs resource import path.
-- Regression check that extension preferences are inline Libadwaita pages, not a launcher placeholder.
-- Regression check that St.BoxLayout spacing uses St CSS, not a nonexistent GObject property.
-- Strict St.Icon constructor/write tests against the GNOME 50.6 property contract, including artwork source switching.
-- Doctor tests for loaded-vs-installed extension build detection.
-- v9 drop-target geometry tests: closed-notch coverage, placement, HiDPI and monitor clamping.
-- Helper drop tests with stubbed GIO/GTK contracts: file-list and URI-list drops, reference-only stash, completion/failure signals, target reset/clamping, window reuse and helper info.
-- Doctor helper-build/storage checks and nested MPRIS variant/title tests.
-- MacBook v2 default/schema checks, spring convergence/retargeting tests and reversible notification-bridge tests.
-- GNOME 46/50 source compatibility check for `InjectionManager` and the message-tray banner queue path.
-- Staged `make install` / `make uninstall` with `/usr` prefix, including the RPM user-unit directory override.
-- Source distribution creation and archive listing.
+- `npm run check`: ESLint clean; Node model/layout/St-contract tests **21/21** pass,
+  including charging-transition and header-width budget regressions.
+- Python unit tests: project contracts, doctor, atomic extension installer **36/36** pass.
+- `ruff check` and `ruff format --check` on Python sources/tests/installer.
+- `bash -n` on `install.sh`, `uninstall.sh`, `scripts/bootstrap.sh`.
+- Schema/D-Bus XML parse and `node --check` on every extension module.
+- `make stage PREFIX=/usr SYSCONFDIR=/etc`.
+- `make install` / `make uninstall` with `DESTDIR` staging, including legacy helper
+  cleanup and removal of the installer lock file.
 - `git diff --check`.
 
-## Not executed here
+### Not executed here
 
-- Live GNOME 50 Wayland overlay, input, animation, media, drag-and-drop and lifecycle tests.
-- `glib-compile-schemas` binary compilation (DTD validation is not a substitute).
+- Live GNOME 50 Wayland overlay, input, animation, media, notification, charging
+  and lifecycle tests. In particular, the corrected flare, header containment and
+  charging badge still need the live acceptance checklist on the target laptop.
+- `glib-compile-schemas` binary compilation (DTD/XML validation is not a substitute).
 - `desktop-file-validate`.
 - GJS smoke test.
 - RPM build/install.
 
-The Fedora 44 CI recipe is configured to run the missing schema/desktop/GJS/RPM checks when the repository is pushed. The live desktop acceptance checklist remains mandatory before a “tested on Fedora 44” claim.
+The Fedora 44 CI recipe is configured to run the missing schema/desktop/GJS/RPM checks when the repository is pushed. The live desktop acceptance checklist in `docs/TESTING.md` remains mandatory before a “tested on Fedora 44” claim.
+
+---
+
+## Build 18 — 2026-11-01
+
+Scope: remove clipboard history and Quick stash/file shelf from the root; four-page UI overhaul with typographic hierarchy and layered surfaces; retire the helper daemon/CLI/D-Bus/systemd artifacts; keep Home/Music/Alerts/System functional.
+
+### Executed in the development sandbox
+
+- `npm run check`: ESLint clean; Node model/layout/St-contract tests **19/19** pass.
+- Python unit tests: project contracts, doctor, atomic extension installer **35/35** pass.
+- `ruff check` and `ruff format --check` on Python sources/tests/installer.
+- `bash -n` on `install.sh`, `uninstall.sh`, `scripts/bootstrap.sh`.
+- Schema XML parse and key-reference checks.
+- `make stage PREFIX=/usr SYSCONFDIR=/etc`.
+- `make install` / `make uninstall` with `DESTDIR` staging, including legacy helper cleanup.
+- `git diff --check`.
+
+### Not executed here
+
+- Live GNOME 50 Wayland overlay, input, animation, media, notification and lifecycle tests.
+- `glib-compile-schemas` binary compilation (DTD/XML validation is not a substitute).
+- `desktop-file-validate`.
+- GJS smoke test.
+- RPM build/install.
+
+The Fedora 44 CI recipe is configured to run the missing schema/desktop/GJS/RPM checks when the repository is pushed. The live desktop acceptance checklist in `docs/TESTING.md` remains mandatory before a “tested on Fedora 44” claim.
+
+### Historical notes
+
+Earlier builds added and then removed album art, volume controls, pagination, clipboard history and the file shelf. Build 18 is the first release with no helper process and only four pages. The old design-review PPTX and generator were removed because they described the retired six-page UI.

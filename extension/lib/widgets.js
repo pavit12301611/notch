@@ -7,8 +7,9 @@ import {iconGicon} from './icons.js';
 
 export function label(text = '', style = 'notch-muted', expand = false) {
     const widget = new St.Label({text, style_class: style, x_expand: expand,
-        y_align: Clutter.ActorAlign.CENTER});
-    widget.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
+    widget.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+    widget.clutter_text.alignment = Pango.Alignment.CENTER;
     return widget;
 }
 
@@ -17,8 +18,19 @@ export function wrapLabel(text = '', style = 'notch-muted', expand = true) {
     widget.clutter_text.line_wrap = true;
     widget.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
     widget.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
-    widget.y_align = Clutter.ActorAlign.START;
+    widget.clutter_text.alignment = Pango.Alignment.CENTER;
+    widget.y_align = Clutter.ActorAlign.CENTER;
     return widget;
+}
+
+/** Non-scrolling pages are centered as a block inside the fixed page stack. */
+export function pageBox(style = '', spacing = 10) {
+    const page = box(true, `notch-page ${style}`.trim(), spacing);
+    page.x_expand = true;
+    page.x_align = Clutter.ActorAlign.FILL;
+    page.y_expand = false;
+    page.y_align = Clutter.ActorAlign.CENTER;
+    return page;
 }
 
 export function icon(name, size = 16) {
@@ -47,18 +59,15 @@ export function sourceIcon(gicon, fallbackName, size = 16) {
     return widget;
 }
 
-export function emptyState(iconName, title, body) {
-    const widget = box(true, 'notch-empty', 8);
+export function emptyState(title, body) {
+    const widget = box(true, 'notch-empty', 6);
     widget.x_align = Clutter.ActorAlign.CENTER;
     widget.y_align = Clutter.ActorAlign.CENTER;
     widget.y_expand = true;
-    const image = icon(iconName, 32);
-    image.x_align = Clutter.ActorAlign.CENTER;
     const heading = label(title, 'notch-empty-title');
     heading.x_align = Clutter.ActorAlign.CENTER;
     const detail = wrapLabel(body, 'notch-empty-body', false);
     detail.x_align = Clutter.ActorAlign.CENTER;
-    widget.add_child(image);
     widget.add_child(heading);
     widget.add_child(detail);
     return widget;
@@ -70,9 +79,10 @@ export function box(vertical = false, style = '', spacing = 8) {
         style: `spacing: ${Number(spacing) || 0}px;`, x_expand: !vertical});
 }
 
-export function button({text = '', iconName = '', onClick, style = 'notch-button', accessibleName = ''}) {
+export function button({text = '', iconName = '', onClick, style = 'notch-button', accessibleName = '', wrapText = false}) {
     const child = box(false, '', 6);
     child.x_align = Clutter.ActorAlign.CENTER;
+    child.y_align = Clutter.ActorAlign.CENTER;
     let iconWidget = null;
     let labelWidget = null;
     if (iconName) {
@@ -80,7 +90,8 @@ export function button({text = '', iconName = '', onClick, style = 'notch-button
         child.add_child(iconWidget);
     }
     if (text) {
-        labelWidget = label(text, '', false);
+        labelWidget = wrapText ? wrapLabel(text, '', true) : label(text, '', false);
+        if (wrapText) child.x_expand = true;
         child.add_child(labelWidget);
     }
     const widget = new St.Button({child, style_class: style, can_focus: true,
@@ -100,7 +111,7 @@ export function slider(value, onInput, accessibleName) {
     widget.connect('drag-begin', () => { dragging = true; });
     widget.connect('drag-end', () => { dragging = false; onInput(widget.value); });
     widget.connect('notify::value', () => {
-        // Programmatic updates must never feed back into volume/seek commands.
+        // Programmatic updates must never feed back into seek commands.
         if (dragging || GLib.get_monotonic_time() < suppressUntil) return;
         onInput(widget.value);
     });
