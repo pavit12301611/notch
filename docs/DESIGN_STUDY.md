@@ -19,7 +19,7 @@ Pinned references inspected on 2026-10-30:
   rectangle or a floating Dynamic Island. The flare is drawn with Cairo; the body
   uses St CSS bottom radii.
 - **Closed state:** match the GNOME panel height by default, base width 185
-  logical px, centered idle clock. While music plays, small album-art and playback
+  logical px, centered idle clock. While music plays, small music/equalizer
   indicator wings grow from the sides without increasing height. Hover adds a
   restrained 12×4 px affordance.
 - **Opening:** top edge stays pinned; width/height/radii move together with a

@@ -219,6 +219,86 @@ class HelperDropTests(unittest.TestCase):
             self.assertEqual(info["shelfPath"], str(app.store.path))
             self.assertIn("text/uri-list", info["dropFormats"])
 
+    def test_make_window_passes_real_gtypes_to_drop_target(self):
+        with tempfile.TemporaryDirectory() as root:
+            app = self.make_helper(root)
+            app.window = None
+            recorded = {}
+
+            class DropTarget:
+                @staticmethod
+                def new(gtype, action):
+                    recorded["new"] = (gtype, action)
+                    return DropTarget()
+
+                def set_gtypes(self, gtypes):
+                    recorded["gtypes"] = list(gtypes)
+
+                def connect(self, *_args):
+                    return 1
+
+            class Window:
+                def __init__(self, **kwargs):
+                    pass
+
+                def add_css_class(self, *_args):
+                    pass
+
+                def set_child(self, *_args):
+                    pass
+
+                def add_controller(self, controller):
+                    recorded["controller"] = controller
+
+                def connect(self, *_args):
+                    return 1
+
+            class Box:
+                def __init__(self, **kwargs):
+                    pass
+
+                def append(self, *_args):
+                    pass
+
+            class Image:
+                @staticmethod
+                def new_from_icon_name(name):
+                    return Image()
+
+                def set_pixel_size(self, *_args):
+                    pass
+
+                def add_css_class(self, *_args):
+                    pass
+
+            class Label:
+                def __init__(self, **kwargs):
+                    pass
+
+            gtk = types.SimpleNamespace(
+                Window=Window,
+                Box=Box,
+                Image=Image,
+                Label=Label,
+                DropTarget=DropTarget,
+                Orientation=types.SimpleNamespace(VERTICAL=1),
+                Align=types.SimpleNamespace(CENTER=1, FILL=2),
+                Settings=types.SimpleNamespace(
+                    get_default=lambda: types.SimpleNamespace(get_property=lambda *_: True)
+                ),
+            )
+            gdk = types.SimpleNamespace(
+                DragAction=types.SimpleNamespace(COPY=1),
+                FileList=types.SimpleNamespace(__gtype__=4321),
+            )
+            gobject = types.SimpleNamespace(TYPE_INVALID=0, TYPE_STRING=64)
+            app.gtk, app.gdk, app.gobject = gtk, gdk, gobject
+            app._load_gtk = lambda: None
+            app._make_window()
+            self.assertEqual(recorded["new"], (0, 1))
+            self.assertEqual(recorded["gtypes"], [4321, 64])
+            self.assertIsInstance(recorded["controller"], DropTarget)
+
     def test_drop_target_is_clamped_and_reset(self):
         with tempfile.TemporaryDirectory() as root:
             app = self.make_helper(root)

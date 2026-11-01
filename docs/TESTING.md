@@ -54,11 +54,10 @@ journalctl --user -b -t gnome-shell -f
 
 - [ ] Open/close and hover for 10 minutes: no sustained Shell CPU spike, no freeze, no repeated `relayout storm` warnings.
 - [ ] Rapidly hover in/out and switch tabs: notch remains responsive; if a storm is detected it snaps briefly and recovers.
-- [ ] Album art on a slow/network mount does not block the Shell while opening Home/Music.
 
 - [ ] Top-center, floating and panel modes place correctly at 100%, 125%, 150% and 200% scaling.
 - [ ] Primary and secondary monitors; hotplug/unplug; monitor index out of range falls back safely.
-- [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes; pages scroll when vertical space is limited.
+- [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes. Only Alerts scrolls; Home/Music/System fit, Shelf/Clips paginate without hidden overflow.
 - [ ] Header labels collapse to active-only/icon-only on narrow widths instead of truncating every tab.
 - [ ] 100%/125%/150%/200% display scaling and large text settings do not double-scale or clip the closed clock.
 - [ ] Hover dwell, click, Super+grave, Escape and outside-click behave as documented.
@@ -88,9 +87,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Switch players; previous/play/pause/next respect advertised capabilities.
 - [ ] Seek a long track, change tracks while visible, pause, and seek from another client.
 - [ ] Player volume and system output volume/mute stay synchronized with external changes.
-- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no slider/volume feedback loop, no repeated art downloads.
-- [ ] Local file art, data URI art and HTTPS art render; broken/oversized art falls back safely.
-- [ ] Disabling remote art prevents HTTP(S) art requests.
+- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no slider/volume feedback loop, no art downloads or image placeholders.
 - [ ] No position timer remains after leaving Media or collapsing the notch.
 
 ### Diagnostics and actions
@@ -108,7 +105,7 @@ journalctl --user -b -t gnome-shell -f
 
 ### Shelf and external drag (highest-risk integration)
 
-- [ ] Home is never blank and does not require scrolling at the default 640×360: clock/date, quick actions, player title and Quick stash are visible with and without MPRIS players.
+- [ ] Home is never blank and does not require scrolling at the default 640×460: clock/date, quick actions, player title and Quick stash are visible with and without MPRIS players.
 - [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title.
 - [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; Shell chrome yields to the GTK drop surface and the file is stashed on release.
 - [ ] Repeat from an XWayland app / URI-list source; `notch-shelf add <path>` works as a drag-independent fallback.
@@ -123,6 +120,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Remove/Clear changes references only.
 - [ ] Unicode names, 100-item bound and corrupt shelf JSON are handled safely.
 - [ ] Helper idle exit and reactivation preserve the shelf.
+- [ ] Direct Nautilus drop stashes files without `Invalid GType`; Add files, Open, Reveal, Copy URI and Remove work after a fresh login.
 
 ### Clipboard/privacy
 

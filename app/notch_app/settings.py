@@ -277,12 +277,6 @@ class SettingsApplication(Adw.Application):
         self.switch(actions, "show-night-light", "Night Light")
         self.switch(actions, "show-dark-mode", "Dark Mode")
         media = self.group(page, "Media")
-        self.switch(
-            media,
-            "remote-art",
-            "Download remote album art",
-            "Fetch player-provided HTTP(S) image URLs; disable to avoid art/CDN requests",
-        )
         shortcut = Adw.ActionRow(
             title="Keyboard shortcut", subtitle="Super + ` (the key above Tab on US keyboards)"
         )

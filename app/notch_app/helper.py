@@ -244,7 +244,9 @@ class HelperApplication(Gio.Application):
         # archive managers, download shelves). One GType-only target silently
         # rejected many real file drags.
         target = Gtk.DropTarget.new(GObject.TYPE_INVALID, Gdk.DragAction.COPY)
-        target.set_gtypes([Gdk.FileList, GObject.TYPE_STRING])
+        # set_gtypes expects GType values, not Python wrapper classes. Passing
+        # Gdk.FileList directly raises TypeError: Invalid GType on PyGObject.
+        target.set_gtypes([Gdk.FileList.__gtype__, GObject.TYPE_STRING])
         target.connect("drop", self._on_drop)
         target.connect("enter", self._on_drag_enter)
         target.connect("leave", self._on_drag_leave)

@@ -81,7 +81,7 @@ const Gio = {FileIcon, ThemedIcon: {new: name => ({themed: name})}};
 const GLib = {get_monotonic_time: () => 1_000_000};
 const St = {Icon, Label, Button, BoxLayout};
 const Clutter = {ActorAlign: {START: 0, CENTER: 1, FILL: 2, END: 3}};
-const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}};
+const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}, Alignment: {CENTER: 1}};
 const stubs = new Map([
     ['gi://St', {default: St}],
     ['gi://Gio', {default: Gio}],

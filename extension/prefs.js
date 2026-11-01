@@ -168,8 +168,6 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(actions, 'show-dnd', 'Do Not Disturb');
         addSwitch(actions, 'show-night-light', 'Night Light');
         addSwitch(actions, 'show-dark-mode', 'Dark Mode');
-        const media = group(behavior, 'Media');
-        addSwitch(media, 'remote-art', 'Download remote album art');
         window.add(behavior);
 
         const privacy = new Adw.PreferencesPage({title: 'Privacy',

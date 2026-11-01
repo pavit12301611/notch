@@ -133,7 +133,7 @@ test('formatting is stable for missing values and boundaries', () => {
 
 test('MacBook notch attaches to the top edge and expands around the same center', () => {
     const mac = {...options, placement: 'panel', collapsedWidth: 185, collapsedHeight: 32,
-        expandedWidth: 640, expandedHeight: 360, matchPanelHeight: true, tab: 'home'};
+        expandedWidth: 640, expandedHeight: 480, matchPanelHeight: true, tab: 'home'};
     const closed = notchGeometry(monitor, mac, false);
     const open = notchGeometry(monitor, mac, true);
     assert.equal(closed.y, 0);

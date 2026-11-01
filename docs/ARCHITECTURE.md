@@ -36,7 +36,7 @@ This is the most compositor-sensitive part of the project and must be tested wit
 
 - `Main.layoutManager.addChrome()` registers the notch with Shell’s input-region tracking.
 - The actor clips its expanding content. A bounded damped-spring geometry integrator drives a Clutter frame timeline only while moving; content crossfades separately. Reduced motion / disabled animations snap to the final state.
-- `layout.js` resolves content width/height from the actual open rectangle, monitor margins, panel height, notch scale and text scale. Header labels collapse at breakpoints; each page lives in a vertical ScrollView so limited height scrolls rather than hiding controls. Geometry reserves extra space for text scaling without double-scaling the content actor.
+- `layout.js` resolves content width/height from the actual open rectangle, monitor margins, panel height, notch scale and text scale. Header labels collapse at breakpoints. Only Alerts owns a ScrollView; Shelf and Clips use bounded pagination, and the remaining pages are fixed, centered layouts. Geometry reserves extra space for text scaling without double-scaling the content actor.
 - A separate, invisible edge actor optionally reserves **collapsed** space. Expanded content never changes struts.
 - Fullscreen and overview visibility are evaluated for the configured monitor. The extension does not fight Shell’s own `trackFullscreen` visibility binding.
 - Escape/outside-click handling does not install a modal grab. Slider grabs postpone pointer-leave/auto-hide collapse.
@@ -74,7 +74,7 @@ Any new controller must have an explicit `destroy()` that:
 - disconnects GObject signals and D-Bus subscriptions;
 - unexports/unowns bus endpoints;
 - removes chrome before destroying actors;
-- clears clipboard buffers and cached file/art data where appropriate;
+- clears clipboard buffers and cached file data where appropriate;
 - leaves shared Shell services (Gvc, Mutter, Shell app system) alive.
 
 Do not retain actors, settings, proxies or windows in module-level globals after `disable()`. Do not use `imports.ui...` legacy imports; use ESM `resource:///org/gnome/shell/...` and `gi://...` imports.
@@ -88,7 +88,7 @@ Metadata currently declares GNOME 46–50. The primary release target is 50. A m
 - `Meta.Selection.transfer_async()`
 - `St.Clipboard`, `St.Slider`, `St.Icon`
 
-`St.Icon` in GNOME 46–50 has no writable `icon_type` property and no `St.IconType` enum. Construct it with `icon_name`/`gicon`; St derives symbolic rendering from the icon source and exposes `is_symbolic` read-only. When replacing artwork, clear `icon_name` before assigning a new `gicon`, because `icon_name` is itself a convenience setter for `gicon`.
+`St.Icon` in GNOME 46–50 has no writable `icon_type` property and no `St.IconType` enum. Construct it with `icon_name`/`gicon`; St derives symbolic rendering from the icon source and exposes `is_symbolic` read-only. When replacing a notification/source icon, clear `icon_name` before assigning a new `gicon`, because `icon_name` is itself a convenience setter for `gicon`.
 - `ui/status/volume.js:getMixerControl()`
 - extension `openPreferences()` behavior
 - GTK4 window movement from the compositor

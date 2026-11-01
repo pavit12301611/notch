@@ -1,14 +1,15 @@
 import {availableOpenSize, clamp} from './layout.js';
 export {clamp};
 
-/** Logical page sizes inspired by native MacBook notch apps; never one giant window. */
+/** Fixed, centered page budgets. Only Alerts owns a scroll view; the other
+ * pages use compact layouts and pagination instead of hidden overflow. */
 export const PAGE_SIZES = Object.freeze({
-    home: {width: 640, height: 360},
-    media: {width: 640, height: 300},
-    notifications: {width: 560, height: 320},
-    system: {width: 640, height: 260},
-    shelf: {width: 640, height: 260},
-    clipboard: {width: 580, height: 300},
+    home: {width: 640, height: 460},
+    media: {width: 640, height: 400},
+    notifications: {width: 640, height: 400},
+    system: {width: 640, height: 340},
+    shelf: {width: 640, height: 440},
+    clipboard: {width: 640, height: 440},
 });
 
 export function surfaceRadii(mode, options = {}) {
@@ -33,7 +34,16 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
     let height;
     if (state === 'open') {
         width = Math.min(page.width * scale, (options.expandedWidth ?? 640) * scale, available.width);
-        height = Math.min(page.height * scale, (options.expandedHeight ?? 320) * scale, available.height);
+        const textScale = Math.max(0.8, options.textScale ?? 1);
+        const effectiveWidth = Math.min(page.width, options.expandedWidth ?? 640) / textScale;
+        // Narrow/large-text layouts wrap more. Reserve extra height instead of
+        // introducing scrollbars on non-Alert pages.
+        const narrowBoost = effectiveWidth < 420 ? 80 : 0;
+        const veryNarrowBoost = effectiveWidth < 340 ? 80 : 0;
+        const statusExtra = Math.max(0, options.statusExtra ?? 0);
+        height = Math.min(page.height * scale, (options.expandedHeight ?? 480) * scale, available.height) +
+            (narrowBoost + veryNarrowBoost + statusExtra) * scale;
+        height = Math.min(height, available.height);
     } else if (state === 'peek') {
         width = Math.min(440 * scale, available.width);
         height = Math.min(panelHeight + 112 * scale, available.height);

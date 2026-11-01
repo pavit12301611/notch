@@ -87,3 +87,7 @@ The user explicitly requested code changes after this deck: a non-empty Home das
 ## v10 implementation note
 
 A later user screenshot showed Quick stash below the Home viewport, blue theme icons and missing song titles. v10 supersedes the v9 Home/drop/icon/media mockups: Home is 640×360 with a compact player + stash card, chrome icons are bundled monochrome SVGs, MPRIS titles are parsed recursively, and the GTK drop surface receives the drop by temporarily replacing the Shell chrome over the notch.
+
+## v15 implementation note
+
+The user requested a clean, centered UI with no scrolling except Alerts, and a text-first Music page because album art never appeared reliably. v15 supersedes the deck’s album-art and scrollable-page mockups: only Alerts scrolls, Shelf/Clips paginate, Music removes cover art entirely, and the GTK drop target fixes the `Invalid GType` stash failure.

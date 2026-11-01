@@ -29,9 +29,7 @@ Reference paths can themselves be sensitive. Protect the user account and backup
 
 ## Network
 
-The only intentional outbound requests are album-art HTTP(S) URLs supplied by the active MPRIS player, when remote art is enabled. Art responses are limited to 2 MiB, raster image content types and a 10-second session timeout. Redirects are disabled to avoid silently following an art URL to another host. There is no telemetry, update checker, account system or clipboard upload.
-
-A malicious local MPRIS player can supply an art URL pointing at a private network address. Disable remote art if you do not trust local media clients. The extension does not forward cookies or authorization headers.
+Notch makes no intentional outbound network requests. The Music page is text-first and does not download or decode player-supplied album art. There is no telemetry, update checker, account system or clipboard upload.
 
 ## D-Bus
 

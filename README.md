@@ -38,12 +38,12 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 |---|---|
 | Notifications | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps unread count, calendar heading and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible |
 | Idle clock | Local time in the collapsed MacBook-style notch when no notification is active |
-| Media | MPRIS player discovery/switching, title/artist/album, local/data/optional HTTP(S) album art, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
+| Media | MPRIS player discovery/switching, clean text-first title/artist display, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
 | File shelf | Drag local files directly onto the closed/open notch, choose files through GTK/portal, or use `notch-shelf add`; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
-| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, label collapse, scrollable pages, scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
+| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, label collapse, fixed centered pages (only Alerts scrolls), scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
 | Behavior | Mac-style damped-spring opening from the top edge, animated page/status/peek transitions, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
 | Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
 
@@ -52,7 +52,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 - **No physical camera-cutout detection.** Configure the notch geometry for your display. The utility draws a notch-shaped overlay; it does not identify camera hardware.
 - **The default MacBook mode replaces the centered top-bar clock.** The original clock is restored when the notch hides, on other monitors, or when `replace-panel-clock` is off. Legacy below-panel and floating modes remain optional; floating mode is the Dynamic-Island-like layout, not the default.
 - **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return for critical alerts and when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
-- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Header labels collapse before truncating, pages scroll when vertical space is limited, and helper/action failures appear in a dismissible status bar with Retry where applicable.
+- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Header labels collapse before truncating. Only Alerts scrolls; Shelf and Clips paginate, and the other pages use fixed centered layouts. Helper/action failures appear in a dismissible status bar with Retry where applicable.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel, and Mutter may apply the inset as a top-edge work-area reduction. It is not a pixel-perfect window mask.
 - **The shelf stores references, not copies.** Removing a shelf item never removes the original. Dragging files *out* of the Shell notch is not implemented; use Open, Reveal, or Copy URI.
 - **Clipboard history is text-only and off by default.** Known password-manager hints and mixed-format offers are skipped, but a password manager that exposes plain text without a hint cannot be detected reliably. Keep history off when handling secrets.
@@ -66,17 +66,17 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 Run this in your Fedora desktop terminal (as your normal user, **not** with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/71fe92f9-notch/scripts/bootstrap.sh | NOTCH_REF=arena/71fe92f9-notch bash -s -- --with-deps
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh | NOTCH_REF=arena/3b6a968b-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/71fe92f9-notch` development branch (build 14+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 15+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/71fe92f9-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
 less /tmp/notch-bootstrap.sh
-NOTCH_REF=arena/71fe92f9-notch bash /tmp/notch-bootstrap.sh --with-deps
+NOTCH_REF=arena/3b6a968b-notch bash /tmp/notch-bootstrap.sh --with-deps
 ```
 
 ### From a local checkout
@@ -194,7 +194,7 @@ notch/
 │       ├── notifications.js             # reversible GNOME banner routing into the notch
 │       ├── media.js                     # event-driven MPRIS client
 │       ├── audio.js                     # reuses Shell's Gvc mixer connection
-│       ├── art.js                       # bounded/cancellable album-art loader
+│       ├── pagination.js                # bounded pagination for non-scrolling Shelf/Clips pages
 │       ├── diagnostics.js               # gated procfs sampling + UPower proxy
 │       ├── actions.js                   # GNOME quick settings
 │       ├── clipboard.js                 # opt-in Mutter selection transfers
@@ -234,7 +234,7 @@ gsettings set "$SCHEMA" collapsed-width 185
 gsettings set "$SCHEMA" collapsed-height 32
 gsettings set "$SCHEMA" match-panel-height true
 gsettings set "$SCHEMA" expanded-width 640
-gsettings set "$SCHEMA" expanded-height 360
+gsettings set "$SCHEMA" expanded-height 480
 gsettings set "$SCHEMA" notch-scale 1.0
 gsettings set "$SCHEMA" adaptive-corners true
 gsettings set "$SCHEMA" closed-media true
@@ -250,7 +250,6 @@ gsettings set "$SCHEMA" close-animation-ms 450
 gsettings set "$SCHEMA" monitor-index -1           # primary monitor
 gsettings set "$SCHEMA" hide-on-fullscreen true
 gsettings set "$SCHEMA" clipboard-enabled false    # privacy-safe default
-gsettings set "$SCHEMA" remote-art false           # no HTTP(S) art requests
 gsettings set "$SCHEMA" toggle-notch "['<Super>n']"
 gsettings set "$SCHEMA" toggle-notch "@as []"      # disable the shortcut
 ```
@@ -263,7 +262,7 @@ Changes are live through GSettings. The schema enforces ranges. For multi-monito
 - CPU/RAM/network sampling: one timer, **only while System is visible**.
 - Media position refresh: one timer, **only while Media is visible**; playback controls themselves are signal-driven.
 - Clipboard: automatic capture is off by default; when enabled, one bounded selection transfer per second while unlocked.
-- Album art: optional remote fetches, 2 MiB limit, 10-second session timeout, cancellation, 12-entry cache.
+- Music UI is text-first: no album-art downloads, image decoding or broken cover placeholders.
 - Helper: no visible window at startup, lazy GTK import, five-minute idle exit, bus activation on demand.
 - No permanent frame loop. A Clutter frame timeline runs only while the notch spring/easing is moving; the closed music indicator ticks at ~4 Hz only while playback is visible. Both honor GNOME’s animation setting.
 - Idle clock uses GnomeDesktop.WallClock signals; notification routing reuses GNOME’s message tray instead of polling a second notification store.
@@ -325,8 +324,9 @@ busctl --user list | grep -E 'Notch|mpris'
 | Settings reports missing schema | Re-run the installer; run `notch-doctor`; avoid mixing user/system copies |
 | No media | Start playback and inspect `busctl --user list` for MPRIS names; Firefox may need media-key/MPRIS support enabled |
 | No seek | The current player may not expose `CanSeek`, length or track ID |
-| No album art | Enable remote art if the player supplies a URL; check that the URL is reachable and returns a supported image |
+| Music looks empty | Start an MPRIS-compatible player; the Music page intentionally shows title/artist/controls without album art |
 | Shelf helper offline | `systemctl --user restart notch-helper.service`; then `notch-doctor` |
+| Shelf says `Invalid GType` | Update to build 15+ and restart the helper; the GTK drop target now passes real GTypes to `set_gtypes` |
 | Drop target does not appear | Start the helper first, drag local files from Files toward the notch, and keep the pointer there briefly; use Add files as the portal-backed fallback |
 | Want the original clock back | Turn off “Replace top-bar date & time”, or switch placement away from MacBook top edge |
 | Need emergency disable | `gnome-extensions disable notch@pavit12301611.github.io`; from a TTY, `gsettings set org.gnome.shell disable-user-extensions true` disables all user extensions |

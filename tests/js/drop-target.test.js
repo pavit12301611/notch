@@ -5,14 +5,14 @@ import {contentLayout} from '../../extension/lib/layout.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080, index: 0};
 const options = {placement: 'panel', collapsedWidth: 185, collapsedHeight: 32, expandedWidth: 640,
-    expandedHeight: 360, panelHeight: 32, cssScale: 1, layoutScale: 1, horizontalOffset: 0, tab: 'home'};
+    expandedHeight: 480, panelHeight: 32, cssScale: 1, layoutScale: 1, horizontalOffset: 0, tab: 'home'};
 
 test('Home keeps clock, player and Quick stash in the default viewport', () => {
-    assert.equal(PAGE_SIZES.home.height, 360);
+    assert.equal(PAGE_SIZES.home.height, 460);
     const rect = notchGeometry(monitor, options, true);
-    assert.equal(rect.height, 360);
+    assert.equal(rect.height, 460);
     const layout = contentLayout(rect, {...options, contentScale: 1, textScale: 1});
-    assert.ok(layout.pageHeight >= 240, `Home page height ${layout.pageHeight} is too small`);
+    assert.ok(layout.pageHeight >= 340, `Home page height ${layout.pageHeight} is too small`);
 });
 
 test('drop target covers the closed notch itself, not only a window below the panel', () => {

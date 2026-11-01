@@ -24,12 +24,17 @@ export default class NotchExtension extends Extension {
             this.settings.get_int('collapsed-width') === 185 &&
             this.settings.get_int('expanded-width') === 640 &&
             this.settings.get_int('expanded-height') === 320;
-        if (untouchedV1 || untouchedLegacy || untouchedV9) {
+        // v15: non-scrolling centered pages need more vertical budget than v10.
+        const untouchedV14 = this.settings.get_string('placement') === 'panel' &&
+            this.settings.get_int('collapsed-width') === 185 &&
+            this.settings.get_int('expanded-width') === 640 &&
+            this.settings.get_int('expanded-height') === 360;
+        if (untouchedV1 || untouchedLegacy || untouchedV9 || untouchedV14) {
             this.settings.set_string('placement', 'panel');
             this.settings.set_int('collapsed-width', 185);
             this.settings.set_int('collapsed-height', 32);
             this.settings.set_int('expanded-width', 640);
-            this.settings.set_int('expanded-height', 360);
+            this.settings.set_int('expanded-height', 480);
             this.settings.set_int('corner-radius', 24);
             this.settings.set_double('notch-scale', 1.0);
             this.settings.set_boolean('match-panel-height', true);

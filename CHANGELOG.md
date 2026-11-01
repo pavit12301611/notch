@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### v15 — clean centered UI, Alerts-only scrolling, reliable file stash
+
+- Fix the GTK drop target raising `Invalid GType`: `set_gtypes` now receives
+  `Gdk.FileList.__gtype__` and `GObject.TYPE_STRING`, not Python wrapper classes.
+  Direct file drops can initialize the stash surface again.
+- Remove album-art loading and broken cover placeholders. Music is a clean,
+  centered text-first player: title, artist, player switcher, progress, transport
+  controls and symmetric player/output volume controls.
+- Only Alerts owns a ScrollView. Home/Music/System use fixed centered layouts;
+  Shelf and Clips use bounded pagination instead of hidden scrolling.
+- Center headers, cards, empty states, file rows, pagers and status messages.
+  The tab cluster is centered with equal side gutters.
+- Increase default page height budget to 480 px and migrate untouched v14 presets
+  so non-scrolling pages fit without clipping. Narrow/large-text layouts reserve
+  extra height instead of introducing scrollbars.
+- Remove the remote-art setting and outbound art requests.
+
+
 ### v14 — atomic extension installation and discovery diagnostics
 
 - Publish the extension from a validated staging directory instead of writing
