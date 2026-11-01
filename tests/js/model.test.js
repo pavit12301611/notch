@@ -6,7 +6,8 @@ import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
     formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText,
-    helperErrorMessage, mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from '../../extension/lib/model.js';
+    helperErrorMessage, mediaDisplayTitle, mediaDisplayArtist, visualizerLevels,
+    previewText, countNotifications} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -227,8 +228,8 @@ test('adaptive layout fits the actual notch rectangle and collapses labels befor
         assert.ok(rect.x >= 0 && rect.x + rect.width <= monitor.width);
     }
     assert.equal(headerMode(800), 'labels');
-    assert.equal(headerMode(640), 'active');
-    assert.equal(headerMode(480), 'active');
+    assert.equal(headerMode(640), 'icons');
+    assert.equal(headerMode(480), 'icons');
     assert.equal(headerMode(320), 'icons');
     assert.equal(statColumns(640), 4);
     assert.equal(statColumns(480), 2);
@@ -248,10 +249,23 @@ test('adaptive layout fits the actual notch rectangle and collapses labels befor
     assert.equal(largeLayout.layoutScale, 1);
 });
 
+test('notification previews stay compact but reveal the full body on demand', () => {
+    const short = previewText('<b>Hello</b> world', 140);
+    assert.equal(short.text, 'Hello world');
+    assert.equal(short.truncated, false);
+    const long = previewText('x'.repeat(200), 140);
+    assert.equal(long.truncated, true);
+    assert.equal(long.text.length, 141);
+    assert.ok(long.text.endsWith('…'));
+    assert.equal(countNotifications([{notifications: [1, 2]}, {notifications: []}, {}]), 2);
+    assert.equal(countNotifications(null), 0);
+});
+
 test('helper activation errors become actionable instead of raw D-Bus dumps', () => {
     assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer'), /Retry/);
     assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown'), /notch-doctor/);
     assert.match(helperErrorMessage('Timeout was reached'), /Retry/);
     assert.match(helperErrorMessage('Unknown method'), /installer/);
+    assert.match(helperErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.InvalidArgs: Invalid GType'), /Restart notch-helper.service/);
     assert.equal(helperErrorMessage(''), 'File shelf is unavailable. Press Retry on the Shelf page.');
 });

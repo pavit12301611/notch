@@ -36,7 +36,7 @@ This is the most compositor-sensitive part of the project and must be tested wit
 
 - `Main.layoutManager.addChrome()` registers the notch with Shell’s input-region tracking.
 - The actor clips its expanding content. A bounded damped-spring geometry integrator drives a Clutter frame timeline only while moving; content crossfades separately. Reduced motion / disabled animations snap to the final state.
-- `layout.js` resolves content width/height from the actual open rectangle, monitor margins, panel height, notch scale and text scale. Header labels collapse at breakpoints. Only Alerts owns a ScrollView; Shelf and Clips use bounded pagination, and the remaining pages are fixed, centered layouts. Geometry reserves extra space for text scaling without double-scaling the content actor.
+- `layout.js` resolves content width/height from the actual open rectangle, monitor margins, panel height, notch scale and text scale. The header uses a stable centered icon rail at normal widths and only shows all six labels when they fit. Only Alerts owns a ScrollView; Shelf and Clips use bounded pagination, and the remaining pages are fixed, centered layouts. Geometry reserves extra space for text scaling without double-scaling the content actor.
 - A separate, invisible edge actor optionally reserves **collapsed** space. Expanded content never changes struts.
 - Fullscreen and overview visibility are evaluated for the configured monitor. The extension does not fight Shell’s own `trackFullscreen` visibility binding.
 - Escape/outside-click handling does not install a modal grab. Slider grabs postpone pointer-leave/auto-hide collapse.

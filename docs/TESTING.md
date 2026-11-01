@@ -58,7 +58,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Top-center, floating and panel modes place correctly at 100%, 125%, 150% and 200% scaling.
 - [ ] Primary and secondary monitors; hotplug/unplug; monitor index out of range falls back safely.
 - [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes. Only Alerts scrolls; Home/Music/System fit, Shelf/Clips paginate without hidden overflow.
-- [ ] Header labels collapse to active-only/icon-only on narrow widths instead of truncating every tab.
+- [ ] Header stays centered on every tab: icon-only at normal widths, all six labels only when they fit; no tab text truncates.
 - [ ] 100%/125%/150%/200% display scaling and large text settings do not double-scale or clip the closed clock.
 - [ ] Hover dwell, click, Super+grave, Escape and outside-click behave as documented.
 - [ ] Slider dragging outside the notch does not collapse it mid-gesture.
@@ -105,7 +105,7 @@ journalctl --user -b -t gnome-shell -f
 ### Shelf and external drag (highest-risk integration)
 
 - [ ] Home is never blank and does not require scrolling at the default 640×220: only clock/date are visible, with or without MPRIS players.
-- [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title.
+- [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title. With no player, Music shows a clean empty state instead of dead controls.
 - [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; Shell chrome yields to the GTK drop surface and the file is stashed on release.
 - [ ] Repeat from an XWayland app / URI-list source; `notch-shelf add <path>` works as a drag-independent fallback.
 - [ ] Repeat with the notch already open on Home/Music/Shelf; successful drop opens Shelf and shows confirmation.
@@ -120,6 +120,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Unicode names, 100-item bound and corrupt shelf JSON are handled safely.
 - [ ] Helper idle exit and reactivation preserve the shelf.
 - [ ] Direct Nautilus drop stashes files without `Invalid GType`; Add files, Open, Reveal, Copy URI and Remove work after a fresh login.
+- [ ] Long notification bodies stay compact with Show more/Show less; the card count matches visible cards; the status footer never overlays page content.
 
 ### Clipboard/privacy
 

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### v17 — stable centered layout, compact Alerts, clean empty states
+
+- Replace the shifting active-tab label with a fixed, centered icon rail at normal
+  widths. All six labels appear only when they genuinely fit; active/inactive
+  icons use opacity instead of theme-blue symbolic recoloring.
+- Alerts: count actual notification cards, remove the duplicate date heading,
+  keep long bodies compact with Show more/Show less, render native actions in a
+  centered row, and cap rendering at 50 cards to protect the Shell main loop.
+- Music: show a clean empty state when no MPRIS player is connected instead of
+  disabled transport/seek clutter. The white play button now uses inverse
+  monochrome play/pause icons so the glyph is visible.
+- Status messages render in an in-flow footer with reserved height, so errors no
+  longer overlay page content. `Invalid GType` becomes a short restart-helper
+  message with Retry.
+- Hide Shelf/Clips pagers when there is only one page. Bundle missing
+  previous/next monochrome icons. Fix the MacBook preset maximum height to 480.
+- Bump build to 17.
+
+
 ### v16 — minimal MacBook-notch Home/Music, no volume UI
 
 - Home is now only a centered clock and date. Remove the Home media card, quick

@@ -36,14 +36,14 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 
 | Area | Included behavior |
 |---|---|
-| Notifications | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps unread count, calendar heading and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible |
+| Notifications | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps a real card count, compact expandable bodies and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible |
 | Idle clock | Local time in the collapsed MacBook-style notch when no notification is active |
 | Media | MPRIS player discovery/switching, clean text-first title/artist display, previous/play/pause/next and seek; no volume controls or album art |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
 | File shelf | Drag local files directly onto the closed/open notch, choose files through GTK/portal, or use `notch-shelf add`; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
 | Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
-| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, label collapse, fixed centered pages (only Alerts scrolls), scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
+| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, stable icon rail, fixed centered pages (only Alerts scrolls), scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
 | Behavior | Mac-style damped-spring opening from the top edge, animated page/status/peek transitions, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
 | Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
 
@@ -52,7 +52,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 - **No physical camera-cutout detection.** Configure the notch geometry for your display. The utility draws a notch-shaped overlay; it does not identify camera hardware.
 - **The default MacBook mode replaces the centered top-bar clock.** The original clock is restored when the notch hides, on other monitors, or when `replace-panel-clock` is off. Legacy below-panel and floating modes remain optional; floating mode is the Dynamic-Island-like layout, not the default.
 - **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return for critical alerts and when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
-- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Header labels collapse before truncating. Only Alerts scrolls; Shelf and Clips paginate, and the other pages use fixed centered layouts. Helper/action failures appear in a dismissible status bar with Retry where applicable.
+- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. A stable centered icon rail avoids shifting tabs; full labels appear only when all six fit. Only Alerts scrolls; Shelf and Clips paginate, and the other pages use fixed centered layouts. Helper/action failures appear in a dismissible status bar with Retry where applicable.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel, and Mutter may apply the inset as a top-edge work-area reduction. It is not a pixel-perfect window mask.
 - **The shelf stores references, not copies.** Removing a shelf item never removes the original. Dragging files *out* of the Shell notch is not implemented; use Open, Reveal, or Copy URI.
 - **Clipboard history is text-only and off by default.** Known password-manager hints and mixed-format offers are skipped, but a password manager that exposes plain text without a hint cannot be detected reliably. Keep history off when handling secrets.
@@ -69,7 +69,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh | NOTCH_REF=arena/3b6a968b-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 15+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 17+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 

@@ -205,6 +205,21 @@ export function plainText(value) {
         .trim();
 }
 
+/** Count the actual notification cards, not GNOME's unread/banner counter. */
+export function countNotifications(sources) {
+    let total = 0;
+    for (const source of sources ?? []) total += source?.notifications?.length ?? 0;
+    return total;
+}
+
+/** Keep long notification bodies compact without hiding the full text forever. */
+export function previewText(value, limit = 160) {
+    const text = plainText(value);
+    const max = Math.max(24, Math.floor(Number(limit) || 160));
+    if (text.length <= max) return {text, truncated: false};
+    return {text: `${text.slice(0, max).trimEnd()}…`, truncated: true};
+}
+
 /** Turn low-level helper activation failures into a short, actionable message. */
 export function helperErrorMessage(message) {
     const text = String(message ?? '');
@@ -216,6 +231,8 @@ export function helperErrorMessage(message) {
         return 'File shelf helper did not respond. Press Retry on the Shelf page.';
     if (/UnknownMethod|Unknown method/i.test(text))
         return 'File shelf helper is outdated. Re-run the Notch installer and log out/in.';
+    if (/Invalid GType|set_gtypes|GType/i.test(text))
+        return 'File shelf helper is out of date. Restart notch-helper.service, then press Retry.';
     return text ? `File shelf: ${text.replace(/\s+/g, ' ').slice(0, 180)}` :
         'File shelf is unavailable. Press Retry on the Shelf page.';
 }

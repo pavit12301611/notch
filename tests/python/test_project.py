@@ -214,7 +214,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-drop-success", helper)
         self.assertIn("gtk-enable-animations", helper)
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
-        self.assertEqual(metadata["version"], 16)
+        self.assertEqual(metadata["version"], 17)
         self.assertNotIn("ArtLoader", view)
         self.assertNotIn("remote-art", view)
         self.assertNotIn("AudioController", view)
@@ -222,6 +222,11 @@ class ProjectTests(unittest.TestCase):
         self.assertNotIn("outputVolume", view)
         self.assertNotIn("notch-home-media", view)
         self.assertIn("notch-home-clock", view)
+        self.assertIn("mediaEmpty", view)
+        self.assertIn("countNotifications", view)
+        self.assertIn("previewText", view)
+        self.assertIn("this.shelfPager.visible = slice.totalPages > 1", view)
+        self.assertIn("this.clipboardPager.visible = slice.totalPages > 1", view)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

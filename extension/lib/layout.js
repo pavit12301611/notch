@@ -12,11 +12,9 @@ export const LAYOUT_LIMITS = Object.freeze({
 });
 
 export function headerMode(width) {
-    // Six labelled tabs plus settings/close need ~760 logical px; below that
-    // show only the active label, then icons. Never ellipsize tab text.
-    if (width >= 760) return 'labels';
-    if (width >= 420) return 'active';
-    return 'icons';
+    // A stable icon rail keeps the notch header centered at the default size.
+    // Full labels are only used when there is genuinely room for all six tabs.
+    return width >= 760 ? 'labels' : 'icons';
 }
 
 export function statColumns(width) {
@@ -29,7 +27,7 @@ export function statusHeight(text, width) {
     if (!text) return 0;
     const charsPerLine = Math.max(18, Math.floor(width / 7));
     const lines = clamp(Math.ceil(String(text).length / charsPerLine), 1, 3);
-    return lines * 18 + 10;
+    return lines * 18 + 18;
 }
 
 /**

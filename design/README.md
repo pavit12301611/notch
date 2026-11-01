@@ -95,3 +95,7 @@ The user requested a clean, centered UI with no scrolling except Alerts, and a t
 ## v16 implementation note
 
 The generated concept images were rejected. v16 follows the minimal MacBook-notch direction more strictly: Home is clock/date only, Music has no volume controls or raise button, the Gvc/audio module is removed, and open page heights are compact (Home 640×220, Music 640×300). Shelf/Clips remain paginated; only Alerts scrolls.
+
+## v17 implementation note
+
+User screenshots showed a shifting active-tab label, oversized notification bodies, an overlapping error strip and dead Music controls when no player was connected. v17 uses a fixed centered icon rail, compact expandable Alert cards with a real card count, an in-flow status footer, a clean Music empty state, inverse play/pause icons on the white transport button, and hidden single-page Shelf/Clips pagers. Home remains clock/date only; Music remains volume-free.

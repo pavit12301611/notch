@@ -1,4 +1,4 @@
-# Validation record — 2026-10-30
+# Validation record — 2026-11-01
 
 ## Environment used for repository development
 
@@ -8,10 +8,11 @@
 ## Checks executed successfully
 
 - ESLint over extension and JavaScript tests.
-- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **24 passed**.
+- Node model/geometry/layout/spring/notification-bridge/St-widget contract suite: **25 passed**.
 - Python compilation and unittest suite: **51 passed**.
 - Atomic extension publication tests: fresh install, upgrade/stale-file removal, invalid-source rollback, interrupted-transaction recovery and Makefile/installer wiring.
 - Pagination tests for non-scrolling Shelf/Clips pages.
+- v17 layout regressions: stable icon rail, compact notification previews/counts, friendly `Invalid GType` message and hidden single-page pagers.
 - Helper GTK drop-target regression test: `set_gtypes` receives real GTypes, not Python wrapper classes.
 - Doctor Shell-registration tests: undiscovered extension, active build, D-Bus double build numbers, load errors and stale session registration.
 - Ruff lint and formatting checks.
