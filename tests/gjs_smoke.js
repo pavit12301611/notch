@@ -1,7 +1,8 @@
 /* Run inside dbus-run-session on Fedora. Does not pretend to test GNOME Shell UI. */
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import {cpuSample, mediaErrorMessage, countNotifications} from '../extension/lib/model.js';
+import {cpuSample, mediaErrorMessage, countNotifications, chargingStarted} from '../extension/lib/model.js';
+import {headerLayout} from '../extension/lib/layout.js';
 import {notchGeometry} from '../extension/lib/geometry.js';
 
 if (mediaErrorMessage('NotSupported') !== 'This player does not support that control.')
@@ -28,4 +29,10 @@ if (directory) {
     if (schema.get_default_value('placement').get_string() !== 'panel')
         throw new Error('MacBook placement default check failed');
 }
-print('GJS model, geometry and schema smoke checks passed');
+if (!chargingStarted({available: true, state: 2}, {available: true, state: 1}))
+    throw new Error('GJS charging transition smoke test failed');
+if (chargingStarted(null, {available: true, state: 1}))
+    throw new Error('GJS first-sample charging guard failed');
+if (headerLayout(600, 1).requiredWidth > 600 || headerLayout(300, 1).requiredWidth > 300)
+    throw new Error('GJS header budget smoke test failed');
+print('GJS model, geometry, header, charging and schema smoke checks passed');

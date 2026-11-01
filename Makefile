@@ -55,6 +55,7 @@ endif
 
 uninstall:
 	rm -rf $(EXTDIR) $(PKGDATA)
+	rm -f $(DESTDIR)$(DATADIR)/gnome-shell/.$(UUID).install.lock
 	rm -f $(SCHEMADIR)/$(APP_ID).gschema.xml
 	rm -f $(DESTDIR)$(BINDIR)/notch-settings $(DESTDIR)$(BINDIR)/notch-doctor
 	rm -f $(DESTDIR)$(BINDIR)/notch-helper

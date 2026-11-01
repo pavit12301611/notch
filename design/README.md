@@ -1,4 +1,4 @@
-# Notch design baseline (build 18)
+# Notch design baseline (build 19)
 
 The old six-page design-review PPTX and its generator were removed. They described
 clipboard history, Quick stash and a helper daemon that no longer exist. This
@@ -10,7 +10,8 @@ and `extension/stylesheet.css`.
 
 - MacBook-style top-edge notch, not a floating Dynamic Island.
 - Closed: 185×32 logical px base, panel-height matched, centered idle clock.
-- Music wings: +64 px width while a player is active; hover affordance +12×4 px.
+- Music wings: +64 px width while a player is active; 28 px wings, 16 px glyph,
+  3×14 px equalizer bars, centered vertically; hover affordance +12×4 px.
 - Peek: 440×(panel + 112) logical px.
 - Open pages: Home 640×220, Music 640×320, Alerts 640×380, System 640×360.
 - Default maximum expanded preset: 640×480. Narrow/large-text layouts reserve
@@ -48,8 +49,10 @@ and `extension/stylesheet.css`.
 
 ## Layout rules
 
-- Header: 44 px, centered four-tab rail with equal 76 px side gutters.
-- Labels at effective width ≥560; icon rail below that.
+- Header: 44 px, centered four-tab rail between two expanding gutters (76 px
+  minimum; 30 px ultra-narrow). Settings/close live inside the right gutter.
+- Labels at effective width ≥560 only if the pure header budget fits; otherwise
+  icon rail. Ultra-narrow hides settings and keeps close inside the notch.
 - System metrics: 2×2 grid at effective width ≥320; single column below.
 - Only Alerts owns a ScrollView. Home/Music/System are centered natural blocks.
 - Content padding: 20 px horizontal, 8 px top, 16 px bottom.
@@ -64,6 +67,8 @@ and `extension/stylesheet.css`.
 - Page switch: 160 ms fade/translate.
 - Equalizer: 8-step pattern, 210 ms timer, 190 ms eased `scale_y`, only while
   closed, visible, playing and animations enabled.
+- Charging cue: green bolt + percentage on plug-in transition, ~1.76 s total
+  (140 ms in / hold / 120 ms out), closed notch only, first sample ignored.
 - Reduced motion snaps to final geometry.
 
 ## Removed in build 18

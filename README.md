@@ -6,9 +6,15 @@ A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 44 W
 
 > Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 44/GNOME 50 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
 
-## What changed in build 18
+## What changed in build 19
 
-Clipboard history and Quick stash / file shelf were **removed completely**: no tabs, no background helper, no helper D-Bus service, no systemd unit, no CLI, no schema keys and no packaging payload. The installer also cleans up those artifacts from older builds. The remaining UI was rebuilt around four pages with a clearer typographic hierarchy and layered surfaces.
+- Settings uses a sliders icon instead of the old sun-like glyph.
+- The expanded header is budgeted: tabs, settings and close stay inside the notch at narrow widths and large text scaling.
+- The left top flare was corrected, removing the stray rectangle outside the notch.
+- Closed music wings are back with proportional, centered equalizer bars.
+- Plugging in the charger shows a brief green “Charging · NN%” cue in the closed notch (under two seconds).
+
+Build 18 removed Clipboard history and Quick stash / file shelf completely: no tabs, no background helper, no helper D-Bus service, no systemd unit, no CLI, no schema keys and no packaging payload. The installer also cleans up those artifacts from older builds. The remaining UI is built around four pages with a clear typographic hierarchy and layered surfaces.
 
 ## Why this is a hybrid application
 
@@ -43,7 +49,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 | Alerts | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps a real card count, compact expandable bodies and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible. |
 | System | 2×2 metric tiles: CPU utilization, RAM used/total, UPower battery percentage/state, default-interface download/upload rates. Quick actions: Do Not Disturb, Night Light, Dark Mode. |
 
-Closed notch: idle time sits where the GNOME clock used to be; music grows small closed-state wings with a rhythmic animated equalizer. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+Closed notch: idle time sits where the GNOME clock used to be; music grows small closed-state wings with a rhythmic animated equalizer. Plugging in the charger briefly shows a green charging badge. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ## Design notes
 
@@ -65,7 +71,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh | NOTCH_REF=arena/3b6a968b-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 18+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 19+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 

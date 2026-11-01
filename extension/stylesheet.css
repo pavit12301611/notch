@@ -1,5 +1,5 @@
 /* MacBook-inspired notch chrome.
-   Build 18: four pages, layered surfaces, strong typographic hierarchy.
+   Build 19: four pages, layered surfaces, bounded header, charging feedback.
    Only Alerts owns a scroll view; every other page is a centered natural block. */
 .notch-shell {
   background-color: transparent;
@@ -26,12 +26,14 @@
 .notch-live-music { color: #30d158; }
 .notch-live-bars { spacing: 2px; height: 16px; }
 .notch-live-bar { width: 3px; height: 14px; border-radius: 2px; background-color: #30d158; }
+.notch-charge-badge { spacing: 6px; }
+.notch-charge-label { color: #30d158; font-size: 0.95em; font-weight: 600; }
 
 /* Open chrome: equal fixed gutters keep the tab rail centered on every page. */
 .notch-content { background-color: transparent; padding: 0; spacing: 0; }
 .notch-header { spacing: 6px; padding: 0 0 8px; }
 .notch-header-spacer { width: 76px; }
-.notch-header-controls { spacing: 6px; }
+.notch-header-controls { spacing: 8px; }
 .notch-tabs {
   spacing: 4px;
   padding: 3px;
@@ -65,6 +67,7 @@
 }
 .notch-tab { padding: 6px 8px; font-size: 0.9em; border-radius: 9px; }
 .notch-tab-icon { padding: 6px; }
+.notch-tab-ultra { padding: 4px; }
 .notch-button { padding: 7px 12px; }
 .notch-action {
   padding: 9px 14px;
@@ -75,6 +78,7 @@
 }
 .notch-icon-button { padding: 7px; }
 .notch-header-button { padding: 8px; }
+.notch-header-button-ultra { padding: 6px; }
 .notch-small-button { padding: 5px 10px; font-size: 0.85em; border-radius: 8px; }
 .notch-peek-action { padding: 5px 10px; font-size: 0.9em; background-color: #3a3a3c; }
 .notch-tab:hover, .notch-button:hover, .notch-action:hover, .notch-icon-button:hover,

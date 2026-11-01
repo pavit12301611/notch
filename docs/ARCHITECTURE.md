@@ -19,7 +19,7 @@ There is no helper daemon, clipboard manager, file shelf, drop target or systemd
 | `lib/spring.js` | Damped spring / smooth easing geometry interpolation. |
 | `lib/media.js` | MPRIS v2 client. Name/property/seek events do the work; only the visible Music page polls Position once per second. |
 | `lib/notifications.js` | Reversible message-tray banner routing. |
-| `lib/diagnostics.js` | procfs CPU/RAM/network sampling and UPower battery proxy. Sampling runs only while System is visible. |
+| `lib/diagnostics.js` | procfs CPU/RAM/network sampling and UPower battery proxy. Sampling runs only while System is visible; battery state changes are always observed and emit a plug-in charging transition. |
 | `lib/actions.js` | GSettings-backed Do Not Disturb / Night Light / Dark Mode toggles. |
 | `lib/widgets.js`, `lib/icons.js` | St construction helpers and bundled monochrome chrome icons. |
 | `lib/model.js` | Dependency-free parsers/formatters used by Node and GJS tests. |
@@ -29,7 +29,7 @@ There is no helper daemon, clipboard manager, file shelf, drop target or systemd
 
 The open notch has four fixed pages: Home, Music, Alerts, System. Only Alerts owns a `St.ScrollView`. The other pages are natural-height centered blocks inside a `Clutter.BinLayout` page stack. Geometry reserves extra height for narrow/large-text layouts instead of introducing hidden overflow.
 
-The header is a centered four-tab rail with equal fixed side gutters. At the default 640 px width the tabs show labels; narrow/large-text layouts collapse to icons. Active/inactive icons use opacity because bundled file icons cannot be recolored by CSS `color`.
+The header is a centered four-tab rail between two expanding side gutters. Tab buttons sit in fixed unthemed slots so themed padding cannot inflate the rail. A pure header budget chooses labels/icons and keeps settings/close inside the right gutter. Active/inactive icons use opacity because bundled file icons cannot be recolored by CSS `color`.
 
 ## Notification routing
 
@@ -41,7 +41,7 @@ MPRIS proxies are created with `DO_NOT_AUTO_START`. Property changes are coalesc
 
 ## Diagnostics and quick actions
 
-CPU/RAM/network are sampled from procfs once per second only while System is visible. Battery state comes from UPower’s DisplayDevice. Quick actions write GSettings keys directly and respect writability locks.
+CPU/RAM/network are sampled from procfs once per second only while System is visible. Battery state comes from UPower’s DisplayDevice and is observed even while System is hidden. The first sample only initializes state; a later discharging/pending → charging transition shows a closed-notch charging badge for under two seconds. Quick actions write GSettings keys directly and respect writability locks.
 
 ## Lifetime rules
 

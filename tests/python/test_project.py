@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 18)
+        self.assertEqual(metadata["version"], 19)
         self.assertIn("50", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
         keys = {key.attrib["name"] for key in schema.findall(".//key")}
@@ -216,6 +216,34 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("previewText", view)
         self.assertIn("notch-stat-value", view)
         self.assertIn("notch-stat-label", view)
+
+    def test_build19_header_icons_and_charging_contract(self):
+        view = (ROOT / "extension/lib/view.js").read_text()
+        layout = (ROOT / "extension/lib/layout.js").read_text()
+        surface = (ROOT / "extension/lib/surface.js").read_text()
+        diagnostics = (ROOT / "extension/lib/diagnostics.js").read_text()
+        self.assertIn("settings-sliders-symbolic", view)
+        self.assertNotIn("emblem-system-symbolic", view)
+        self.assertTrue((ROOT / "extension/icons/settings-sliders-symbolic.svg").is_file())
+        self.assertTrue((ROOT / "extension/icons/battery-charging-symbolic.svg").is_file())
+        self.assertFalse((ROOT / "extension/icons/emblem-system-symbolic.svg").exists())
+        # Fixed unthemed tab slots keep themed button padding inside the rail budget.
+        self.assertIn("tabSlots", view)
+        self.assertIn("headerLayout", layout)
+        self.assertIn("requiredWidth", layout)
+        self.assertIn("headerRight", view)
+        # The left flare must mirror the right flare, not fill a square outside the body.
+        self.assertIn("cr.lineTo(r, r);", surface)
+        self.assertIn("cr.curveTo(r, r / 3, 2 * r / 3, 0, 0, 0);", surface)
+        # Charging feedback is transition-gated and strictly under two seconds.
+        self.assertIn("onChargeStart", diagnostics)
+        self.assertIn("_batteryInitialized", diagnostics)
+        self.assertIn("chargingStarted", diagnostics)
+        self.assertIn("showChargingBadge", view)
+        self.assertIn("chargeBadgeTimer", view)
+        self.assertIn("this.setTimer('chargeBadgeTimer', 1640", view)
+        self.assertIn("duration: this.motionDuration(120)", view)
+        self.assertIn("this.mode !== 'closed'", view)
 
     def test_templates_are_fully_substituted(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -111,6 +111,7 @@ class AtomicExtensionInstallTests(unittest.TestCase):
         installer = (ROOT / "install.sh").read_text()
         self.assertIn("XDG_DATA_HOME", installer)
         self.assertIn('DATADIR="$DATADIR"', installer)
+        self.assertIn(".$(UUID).install.lock", makefile)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 Name:           notch
 Version:        0.1.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Native GNOME notch with media, notifications and system status
 License:        GPL-3.0-or-later
 URL:            https://github.com/pavit12301611/notch
@@ -51,6 +51,10 @@ glib-compile-schemas %{buildroot}%{_datadir}/gnome-shell/extensions/notch@pavit1
 %{_datadir}/icons/hicolor/scalable/apps/io.github.pavit12301611.Notch.svg
 
 %changelog
+* Sun Nov 01 2026 Notch contributors <noreply@github.com> - 0.1.0-3
+- Bound the expanded header, correct the left top flare, restore closed music
+  wings and add a sub-two-second plug-in charging cue.
+
 * Sun Nov 01 2026 Notch contributors <noreply@github.com> - 0.1.0-2
 - Remove clipboard history and the file shelf/helper completely.
 - Four-page UI overhaul: Home, Music, Alerts, System.

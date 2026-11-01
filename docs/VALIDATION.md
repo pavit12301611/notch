@@ -1,5 +1,38 @@
 # Validation log
 
+## Build 19 — 2026-11-01
+
+Scope: replace the settings glyph; keep the expanded header inside the notch;
+correct the left top flare; restore proportioned closed music wings; add a
+sub-two-second plug-in charging cue.
+
+### Executed in the development sandbox
+
+- `npm run check`: ESLint clean; Node model/layout/St-contract tests **21/21** pass,
+  including charging-transition and header-width budget regressions.
+- Python unit tests: project contracts, doctor, atomic extension installer **36/36** pass.
+- `ruff check` and `ruff format --check` on Python sources/tests/installer.
+- `bash -n` on `install.sh`, `uninstall.sh`, `scripts/bootstrap.sh`.
+- Schema/D-Bus XML parse and `node --check` on every extension module.
+- `make stage PREFIX=/usr SYSCONFDIR=/etc`.
+- `make install` / `make uninstall` with `DESTDIR` staging, including legacy helper
+  cleanup and removal of the installer lock file.
+- `git diff --check`.
+
+### Not executed here
+
+- Live GNOME 50 Wayland overlay, input, animation, media, notification, charging
+  and lifecycle tests. In particular, the corrected flare, header containment and
+  charging badge still need the live acceptance checklist on the target laptop.
+- `glib-compile-schemas` binary compilation (DTD/XML validation is not a substitute).
+- `desktop-file-validate`.
+- GJS smoke test.
+- RPM build/install.
+
+The Fedora 44 CI recipe is configured to run the missing schema/desktop/GJS/RPM checks when the repository is pushed. The live desktop acceptance checklist in `docs/TESTING.md` remains mandatory before a “tested on Fedora 44” claim.
+
+---
+
 ## Build 18 — 2026-11-01
 
 Scope: remove clipboard history and Quick stash/file shelf from the root; four-page UI overhaul with typographic hierarchy and layered surfaces; retire the helper daemon/CLI/D-Bus/systemd artifacts; keep Home/Music/Alerts/System functional.

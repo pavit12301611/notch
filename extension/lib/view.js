@@ -8,7 +8,7 @@ import {Urgency} from 'resource:///org/gnome/shell/ui/messageTray.js';
 import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {Diagnostics} from './diagnostics.js';
 import {notchGeometry, containsPoint} from './geometry.js';
-import {contentLayout} from './layout.js';
+import {contentLayout, headerLayout} from './layout.js';
 import {MediaController} from './media.js';
 import {NotificationBridge} from './notifications.js';
 import {QuickActions} from './actions.js';
@@ -61,7 +61,8 @@ export class NotchView {
         this.clockHidden = false;
         this.options = this.readOptions();
         this.media = new MediaController(this.directory, () => this.updateMedia(), e => this.showError(e));
-        this.diagnostics = new Diagnostics(this.directory, () => this.updateSystem());
+        this.diagnostics = new Diagnostics(this.directory, () => this.updateSystem(),
+            battery => this.showChargingBadge(battery));
         this.actions = new QuickActions(this.settings, () => this.updateActions());
         this.clock = new GnomeDesktop.WallClock();
         this.clock.connectObject('notify::clock', () => this.updateClock(), this);
@@ -76,6 +77,7 @@ export class NotchView {
             onFallback: () => this.endPeek(),
         });
         this.notifications.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
+        this.updateNotificationCount();
         this.settings.connectObject('changed', (_settings, key) => this.settingChanged(key), this);
         this.media.start();
         this.diagnostics.start();
@@ -144,16 +146,30 @@ export class NotchView {
         this.pill = new St.Button({style_class: 'notch-closed-button', can_focus: true,
             accessible_name: 'Open notch', x_expand: true, y_expand: true});
         const closedRow = box(false, 'notch-closed-row', 8);
-        const leftWing = box(false, '', 0);
-        leftWing.set_size(32, -1);
-        const rightWing = box(false, '', 0);
-        rightWing.set_size(32, -1);
-        this.liveMusicIcon = icon('audio-x-generic-symbolic', 18);
+        closedRow.y_expand = true;
+        closedRow.y_align = Clutter.ActorAlign.CENTER;
+        const leftWing = box(false, 'notch-closed-wing', 0);
+        leftWing.visible = false;
+        leftWing.y_align = Clutter.ActorAlign.CENTER;
+        leftWing.x_expand = false;
+        leftWing.x_align = Clutter.ActorAlign.CENTER;
+        leftWing.set_size(28, -1);
+        const rightWing = box(false, 'notch-closed-wing', 0);
+        rightWing.visible = false;
+        rightWing.y_align = Clutter.ActorAlign.CENTER;
+        rightWing.x_expand = false;
+        rightWing.x_align = Clutter.ActorAlign.CENTER;
+        rightWing.set_size(28, -1);
+        this.liveMusicIcon = icon('audio-x-generic-symbolic', 16);
         this.liveMusicIcon.add_style_class_name('notch-live-music');
         this.liveBars = box(false, 'notch-live-bars', 2);
+        this.liveBars.x_expand = false;
+        this.liveBars.x_align = Clutter.ActorAlign.CENTER;
         this.liveBars.y_align = Clutter.ActorAlign.CENTER;
+        this.liveBars.set_size(-1, 16);
         this.barWidgets = [0.42, 0.88, 0.58].map(level => {
             const bar = new St.Widget({style_class: 'notch-live-bar', y_align: Clutter.ActorAlign.END});
+            bar.set_size(3, 14);
             bar.set_pivot_point(0.5, 1);
             bar.set_scale(1, level);
             this.liveBars.add_child(bar);
@@ -166,6 +182,8 @@ export class NotchView {
         this.unreadDot = new St.Widget({style_class: 'notch-unread-dot', visible: false});
         clockBox.add_child(this.summaryClock);
         clockBox.add_child(this.unreadDot);
+        this.leftWing = leftWing;
+        this.rightWing = rightWing;
         leftWing.add_child(this.liveMusicIcon);
         rightWing.add_child(this.liveBars);
         closedRow.add_child(leftWing);
@@ -177,6 +195,20 @@ export class NotchView {
             else this.toggle();
         });
         this.closedLayer.add_child(this.pill);
+        this.chargeBadge = box(false, 'notch-charge-badge', 6);
+        this.chargeBadge.x_align = Clutter.ActorAlign.CENTER;
+        this.chargeBadge.y_align = Clutter.ActorAlign.CENTER;
+        this.chargeBadge.set_pivot_point(0.5, 0.5);
+        this.chargeBadge.x_expand = false;
+        this.chargeBadge.y_expand = false;
+        this.chargeBadge.reactive = false;
+        this.chargeBadge.visible = false;
+        this.chargeBadge.opacity = 0;
+        this.chargeBadgeIcon = icon('battery-charging-symbolic', 16);
+        this.chargeBadgeLabel = label('', 'notch-charge-label');
+        this.chargeBadge.add_child(this.chargeBadgeIcon);
+        this.chargeBadge.add_child(this.chargeBadgeLabel);
+        this.closedLayer.add_child(this.chargeBadge);
         this.actor.add_child(this.closedLayer);
 
         this.peek = box(true, 'notch-peek', 6);
@@ -188,30 +220,44 @@ export class NotchView {
         this.content.opacity = 0;
         this.header = box(false, 'notch-header', 6);
         this.header.x_align = Clutter.ActorAlign.FILL;
-        this.headerSpacer = new St.Widget({style_class: 'notch-header-spacer'});
+        this.headerSpacer = new St.Widget({style_class: 'notch-header-spacer', x_expand: true});
         this.headerSpacer.set_size(76, -1);
         this.tabsBox = box(false, 'notch-tabs', 6);
-        this.tabsBox.x_expand = true;
+        this.tabsBox.x_expand = false;
         this.tabsBox.x_align = Clutter.ActorAlign.CENTER;
         this.tabButtons = new Map();
+        this.tabSlots = new Map();
         for (const [id, title, iconName] of TABS) {
+            // St adds CSS padding/border to a themed button's preferred size.
+            // Put each button in an unthemed fixed-size slot so the rail budget
+            // is exact and the settings/close controls can never be pushed out.
+            const slot = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: false});
+            slot.set_size(92, 32);
             const tab = button({text: title, iconName, style: 'notch-tab', accessibleName: title,
                 onClick: () => this.selectTab(id)});
-            tab.set_size(92, 32);
-            this.tabsBox.add_child(tab);
+            tab.x_expand = true;
+            tab.y_expand = true;
+            slot.add_child(tab);
+            this.tabsBox.add_child(slot);
             this.tabButtons.set(id, tab);
+            this.tabSlots.set(id, slot);
         }
         this.header.add_child(this.headerSpacer);
         this.header.add_child(this.tabsBox);
-        this.headerControls = box(false, 'notch-header-controls', 6);
+        this.headerRight = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
+        this.headerRight.set_size(76, -1);
+        this.headerControls = box(false, 'notch-header-controls', 8);
+        this.headerControls.x_expand = false;
         this.headerControls.set_size(76, -1);
         this.headerControls.x_align = Clutter.ActorAlign.END;
-        this.settingsButton = button({iconName: 'emblem-system-symbolic', style: 'notch-icon-button notch-header-button',
+        this.settingsButton = button({iconName: 'settings-sliders-symbolic', style: 'notch-icon-button notch-header-button',
             accessibleName: 'Notch settings', onClick: () => this.extension.openPreferences()});
+        this.closeButton = button({iconName: 'window-close-symbolic', style: 'notch-icon-button notch-header-button',
+            accessibleName: 'Close notch', onClick: () => this.setExpanded(false)});
         this.headerControls.add_child(this.settingsButton);
-        this.headerControls.add_child(button({iconName: 'window-close-symbolic', style: 'notch-icon-button notch-header-button',
-            accessibleName: 'Close notch', onClick: () => this.setExpanded(false)}));
-        this.header.add_child(this.headerControls);
+        this.headerControls.add_child(this.closeButton);
+        this.headerRight.add_child(this.headerControls);
+        this.header.add_child(this.headerRight);
         this.content.add_child(this.header);
         this.pageStack = new St.Widget({layout_manager: new Clutter.BinLayout(), y_expand: true});
         this.pages = {
@@ -583,7 +629,7 @@ export class NotchView {
     updateSystem() {
         if (this.dead || !this.stats) return;
         const values = this.diagnostics.values;
-        const battery = values?.battery ?? this.diagnostics.battery;
+        const battery = this.diagnostics.battery;
         if (values) {
             setText(this.stats.cpu.value, values.cpu.percent === null ? '…' : `${Math.round(values.cpu.percent)}%`);
             setText(this.stats.cpu.detail, '');
@@ -656,6 +702,8 @@ export class NotchView {
         const show = this.settings.get_boolean('closed-media') && state.names.length > 0 && state.status !== 'Stopped';
         this.liveMusicIcon.visible = show;
         this.liveBars.visible = show && state.status === 'Playing';
+        this.leftWing.visible = show;
+        this.rightWing.visible = show;
         this.summaryClock.visible = this.settings.get_boolean('idle-clock');
         this.unreadDot.visible = countNotifications(Main.messageTray.getSources()) > 0 && this.settings.get_boolean('idle-clock');
         this.syncVisualizer();
@@ -709,6 +757,35 @@ export class NotchView {
         }
     }
 
+    showChargingBadge(battery) {
+        if (this.dead || !this.chargeBadge || !this.allowed || this.mode !== 'closed') return;
+        this.clearTimer('chargeBadgeTimer');
+        const pct = Number.isFinite(battery?.percent) ? ` · ${Math.round(battery.percent)}%` : '';
+        setText(this.chargeBadgeLabel, `Charging${pct}`);
+        this.chargeBadge.visible = true;
+        this.chargeBadge.remove_all_transitions();
+        this.chargeBadge.opacity = 0;
+        this.chargeBadge.set_scale(0.92, 0.92);
+        this.chargeBadge.ease({opacity: 255, scale_x: 1, scale_y: 1,
+            duration: this.motionDuration(140), mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        this.chargeBadge.accessible_name = `Charging started${pct}`;
+        this.pill.remove_all_transitions();
+        this.pill.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        // Total visible time: 140ms in + 1500ms hold + 120ms out = 1760ms < 2s.
+        this.setTimer('chargeBadgeTimer', 1640, () => this.hideChargingBadge());
+    }
+
+    hideChargingBadge() {
+        if (this.dead || !this.chargeBadge) return;
+        this.clearTimer('chargeBadgeTimer');
+        this.chargeBadge.remove_all_transitions();
+        this.chargeBadge.ease({opacity: 0, scale_x: 0.92, scale_y: 0.92,
+            duration: this.motionDuration(120), mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onStopped: () => { if (!this.dead) this.chargeBadge.visible = false; }});
+        this.pill.remove_all_transitions();
+        this.pill.ease({opacity: 255, duration: this.motionDuration(140), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+    }
+
     selectTab(id, animate = true) {
         if (!this.pages[id]) return;
         const previous = this.tab;
@@ -758,6 +835,7 @@ export class NotchView {
         this.clearTimer('hoverTimer');
         this.clearTimer('closeTimer');
         if (expanded) {
+            this.hideChargingBadge();
             this.clearTimer('peekTimer');
             this.peek.visible = false;
             this.peekNotification = null;
@@ -838,21 +916,28 @@ export class NotchView {
     }
 
     adaptPages(layout) {
-        const ultra = layout.effectiveWidth < 360;
-        this.header.style = `spacing: ${ultra ? 4 : 6}px;`;
-        this.headerSpacer.set_size(ultra ? 36 : 76, -1);
-        this.headerSpacer.style = `width: ${ultra ? 36 : 76}px;`;
-        this.headerControls.set_size(ultra ? 36 : 76, -1);
-        this.headerControls.style = `spacing: ${ultra ? 0 : 6}px;`;
-        this.settingsButton.visible = !ultra;
-        this.tabsBox.style = `spacing: ${ultra ? 2 : 6}px;`;
+        const hl = headerLayout(layout.headerWidth ?? layout.width, layout.textScale ?? 1);
+        this.header.style = `spacing: ${hl.headerSpacing}px;`;
+        this.headerSpacer.set_size(hl.gutter, -1);
+        this.headerSpacer.style = `width: ${hl.gutter}px;`;
+        this.headerRight.set_size(hl.gutter, -1);
+        this.headerControls.set_size(hl.controlsWidth, -1);
+        this.headerControls.style = `spacing: ${hl.ultra ? 0 : 8}px;`;
+        this.settingsButton.visible = hl.showSettings;
+        this.tabsBox.style = `spacing: ${hl.tabSpacing}px;`;
         for (const [id, tab] of this.tabButtons) {
-            const showLabel = layout.header === 'labels';
+            const showLabel = hl.mode === 'labels';
             if (tab._notchLabel) tab._notchLabel.visible = showLabel;
-            tab.set_size(showLabel ? 92 : (ultra ? 32 : 40), 32);
-            if (layout.header === 'icons') tab.add_style_class_name('notch-tab-icon');
+            this.tabSlots.get(id)?.set_size(hl.tabWidth, 32);
+            if (hl.mode === 'icons') tab.add_style_class_name('notch-tab-icon');
             else tab.remove_style_class_name('notch-tab-icon');
+            if (hl.ultra) tab.add_style_class_name('notch-tab-ultra');
+            else tab.remove_style_class_name('notch-tab-ultra');
             if (tab._notchIcon) tab._notchIcon.opacity = id === this.tab ? 255 : 150;
+        }
+        for (const control of [this.settingsButton, this.closeButton]) {
+            if (hl.ultra) control.add_style_class_name('notch-header-button-ultra');
+            else control.remove_style_class_name('notch-header-button-ultra');
         }
         if (this.statsGrid) this.layoutSystemCards(layout.columns);
         if (this.actionsRow) {
@@ -1062,8 +1147,10 @@ export class NotchView {
             this._actionSignature = null;
             this.updateActions();
         }
-        if (key === 'notifications-in-notch' || key === 'auto-open-notifications')
+        if (key === 'notifications-in-notch' || key === 'auto-open-notifications') {
             this.notifications.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
+            this.updateNotificationCount();
+        }
         if (key === 'idle-clock' || key === 'replace-panel-clock' || key === 'placement' || key === 'monitor-index') {
             this.syncPanelClock();
             this.updateSummary();
@@ -1120,6 +1207,14 @@ export class NotchView {
             !(this.settings.get_boolean('hide-in-overview') && Main.overview.visible);
         this.actor.visible = this.allowed;
         this.actor.reactive = this.allowed;
+        if (!this.allowed && this.chargeBadge) {
+            this.clearTimer('chargeBadgeTimer');
+            this.chargeBadge.remove_all_transitions();
+            this.chargeBadge.visible = false;
+            this.chargeBadge.opacity = 0;
+            this.pill.remove_all_transitions();
+            this.pill.opacity = 255;
+        }
         if (this.reserve) this.reserve.visible = this.allowed;
         this.notifications?.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
         this.syncPanelClock();
@@ -1194,7 +1289,7 @@ export class NotchView {
 
     destroy() {
         this.dead = true;
-        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer']) this.clearTimer(name);
+        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer', 'chargeBadgeTimer']) this.clearTimer(name);
         this.stopTimeline();
         this.stopVisualizer();
         this.injections?.clear();

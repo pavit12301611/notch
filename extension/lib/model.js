@@ -66,6 +66,12 @@ export function visualizerLevels(step) {
     return VISUALIZER_PATTERN[index];
 }
 
+/** True only on a real plug-in transition, never on the first UPower sample. */
+export function chargingStarted(previous, next) {
+    return !!next?.available && next.state === 1 && !!previous?.available &&
+        (previous.state === 2 || previous.state === 5 || previous.state === 6);
+}
+
 export function seekTarget(lengthUs, fraction) {
     return Math.round(Math.max(0, Math.min(1, fraction)) * Math.max(0, lengthUs));
 }

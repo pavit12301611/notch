@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### v19 — bounded header, corrected flare, closed music wings, charging cue
+
+- Replace the sun-like settings glyph with a sliders icon.
+- Fix expanded header spill: tab buttons now live in fixed unthemed slots, the
+  rail is centered between two expanding gutters, and settings/close are kept
+  inside a fixed right gutter. Label/icon mode is chosen from a pure width budget
+  so themed button padding cannot push controls outside the notch.
+- Correct the left Cairo top flare to mirror the right flare; it no longer paints
+  a square-ish rectangle outside the notch body.
+- Restore closed music wings with explicit proportions: 28 px wings, 16 px music
+  glyph, 3×14 px equalizer bars, centered vertically and hidden when no player is
+  active.
+- Add a plug-in charging cue: UPower discharging/pending → charging transitions
+  show a green bolt + “Charging · NN%” badge in the closed notch for ~1.76 s total
+  (140 ms in, hold, 120 ms out). The first battery sample is ignored, and the cue
+  is cancelled when the notch opens/hides or the extension is disabled.
+- Bump build to 19.
+
 ### v18 — remove Clipboard/Quick stash, four-page design overhaul
 
 - Remove clipboard history and Quick stash/file shelf from the root: tabs,

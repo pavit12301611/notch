@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clamp, notchGeometry, containsPoint, PAGE_SIZES, surfaceRadii} from '../../extension/lib/geometry.js';
-import {contentLayout, headerMode, statColumns, availableOpenSize} from '../../extension/lib/layout.js';
+import {contentLayout, headerMode, headerLayout, statColumns, availableOpenSize} from '../../extension/lib/layout.js';
 import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../extension/lib/spring.js';
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
     formatBytes, formatTime, seekTarget, plainText, mediaErrorMessage,
     mediaDisplayTitle, mediaDisplayArtist, visualizerLevels,
-    previewText, countNotifications} from '../../extension/lib/model.js';
+    previewText, countNotifications, chargingStarted} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -70,6 +70,35 @@ test('closed-notch equalizer loops through bounded rhythmic levels', () => {
         }
     }
     assert.ok(seen.size >= 6, 'equalizer should visibly vary instead of staying static');
+});
+
+test('charging badge triggers only on a real plug-in transition', () => {
+    const battery = state => ({available: true, percent: 42, state});
+    assert.equal(chargingStarted(null, battery(1)), false);
+    assert.equal(chargingStarted(battery(2), battery(1)), true);
+    assert.equal(chargingStarted(battery(6), battery(1)), true);
+    assert.equal(chargingStarted(battery(5), battery(1)), true);
+    assert.equal(chargingStarted(battery(1), battery(1)), false);
+    assert.equal(chargingStarted(battery(4), battery(1)), false);
+    assert.equal(chargingStarted(battery(2), battery(2)), false);
+    assert.equal(chargingStarted({available: false, state: 2}, battery(1)), false);
+    assert.equal(chargingStarted(battery(2), {available: false, state: 1}), false);
+});
+
+test('header budget keeps settings and close inside the notch', () => {
+    for (const width of [194, 220, 300, 359, 360, 480, 559, 560, 600, 800]) {
+        for (const textScale of [0.8, 1, 1.25, 1.5, 2]) {
+            const hl = headerLayout(width, textScale);
+            assert.ok(hl.requiredWidth <= width,
+                `header ${hl.mode} needs ${hl.requiredWidth}px in ${width}px @${textScale}`);
+            assert.equal(hl.showSettings, !hl.ultra);
+            assert.equal(hl.controlsWidth, hl.gutter);
+        }
+    }
+    assert.equal(headerLayout(600, 1).mode, 'labels');
+    assert.equal(headerLayout(600, 1.25).mode, 'icons');
+    assert.equal(headerLayout(500, 0.8).mode, 'icons');
+    assert.equal(headerLayout(300, 1).ultra, true);
 });
 
 test('CPU deltas exclude guest double-counting and handle first sample/reset', () => {

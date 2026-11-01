@@ -22,7 +22,7 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 - [ ] `./install.sh --with-deps` completes as the desktop user.
 - [ ] After logout/login, `gnome-extensions enable notch@pavit12301611.github.io` succeeds.
-- [ ] `notch-doctor` reports build 18 loaded and installed, and no legacy helper artifacts.
+- [ ] `notch-doctor` reports build 19 loaded and installed, and no legacy helper artifacts.
 - [ ] Updating from build 17 removes `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service` and old Python modules.
 - [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and doctor paths consistently.
 - [ ] Uninstall removes installed files but retains settings until explicitly purged.
@@ -30,7 +30,8 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 ### Closed notch and motion
 
 - [ ] Closed notch sits flush with the top panel, replaces the centered clock, and shows idle time.
-- [ ] Music wings appear only while a player is active; equalizer bars animate continuously and stop when hidden/paused/reduced-motion.
+- [ ] Music wings appear only while a player is active; equalizer bars are centered/proportional, animate continuously and stop when hidden/paused/reduced-motion.
+- [ ] Plugging in the charger shows the green charging badge once for under two seconds; already-charging startup, unplug and percentage-only updates do not show it.
 - [ ] Click, hover and Super+` open/close the notch; Escape and outside click collapse it.
 - [ ] Open/close springs finish and snap under reduced motion; no repeating timeline or relayout storm remains.
 
@@ -40,7 +41,7 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 - [ ] Music shows title/artist, transport and seek only when supported; no player shows a clean empty state; no volume or album art appears.
 - [ ] Alerts count matches real cards; long bodies expand/collapse; native actions, dismiss and clear-all work; only Alerts scrolls.
 - [ ] System shows 2×2 metric tiles and working DND/Night Light/Dark Mode toggles; sampling stops when the page is hidden.
-- [ ] Header stays centered on every tab: labels at normal widths, icons when narrow; no tab text truncates.
+- [ ] Header stays centered on every tab: labels at normal widths, icons when narrow; settings and close remain inside the notch; no tab text truncates.
 - [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes and at 100/125/150% text scaling.
 
 ### Notifications and lifecycle
