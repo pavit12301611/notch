@@ -1,40 +1,25 @@
-# Security and privacy notes
+# Security and privacy
 
 ## Trust model
 
-GNOME Shell extensions execute with the user’s full Shell privileges. Installing an extension is equivalent to trusting its code, not installing a sandboxed app. Review updates before enabling them. The Python helper is also a normal user process, not a Flatpak sandbox.
+GNOME Shell extensions execute with the user’s full Shell privileges. Installing an extension is equivalent to trusting its code, not installing a sandboxed app. Review updates before enabling them. The Python settings/doctor companions are normal user processes, not Flatpak sandboxes.
 
-## Clipboard
+## Removed features
 
-- History is disabled by default.
-- Only plain-text offers are considered; unknown/mixed MIME offers are skipped.
-- Known password/concealment/privacy hints cause the offer to be skipped.
-- Transfers are bounded to 64 KiB plus an overflow-detection byte; history is limited to 5–50 entries.
-- History is RAM-only and cleared on lock, disable and destruction.
-- Routine logs never include clipboard content.
+Build 18 removes clipboard history and the file shelf completely. Notch no longer reads the system clipboard, stores copied text, accepts file drops, keeps file references, or runs a helper daemon. The installer removes the old helper binary, CLI, D-Bus service, systemd unit and Python modules from older builds.
 
-**Limitation:** a source can expose a secret as ordinary text without a hint. No clipboard manager can reliably infer that it is a password. Keep history off for sensitive work. Clearing history does not erase the current system clipboard or data already pasted elsewhere.
+## Notifications
 
-## File shelf
+Notch intercepts ordinary GNOME banners only after GNOME has applied DND, fullscreen and per-app policy. Notification bodies are rendered as plain text in the notch and remain in GNOME’s own message list. Critical notifications keep the native banner path. Routine logs do not include notification bodies.
 
-- Stores local `file://` references and display names in `${XDG_STATE_HOME:-~/.local/state}/notch/shelf.json`.
-- Directory creation uses mode 0700; atomic replacement files use 0600.
-- Does not scan the filesystem, copy contents, move originals or delete originals.
-- Remote URIs, command strings and non-file schemes are rejected.
-- Open/Reveal/Copy/Remove operate only on a URI already present in the shelf.
-- A corrupt or unsupported store is not silently overwritten.
-- The file chooser uses GTK/desktop portals where available.
+## Media and diagnostics
 
-Reference paths can themselves be sensitive. Protect the user account and backups accordingly. Uninstall retains the reference list by default.
+The Music page talks to local MPRIS players over the session bus. It does not download or decode player-supplied album art and does not write volume. System metrics are read from local procfs and UPower. There is no telemetry, update checker, account system or outbound network request in the extension.
 
-## Network
+## Session bus
 
-Notch makes no intentional outbound network requests. The Music page is text-first and does not download or decode player-supplied album art. There is no telemetry, update checker, account system or clipboard upload.
+The extension exports a private session-bus interface for the same user (`Toggle`, `SetExpanded`, `GetState`). It is an implementation API, not a hardened boundary between mutually untrusted applications running as the same UID. It accepts no shell command strings and no file paths.
 
-## D-Bus
+## Reporting
 
-The extension and helper export session-bus interfaces for the same user. They are private implementation APIs, not hardened boundaries between mutually untrusted applications running as the same UID. The helper never accepts shell command strings; arguments are typed URIs/coordinates and URIs must already belong to the shelf for open/reveal/copy/remove operations.
-
-## Reporting issues
-
-Open a private security advisory on the project’s GitHub repository if enabled, or contact the maintainers through a private channel before publishing exploitable details. Do not include real clipboard histories, shelf lists, tokens or private file paths in public bug reports.
+Open a private security advisory on the project’s GitHub repository if enabled, or contact the maintainers through a private channel before publishing exploitable details. Do not include tokens, private notification bodies or private file paths in public bug reports.

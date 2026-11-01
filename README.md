@@ -1,10 +1,14 @@
 # Notch for GNOME
 
-A Cyclop-inspired, expandable notch for **Fedora 44 Workstation / GNOME Wayland**: media controls, live system status, a file shelf, opt-in clipboard history, and GNOME quick actions.
+A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 44 Workstation / GNOME Wayland**: idle clock, in-notch notifications, MPRIS media controls, live system status and GNOME quick actions.
 
-**Version target:** Fedora 44 ships GNOME **50**, not GNOME 46/47. Fedora’s package listing is the reference for this correction. [1](https://packages.fedoraproject.org/pkgs/gnome-shell/gnome-shell/) The extension declares Shell 46–50 compatibility, but **GNOME 50 is the primary release target**; older versions need their own live desktop validation.
+**Version target:** Fedora 44 ships GNOME **50**. The extension declares Shell 46–50 compatibility, but **GNOME 50 is the primary release target**; older versions need their own live desktop validation.
 
-> Status: implementable project scaffold with working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 44/GNOME 50 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
+> Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 44/GNOME 50 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
+
+## What changed in build 18
+
+Clipboard history and Quick stash / file shelf were **removed completely**: no tabs, no background helper, no helper D-Bus service, no systemd unit, no CLI, no schema keys and no packaging payload. The installer also cleans up those artifacts from older builds. The remaining UI was rebuilt around four pages with a clearer typographic hierarchy and layered surfaces.
 
 ## Why this is a hybrid application
 
@@ -15,47 +19,39 @@ Notch therefore uses the same privileged desktop layer as GNOME’s own panel:
 ```text
 ┌──────────────────────── GNOME Shell / Mutter (Wayland) ────────────────────────┐
 │ GJS + St/Clutter extension                                                    │
-│   animated notch • MPRIS • CPU/RAM/network • UPower • quick toggles             │
-│   opt-in RAM clipboard history • compositor-assisted external file drag        │
-└───────────────┬───────────────────────────────────────┬───────────────────────┘
-                │ session D-Bus                         │ session D-Bus
-┌───────────────▼──────────────────┐   ┌────────────────▼───────────────────────┐
-│ Python / GTK4 / Libadwaita        │   │ Python / Gio helper                    │
-│ notch-settings                   │   │ notch-helper                           │
-│ native preferences, on demand    │   │ GTK4 drop surface + file chooser       │
-└──────────────────────────────────┘   │ atomic shelf-reference storage         │
-                                       │ bus activation; exits after idle       │
-                                       └────────────────────────────────────────┘
+│   animated notch • idle clock • MPRIS • notifications • CPU/RAM/network        │
+│   UPower battery • Do Not Disturb / Night Light / Dark Mode                    │
+└───────────────────────────────────────────────────────────────────────────────┘
+                │ session D-Bus (state only)
+┌───────────────▼──────────────────┐
+│ Python / GTK4 / Libadwaita        │
+│ notch-settings                   │
+│ native preferences, on demand    │
+└──────────────────────────────────┘
 ```
 
-The notch itself is **not a GTK widget**: it uses GNOME Shell’s native St/Clutter toolkit so it looks and behaves like Shell chrome. The settings and actual file-drop surface use **GTK4**, and settings use **Libadwaita**. GJS is the supported language for Shell extensions; Python cannot run inside the Shell process.
+The notch itself is **not a GTK widget**: it uses GNOME Shell’s native St/Clutter toolkit so it looks and behaves like Shell chrome. Settings use **GTK4/Libadwaita** and run only when opened. There is no always-on Python daemon.
 
 Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). No Cyclop Swift code, icons, or other assets are copied. This project is independent and is not affiliated with Cyclop or Apple.
 
 ## Features
 
-| Area | Included behavior |
+| Page | Included behavior |
 |---|---|
-| Notifications | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps a real card count, compact expandable bodies and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible |
-| Idle clock | Local time in the collapsed MacBook-style notch when no notification is active |
-| Media | MPRIS player discovery/switching, clean text-first title/artist display, previous/play/pause/next and seek; no volume controls or album art |
-| System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
-| Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
-| File shelf | Drag local files directly onto the closed/open notch, choose files through GTK/portal, or use `notch-shelf add`; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
-| Clipboard | Optional plain-text history, bounded size, deduplication, restore, manual capture, clear; RAM-only and cleared on lock/disable |
-| Appearance | MacBook top-edge silhouette with flared shoulders, adaptive corners, panel-height closed state, music wings, monitor-aware per-page sizing, stable icon rail, fixed centered pages (only Alerts scrolls), scale, monitor, offset and opacity; optional legacy below-panel/floating modes |
-| Behavior | Mac-style damped-spring opening from the top edge, animated page/status/peek transitions, hover dwell, click, keyboard shortcut, notification peeks, auto-hide, reduced-motion-aware animation, fullscreen/overview hiding, optional collapsed work-area reservation |
-| Setup | User install script, systemd user service, D-Bus activation, RPM spec, doctor command, Fedora CI recipe |
+| Home | Large local clock and a quiet date line. Nothing else. |
+| Music | MPRIS player discovery/switching, text-first title/artist, previous/play/pause/next and seek. No volume controls or album art. |
+| Alerts | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps a real card count, compact expandable bodies and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible. |
+| System | 2×2 metric tiles: CPU utilization, RAM used/total, UPower battery percentage/state, default-interface download/upload rates. Quick actions: Do Not Disturb, Night Light, Dark Mode. |
 
-### Important boundaries
+Closed notch: idle time sits where the GNOME clock used to be; music grows small closed-state wings with a rhythmic animated equalizer. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
-- **No physical camera-cutout detection.** Configure the notch geometry for your display. The utility draws a notch-shaped overlay; it does not identify camera hardware.
-- **The default MacBook mode replaces the centered top-bar clock.** The original clock is restored when the notch hides, on other monitors, or when `replace-panel-clock` is off. Legacy below-panel and floating modes remain optional; floating mode is the Dynamic-Island-like layout, not the default.
-- **Notification routing is reversible.** Notch mirrors GNOME’s existing notification objects; GNOME still owns policy, sounds, actions and expiry. Native banners return for critical alerts and when routing is disabled, the notch is hidden by fullscreen/overview/lock policy, or the extension is disabled.
-- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. A stable centered icon rail avoids shifting tabs; full labels appear only when all six fit. Only Alerts scrolls; Shelf and Clips paginate, and the other pages use fixed centered layouts. Helper/action failures appear in a dismissible status bar with Retry where applicable.
-- **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel, and Mutter may apply the inset as a top-edge work-area reduction. It is not a pixel-perfect window mask.
-- **The shelf stores references, not copies.** Removing a shelf item never removes the original. Dragging files *out* of the Shell notch is not implemented; use Open, Reveal, or Copy URI.
-- **Clipboard history is text-only and off by default.** Known password-manager hints and mixed-format offers are skipped, but a password manager that exposes plain text without a hint cannot be detected reliably. Keep history off when handling secrets.
+## Design notes
+
+- **MacBook notch, not a floating Dynamic Island.** The default placement is flush with the top panel, with small outward top flares and larger bottom corners.
+- **Typographic hierarchy.** Primary values/titles are large; labels, timestamps and secondary details are smaller and muted. Decorative headings, source icons in empty states, album art, volume sliders, pagers and helper/status clutter were removed.
+- **Depth without noise.** Layered dark cards, subtle borders, inset highlights and consistent radii separate content from the black notch body.
+- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Four fixed-width tabs show labels at the default size and collapse to a centered icon rail when narrow. Only Alerts scrolls; Home/Music/System are centered natural-height blocks.
+- **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel.
 - **MPRIS capabilities vary.** Seek requires a player exposing `CanSeek`, a track length, and a usable position/track ID. Firefox must have MPRIS/media-key integration enabled. A player that does not implement a capability cannot be forced to support it.
 - Shell extensions use internal GNOME APIs. Test after every GNOME major upgrade; never bypass version checks by editing metadata blindly.
 
@@ -69,7 +65,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh | NOTCH_REF=arena/3b6a968b-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 17+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 18+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
@@ -95,21 +91,18 @@ notch-settings
 notch-doctor
 ```
 
-The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings with a rhythmic animated equalizer, and ordinary notifications appear as compact peeks. Home shows only the clock/date, like a minimal MacBook notch; drag files directly onto the notch to stash them. If a player exposes empty MPRIS metadata, Notch shows “Playing in <player>” instead of a blank title. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
-
 ### Manual dependency installation
 
 ```bash
 sudo dnf install \
   python3 python3-gobject gtk4 libadwaita glib2 glib2-devel \
   gobject-introspection gnome-shell gnome-extensions-app \
-  upower libsoup3 adwaita-icon-theme hicolor-icon-theme \
-  xdg-desktop-portal-gnome make
+  upower adwaita-icon-theme hicolor-icon-theme make
 
 ./install.sh
 ```
 
-There is **no package named `mpris` to install**. MPRIS is a D-Bus specification implemented by media players. Notch talks to it through Gio. `gobject-introspection` and the GTK/Adwaita/Soup typelibs supply the language bindings; `python3-gobject` supplies PyGObject. There are no runtime PyPI dependencies.
+There is **no package named `mpris` to install**. MPRIS is a D-Bus specification implemented by media players. Notch talks to it through Gio. `gobject-introspection` and the GTK/Adwaita typelibs supply the language bindings; `python3-gobject` supplies PyGObject. There are no runtime PyPI dependencies.
 
 ### What the installer changes
 
@@ -118,227 +111,71 @@ Default user installation:
 ```text
 ~/.local/share/gnome-shell/extensions/notch@pavit12301611.github.io/
 ~/.local/share/notch/                         # application code/docs
-~/.local/share/glib-2.0/schemas/              # compiled settings schema
-~/.local/share/applications/                  # Notch settings launcher
-~/.local/share/dbus-1/services/               # helper bus activation
-~/.local/share/icons/hicolor/scalable/apps/   # application icon
-~/.local/bin/{notch-settings,notch-helper,notch-doctor}
-~/.config/systemd/user/notch-helper.service
+~/.local/share/glib-2.0/schemas/              # Notch GSettings schema
+~/.local/share/applications/                  # Notch Settings desktop entry
+~/.local/bin/notch-settings
+~/.local/bin/notch-doctor
 ```
 
-It enables the extension and helper when a session bus is available. Use `./install.sh --no-enable` to install files without changing activation state. Settings and shelf references are retained across upgrades.
+The installer also removes retired build-17-and-older artifacts: `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service`, and the old `helper.py`/`storage.py`/`shelf_cli.py` modules. Existing Notch settings are retained.
 
-The extension payload is staged and validated before publication, so GNOME Shell never has to read a half-written `metadata.json`. User installs honor `XDG_DATA_HOME`. GNOME Shell discovers newly installed extensions at login; if `gnome-extensions info` says the extension does not exist immediately after installing, log out/in once rather than reinstalling repeatedly.
-
-### systemd user service
-
-The installer sets this up. To manage it explicitly:
+### RPM / COPR path
 
 ```bash
-systemctl --user daemon-reload
-systemctl --user enable notch-helper.service
-systemctl --user restart notch-helper.service
-systemctl --user status notch-helper.service
+make rpm
 ```
 
-You can also stash files without drag-and-drop:
-
-```bash
-notch-shelf add ~/Downloads/example.pdf
-notch-shelf list
-notch-shelf info
-```
-
-The helper also has a D-Bus activation file. It does not open a window at login, imports GTK only when needed, and exits after five idle minutes. **Inactive after idle is normal**; the next shelf/drop request can reactivate it. The notch itself lives inside GNOME Shell and does not need a second permanent UI daemon.
-
-### System-wide installation
-
-```bash
-sudo ./install.sh --system
-# Log out/in, then enable the extension for each user:
-gnome-extensions enable notch@pavit12301611.github.io
-```
-
-System files go under `/usr` and `/etc/systemd/user`. Extension activation and preferences remain per-user. Do not install both a user copy and a system copy: the user copy shadows the system extension and makes upgrades confusing.
-
-## Project layout
-
-```text
-notch/
-├── README.md
-├── LICENSE                              # GPL-3.0-or-later
-├── Makefile                             # stage/install/uninstall/check/dist/rpm
-├── install.sh / uninstall.sh
-├── scripts/bootstrap.sh                 # curl-based remote user installer
-├── scripts/install_extension.py         # validated staging-directory extension publisher
-├── pyproject.toml                       # optional editable Python development install
-├── package.json / package-lock.json     # development-only JS checks
-├── eslint.config.js
-├── .github/workflows/ci.yml             # Fedora 44 container checks + RPM build
-├── extension/
-│   ├── metadata.json                    # UUID, Shell versions, settings schema
-│   ├── extension.js                     # enable/disable, keybinding, private D-Bus API
-│   ├── prefs.js                         # inline Libadwaita preferences pages
-│   ├── stylesheet.css                   # St/CSS notch styling and transitions
-│   ├── schemas/
-│   │   └── io.github.pavit12301611.Notch.gschema.xml
-│   ├── dbus/                            # MPRIS, UPower and private helper interfaces
-│   └── lib/
-│       ├── view.js                      # chrome actor, spring animation, pages, peeks, drag positioning
-│       ├── surface.js                   # Cairo top flares + St bottom-radius body
-│       ├── spring.js                    # bounded damped-spring geometry integrator
-│       ├── layout.js                    # monitor/text-aware content layout and breakpoints
-│       ├── widgets.js                   # accessible St controls
-│       ├── geometry.js                  # pure placement/clamping logic
-│       ├── model.js                     # pure parsers, formatters, clipboard ring buffer
-│       ├── notifications.js             # reversible GNOME banner routing into the notch
-│       ├── media.js                     # event-driven MPRIS client
-│       ├── pagination.js                # bounded pagination for non-scrolling Shelf/Clips pages
-│       ├── diagnostics.js               # gated procfs sampling + UPower proxy
-│       ├── actions.js                   # GNOME quick settings
-│       ├── clipboard.js                 # opt-in Mutter selection transfers
-│       ├── shelf.js                     # helper client
-│       ├── dbus.js / launcher.js
-├── app/notch_app/
-│   ├── settings.py                      # GTK4 + Libadwaita preferences
-│   ├── helper.py                        # GTK drop surface, file chooser, shelf D-Bus service
-│   ├── storage.py                       # validated, atomic JSON reference store
-│   ├── doctor.py                        # installation/session diagnostics
-│   └── config.py / __init__.py / __main__.py
-├── data/
-│   ├── *.in                             # prefix-substituted launchers/desktop/service files
-│   └── io.github.pavit12301611.Notch.svg
-├── packaging/rpm/notch.spec
-├── tests/
-│   ├── js/model.test.js
-│   ├── python/test_storage.py
-│   ├── python/test_project.py
-│   └── gjs_smoke.js
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── TESTING.md
-    ├── SECURITY.md
-    └── VALIDATION.md
-```
+The spec installs the extension, schema, settings app, doctor and desktop entry. It does not install a helper daemon, clipboard manager or file shelf. See [packaging/rpm/notch.spec](packaging/rpm/notch.spec).
 
 ## Configuration
 
-Use **Notch Settings** for the supported UI. Equivalent examples:
+Open **Notch Settings** from the app grid, or run `notch-settings`. The extension’s own Preferences dialog (GNOME Extensions → Notch → Settings) exposes the same core schema inline.
 
-```bash
-SCHEMA=io.github.pavit12301611.Notch
-
-gsettings set "$SCHEMA" placement 'panel'          # panel = MacBook top edge; top-center/floating are optional legacy modes
-gsettings set "$SCHEMA" collapsed-width 185
-gsettings set "$SCHEMA" collapsed-height 32
-gsettings set "$SCHEMA" match-panel-height true
-gsettings set "$SCHEMA" expanded-width 640
-gsettings set "$SCHEMA" expanded-height 480
-gsettings set "$SCHEMA" notch-scale 1.0
-gsettings set "$SCHEMA" adaptive-corners true
-gsettings set "$SCHEMA" closed-media true
-gsettings set "$SCHEMA" opacity 1.0
-gsettings set "$SCHEMA" replace-panel-clock true   # hide GNOME clock only while the notch is visible
-gsettings set "$SCHEMA" idle-clock true            # show local time when idle
-gsettings set "$SCHEMA" notifications-in-notch true
-gsettings set "$SCHEMA" auto-open-notifications true   # compact notification peeks
-gsettings set "$SCHEMA" peek-duration-ms 5000
-gsettings set "$SCHEMA" animation-profile mac-spring # or smooth
-gsettings set "$SCHEMA" open-animation-ms 420        # used by smooth profile
-gsettings set "$SCHEMA" close-animation-ms 450
-gsettings set "$SCHEMA" monitor-index -1           # primary monitor
-gsettings set "$SCHEMA" hide-on-fullscreen true
-gsettings set "$SCHEMA" clipboard-enabled false    # privacy-safe default
-gsettings set "$SCHEMA" toggle-notch "['<Super>n']"
-gsettings set "$SCHEMA" toggle-notch "@as []"      # disable the shortcut
-```
-
-Changes are live through GSettings. The schema enforces ranges. For multi-monitor use, the selected index follows Mutter’s current monitor ordering; use `-1` if you want the primary display to follow hotplug changes.
-
-## Performance model
-
-- No separate polling media daemon. MPRIS names/properties/seek notifications and UPower property changes are event-driven.
-- CPU/RAM/network sampling: one timer, **only while System is visible**.
-- Media position refresh: one timer, **only while Media is visible**; playback controls themselves are signal-driven. No extension-owned volume/mixer UI.
-- Clipboard: automatic capture is off by default; when enabled, one bounded selection transfer per second while unlocked.
-- Music UI is text-first: no album-art downloads, image decoding or broken cover placeholders.
-- Helper: no visible window at startup, lazy GTK import, five-minute idle exit, bus activation on demand.
-- No permanent frame loop. A Clutter frame timeline runs only while the notch spring/easing is moving; the closed music indicator ticks at ~4 Hz only while playback is visible. Both honor GNOME’s animation setting.
-- Idle clock uses GnomeDesktop.WallClock signals; notification routing reuses GNOME’s message tray instead of polling a second notification store.
-
-These are design budgets, **not measured performance claims**. Profile on your hardware with the checklist in `docs/TESTING.md` before publishing CPU/RAM numbers.
-
-## RPM and COPR
-
-A source-install script is the simplest development path. A noarch RPM recipe is also included:
-
-```bash
-sudo dnf install rpm-build make git-core glib2 desktop-file-utils systemd-rpm-macros
-make rpm
-sudo dnf install dist/rpmbuild/RPMS/noarch/notch-0.1.0-1.*.noarch.rpm
-```
-
-The SRPM is under `dist/rpmbuild/SRPMS/`. You can upload it to your own COPR project after reviewing the spec and testing the resulting RPM. **No COPR repository or Fedora package is published by this repository automatically.**
-
-A Flatpak manifest is intentionally not the primary distribution: a sandboxed settings app cannot install or execute the required host Shell extension. Shipping only the preferences in Flatpak would not deliver the notch. Use the complete user installer or RPM.
-
-## Development and checks
-
-```bash
-npm ci
-make stage
-make check
-
-# Optional GJS smoke test on Fedora, with compiled schemas:
-mkdir -p .generated/schemas
-cp extension/schemas/*.xml .generated/schemas/
-glib-compile-schemas .generated/schemas
-GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" \
-  dbus-run-session -- gjs -m tests/gjs_smoke.js
-
-# Optional editable Python entry points; extension/schema installation is still required:
-python3 -m venv --system-site-packages .venv
-. .venv/bin/activate
-pip install -e .
-```
-
-Do not run the GTK helper under `sudo`. It is a per-user session service. Do not load GTK4 into GNOME Shell; keep GTK in the separate Python processes.
+| Group | Keys |
+|---|---|
+| Placement | `placement`, `monitor-index`, `horizontal-offset`, `floating-margin`, `reserve-space` |
+| Shape | `collapsed-width`, `collapsed-height`, `expanded-width`, `expanded-height`, `corner-radius`, `adaptive-corners`, `match-panel-height`, `notch-scale`, `opacity` |
+| Closed behavior | `replace-panel-clock`, `idle-clock`, `closed-media` |
+| Notifications | `notifications-in-notch`, `auto-open-notifications`, `peek-duration-ms` |
+| Motion | `animations`, `animation-profile`, `open-animation-ms`, `close-animation-ms` |
+| Opening/hiding | `open-on-hover`, `hover-delay-ms`, `auto-hide-ms`, `hide-on-fullscreen`, `hide-in-overview` |
+| Quick actions | `show-dnd`, `show-night-light`, `show-dark-mode` |
+| Shortcut | `toggle-notch` |
 
 ## Troubleshooting
 
 ```bash
 notch-doctor
-gnome-extensions info notch@pavit12301611.github.io
-journalctl --user -b -t gnome-shell --no-pager | grep -i notch
-journalctl --user -u notch-helper.service -b --no-pager
-busctl --user list | grep -E 'Notch|mpris'
+journalctl -b _COMM=gnome-shell --no-pager -n 300 | grep -E -i 'notch|JS ERROR'
 ```
 
-| Symptom | Check |
-|---|---|
-| Extension not listed after install | Log out/in; confirm the directory name exactly matches the UUID. `notch-doctor` reports “Shell registration” separately from installed files |
-| Log says `Failed to parse metadata.json` at login but doctor now reads a build | The session started while/ before the files were complete. Log out/in once with the current installer; build 14+ publishes a validated staging directory |
-| Extension shows OUT_OF_DATE | Use the intended GNOME version; do not disable version validation as a fix |
-| Extension error after update | Log out/in; `notch-doctor` compares the loaded extension build with installed metadata and warns if Wayland still has old code |
-| Settings reports missing schema | Re-run the installer; run `notch-doctor`; avoid mixing user/system copies |
-| No media | Start playback and inspect `busctl --user list` for MPRIS names; Firefox may need media-key/MPRIS support enabled |
-| No seek | The current player may not expose `CanSeek`, length or track ID |
-| Music looks empty | Start an MPRIS-compatible player; the Music page intentionally shows title/artist/controls without album art |
-| Shelf helper offline | `systemctl --user restart notch-helper.service`; then `notch-doctor` |
-| Shelf says `Invalid GType` | Update to build 15+ and restart the helper; the GTK drop target now passes real GTypes to `set_gtypes` |
-| Drop target does not appear | Start the helper first, drag local files from Files toward the notch, and keep the pointer there briefly; use Add files as the portal-backed fallback |
-| Want the original clock back | Turn off “Replace top-bar date & time”, or switch placement away from MacBook top edge |
-| Need emergency disable | `gnome-extensions disable notch@pavit12301611.github.io`; from a TTY, `gsettings set org.gnome.shell disable-user-extensions true` disables all user extensions |
+- **Extension “does not exist” after install:** log out/in once. GNOME Shell discovers newly installed extensions at session start; enabling alone does not reload code on Wayland.
+- **Old helper warnings:** re-run the build-18 installer. `notch-doctor` reports leftover `notch-helper`/`notch-shelf` artifacts.
+- **Music controls disabled:** the player does not expose that MPRIS capability, or no player is connected.
+- **Freeze/stutter triage:** capture `pidstat -p "$(pgrep -x gnome-shell | head -n1)" 1` and the journal grep above. Do not assume a static test proves the live issue is fixed.
 
-## Uninstall
+## Repository layout
+
+```text
+extension/            GJS/St Shell extension (overlay, controllers, prefs, schema, D-Bus, icons)
+app/notch_app/        Python GTK4/Libadwaita settings + doctor
+data/                 launcher/desktop templates
+scripts/              remote bootstrap + atomic extension publisher
+packaging/rpm/        Fedora RPM spec
+tests/                Node model/layout tests, Python project/doctor/installer tests, GJS smoke
+docs/                 architecture, security, testing, validation, design study
+```
+
+## Development
 
 ```bash
-./uninstall.sh                 # user installation
-sudo ./uninstall.sh --system   # system installation
+npm ci
+make stage
+make check
 ```
 
-Then log out/in. Settings and shelf references are deliberately retained. The uninstaller prints explicit commands to remove them if desired.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md).
 
 ## License
 
-GPL-3.0-or-later. See [LICENSE](LICENSE). Review dependency licenses separately when distributing binary packages.
+GPL-3.0-or-later. See [LICENSE](LICENSE).

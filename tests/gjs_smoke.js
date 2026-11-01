@@ -1,15 +1,13 @@
 /* Run inside dbus-run-session on Fedora. Does not pretend to test GNOME Shell UI. */
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import {cpuSample, ClipboardHistory} from '../extension/lib/model.js';
+import {cpuSample, mediaErrorMessage, countNotifications} from '../extension/lib/model.js';
 import {notchGeometry} from '../extension/lib/geometry.js';
 
-const history = new ClipboardHistory(2);
-history.add('one');
-history.add('two');
-history.add('three');
-if (history.items.length !== 2 || history.items[0].text !== 'three')
-    throw new Error('GJS model smoke test failed');
+if (mediaErrorMessage('NotSupported') !== 'This player does not support that control.')
+    throw new Error('GJS media error smoke test failed');
+if (countNotifications([{notifications: [1, 2]}, {}]) !== 2)
+    throw new Error('GJS notification count smoke test failed');
 if (cpuSample('cpu 1 0 1 8 0 0 0 0').raw.total !== 10)
     throw new Error('GJS CPU parser failed');
 const rect = notchGeometry({x: 0, y: 0, width: 800, height: 600},
@@ -21,8 +19,8 @@ if (directory) {
     const source = Gio.SettingsSchemaSource.new_from_directory(directory,
         Gio.SettingsSchemaSource.get_default(), false);
     const schema = source.lookup('io.github.pavit12301611.Notch', true);
-    if (!schema || !schema.has_key('clipboard-enabled') || schema.get_default_value('clipboard-enabled').get_boolean())
-        throw new Error('Schema lookup/default privacy check failed');
+    if (!schema || schema.has_key('clipboard-enabled') || schema.has_key('clipboard-limit'))
+        throw new Error('Removed clipboard schema keys are still present');
     for (const key of ['replace-panel-clock', 'idle-clock', 'notifications-in-notch', 'auto-open-notifications']) {
         if (!schema.has_key(key) || !schema.get_default_value(key).get_boolean())
             throw new Error(`MacBook default check failed: ${key}`);

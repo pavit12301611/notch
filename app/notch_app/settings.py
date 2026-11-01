@@ -10,7 +10,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 from . import __version__  # noqa: E402
-from .config import APP_ID, EXTENSION_ID, HELPER_ID, HELPER_PATH, OBJECT_PATH, interface_xml  # noqa: E402
+from .config import APP_ID, EXTENSION_ID, OBJECT_PATH, interface_xml  # noqa: E402
 
 
 class SettingsApplication(Adw.Application):
@@ -36,16 +36,13 @@ class SettingsApplication(Adw.Application):
         )
         self.window.add(self.appearance_page())
         self.window.add(self.behavior_page())
-        self.window.add(self.privacy_page())
         self.window.add(self.about_page())
-        self.settings.connect("changed", self._setting_changed)
         self.window.connect("close-request", self._window_closed)
         self.window.present()
         self.refresh_status()
 
     def _window_closed(self, *_):
         self.cancellable.cancel()
-        self.settings.disconnect_by_func(self._setting_changed)
         for obj, handler in self.bindings:
             if obj.handler_is_connected(handler):
                 obj.disconnect(handler)
@@ -189,7 +186,7 @@ class SettingsApplication(Adw.Application):
         self.settings.set_int("collapsed-width", 185)
         self.settings.set_int("collapsed-height", 32)
         self.settings.set_int("expanded-width", 640)
-        self.settings.set_int("expanded-height", 360)
+        self.settings.set_int("expanded-height", 480)
         self.settings.set_int("corner-radius", 24)
         self.settings.set_double("notch-scale", 1.0)
         self.settings.set_boolean("match-panel-height", True)
@@ -283,54 +280,15 @@ class SettingsApplication(Adw.Application):
         media.add(shortcut)
         return page
 
-    def privacy_page(self):
-        page = Adw.PreferencesPage(title="Privacy & shelf", icon_name="security-high-symbolic")
-        clipboard = self.group(
-            page,
-            "Clipboard history",
-            "Off by default. Plain-text history is RAM-only, bounded to 64 KiB per item, and cleared on lock, logout or disable. Automatic capture checks once per second. Known password hints and mixed-format clips are skipped, but no heuristic can guarantee secrecy: keep this off when handling secrets.",
-        )
-        self.switch(clipboard, "clipboard-enabled", "Remember copied text")
-        self.spin(clipboard, "clipboard-limit", "History size", 5, 50, 5, "Entries")
-        clear = Adw.ActionRow(
-            title="Clear clipboard history", subtitle="Does not erase the current system clipboard"
-        )
-        button = Gtk.Button(label="Clear", valign=Gtk.Align.CENTER)
-        button.connect("clicked", lambda *_: self.extension_call("ClearClipboard"))
-        clear.add_suffix(button)
-        clear.set_activatable_widget(button)
-        clipboard.add(clear)
-        shelf = self.group(
-            page,
-            "File shelf",
-            "The shelf stores local file references, not copies. Removing a reference never deletes the original. Dropping or choosing files is an explicit action; no filesystem-wide scanning is performed.",
-        )
-        row = Adw.ActionRow(
-            title="Reference list",
-            subtitle=GLib.build_filenamev([GLib.get_user_state_dir(), "notch", "shelf.json"]),
-        )
-        shelf.add(row)
-        add = Adw.ActionRow(
-            title="Add files", subtitle="Uses the GTK file chooser / desktop portal"
-        )
-        add_button = Gtk.Button(label="Choose files", valign=Gtk.Align.CENTER)
-        add_button.connect("clicked", lambda *_: self.helper_call("ChooseFiles"))
-        add.add_suffix(add_button)
-        add.set_activatable_widget(add_button)
-        shelf.add(add)
-        return page
-
     def about_page(self):
         page = Adw.PreferencesPage(title="About", icon_name="help-about-symbolic")
         about = self.group(
             page,
             f"Notch {__version__}",
-            "A native Shell notch with GTK4/Libadwaita companions. Inspired by Cyclop; no Cyclop code or assets are included.",
+            "A native Shell notch with a GTK4/Libadwaita settings app. Inspired by Cyclop; no Cyclop code or assets are included.",
         )
         self.extension_status = Adw.ActionRow(title="Shell extension", subtitle="Checking…")
-        self.helper_status = Adw.ActionRow(title="File helper", subtitle="Checking…")
         about.add(self.extension_status)
-        about.add(self.helper_status)
         refresh = Adw.ActionRow(title="Refresh status")
         button = Gtk.Button(label="Check", valign=Gtk.Align.CENTER)
         button.connect("clicked", lambda *_: self.refresh_status())
@@ -351,10 +309,6 @@ class SettingsApplication(Adw.Application):
         )
         links.add(link)
         return page
-
-    def _setting_changed(self, _settings, key):
-        if key == "clipboard-enabled" and not self.settings.get_boolean(key):
-            self.extension_call("ClearClipboard")
 
     def _proxy(self, name, path, interface, filename, callback):
         try:
@@ -397,27 +351,6 @@ class SettingsApplication(Adw.Application):
 
         self._proxy(EXTENSION_ID, OBJECT_PATH, APP_ID, f"{APP_ID}.xml", ready)
 
-    def helper_call(self, method):
-        def ready(proxy, _error):
-            if proxy:
-                proxy.call(
-                    method, None, Gio.DBusCallFlags.NONE, 3000, None, self._call_finished, None
-                )
-
-        # Allow bus activation for the helper, unlike extension status checks.
-        info = Gio.DBusInterfaceInfo.new_for_xml(interface_xml(f"{HELPER_ID}.xml"))
-        Gio.DBusProxy.new_for_bus(
-            Gio.BusType.SESSION,
-            Gio.DBusProxyFlags.NONE,
-            info,
-            HELPER_ID,
-            HELPER_PATH,
-            HELPER_ID,
-            None,
-            self._proxy_ready,
-            ready,
-        )
-
     def _call_finished(self, proxy, result, callback):
         try:
             value = proxy.call_finish(result)
@@ -434,28 +367,13 @@ class SettingsApplication(Adw.Application):
                 return
             try:
                 data = json.loads(value.unpack()[0])
-                self.extension_status.set_subtitle(
-                    f"Running · {data.get('clipboardCount', 0)} clips · {data.get('shelfCount', 0)} files"
-                )
-            except (ValueError, IndexError, TypeError):
+                build = data.get("extensionVersion", "unknown")
+                mode = data.get("mode", "closed")
+                self.extension_status.set_subtitle(f"Running · build {build} · {mode}")
+            except (ValueError, IndexError, TypeError, AttributeError):
                 self.extension_status.set_subtitle("Running · invalid status response")
 
         self.extension_call("GetState", state)
-
-        def ready(proxy, error):
-            if proxy is None:
-                self.helper_status.set_subtitle(f"Offline · {error}")
-                return
-            proxy.call("Ping", None, Gio.DBusCallFlags.NONE, 1000, None, ping_done, None)
-
-        def ping_done(proxy, result, _data):
-            try:
-                version = proxy.call_finish(result).unpack()[0]
-                self.helper_status.set_subtitle(f"Ready · version {version}")
-            except GLib.Error as exc:
-                self.helper_status.set_subtitle(f"Offline · {exc.message}")
-
-        self._proxy(HELPER_ID, HELPER_PATH, HELPER_ID, f"{HELPER_ID}.xml", ready)
 
 
 def main(argv=None):

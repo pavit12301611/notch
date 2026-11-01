@@ -19,7 +19,7 @@ export default class NotchExtension extends Extension {
         const untouchedLegacy = this.settings.get_string('placement') === 'top-center' &&
             this.settings.get_int('collapsed-width') === 240 &&
             this.settings.get_int('expanded-width') === 720;
-        // v10: the old 320px maximum pushed Quick stash below the Home viewport.
+        // v10: the old 320px maximum was too short for centered pages.
         const untouchedV9 = this.settings.get_string('placement') === 'panel' &&
             this.settings.get_int('collapsed-width') === 185 &&
             this.settings.get_int('expanded-width') === 640 &&
@@ -53,7 +53,6 @@ export default class NotchExtension extends Extension {
         this.dbus = Gio.DBusExportedObject.wrapJSObject(xml, {
             Toggle: () => this.view?.toggle(),
             SetExpanded: expanded => this.view?.setExpanded(expanded),
-            ClearClipboard: () => this.view?.clipboard.clear(),
             GetState: () => this.view?.state() ?? '{}',
         });
         this.dbus.export(Gio.DBus.session, EXTENSION_PATH);

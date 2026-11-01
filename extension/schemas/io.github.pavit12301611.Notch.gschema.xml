@@ -122,13 +122,6 @@
     <key name="show-dark-mode" type="b">
       <default>true</default><summary>Show the Dark Mode quick action</summary>
     </key>
-    <key name="clipboard-enabled" type="b">
-      <default>false</default><summary>Keep a bounded, RAM-only text clipboard history</summary>
-    </key>
-    <key name="clipboard-limit" type="i">
-      <default>20</default><range min="5" max="50"/>
-      <summary>Maximum number of remembered text clips</summary>
-    </key>
     <key name="toggle-notch" type="as">
       <default><![CDATA[['<Super>grave']]]></default>
       <summary>Keyboard shortcut to expand or collapse the notch</summary>

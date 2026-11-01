@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### v18 — remove Clipboard/Quick stash, four-page design overhaul
+
+- Remove clipboard history and Quick stash/file shelf from the root: tabs,
+  controllers, models, schema keys, D-Bus methods/interfaces, prefs, Python
+  helper/storage/CLI modules, systemd unit, D-Bus activation service, launcher
+  templates, packaging payload and tests.
+- Installer/uninstaller now retire legacy `notch-helper`, `notch-shelf`, Helper
+  D-Bus service, `notch-helper.service` and old Python modules. `notch-doctor`
+  warns if any legacy artifact remains.
+- Rebuild the open UI around four pages: Home, Music, Alerts, System. Home is a
+  large clock with a small date; Music is text-first with large title and quiet
+  artist/transport; Alerts uses bold titles, compact previews and a real count;
+  System uses 2×2 metric tiles with large values and small labels.
+- Add visual depth with layered dark cards, subtle borders, inset highlights,
+  a centered tab rail and consistent radii. Remove decorative empty-state icons,
+  duplicate headings, pagers, album art, volume controls and helper clutter.
+- Show tab labels at the default width and collapse to a centered icon rail when
+  narrow. Only Alerts scrolls. Media errors become short actionable messages.
+- Remove the obsolete six-page design-review PPTX and generator.
+- Bump build to 18.
+
 ### v17 — stable centered layout, compact Alerts, clean empty states
 
 - Replace the shifting active-tab label with a fixed, centered icon rail at normal

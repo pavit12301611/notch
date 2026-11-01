@@ -1,15 +1,8 @@
-# Validation and release checklist
+# Testing
 
-## What is automated
+## Automated checks
 
-- JavaScript syntax/lint, pure model/geometry/spring/notification-bridge tests, and strict St.Icon/BoxLayout widget-construction contract tests.
-- Python compilation, shelf storage integrity/permissions/bounds, schema-key references and install-template substitution tests.
-- GSettings schema compilation and a GJS/GLib smoke test in the Fedora CI recipe.
-- Desktop-entry validation and a noarch RPM build in the Fedora CI recipe.
-
-These checks do **not** start a real GNOME Shell compositor. A headless container cannot certify overlay input, animations, Wayland drag-and-drop or Shell lifetime cleanup.
-
-## Local development checks
+Run from the repository root:
 
 ```bash
 npm ci
@@ -17,124 +10,52 @@ make stage
 make check
 ```
 
-On Fedora, also run:
+`make check` runs Python compilation/unit tests, ESLint, Node model/layout tests, schema dry-run compilation, desktop-file validation when available, and `node --check` on every extension module.
 
-```bash
-mkdir -p .generated/schemas
-cp extension/schemas/*.xml .generated/schemas/
-glib-compile-schemas .generated/schemas
-GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" \
-  dbus-run-session -- gjs -m tests/gjs_smoke.js
-```
+Fedora CI additionally runs the GJS/GLib smoke test under `dbus-run-session`, `notch-doctor --offline` with a staged schema, and `make rpm`.
 
-## Live Fedora 44 / GNOME 50 acceptance run
+These checks do **not** start a real GNOME Shell compositor. A headless container cannot certify overlay input, animations, Wayland lifecycle or live MPRIS behavior.
 
-Use a test user/session. Record GNOME Shell, Mutter, GTK4, Libadwaita and kernel versions. Start with:
+## Live acceptance checklist (Fedora 44 / GNOME 50 Wayland)
 
-```bash
-gnome-shell --version
-notch-doctor
-journalctl --user -b -t gnome-shell -f
-```
+### Install and discovery
 
-### Installation and lifetime
+- [ ] `./install.sh --with-deps` completes as the desktop user.
+- [ ] After logout/login, `gnome-extensions enable notch@pavit12301611.github.io` succeeds.
+- [ ] `notch-doctor` reports build 18 loaded and installed, and no legacy helper artifacts.
+- [ ] Updating from build 17 removes `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service` and old Python modules.
+- [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and doctor paths consistently.
+- [ ] Uninstall removes installed files but retains settings until explicitly purged.
 
-- [ ] Fresh user install succeeds without root except optional dependency installation.
-- [ ] Upgrade while logged in never exposes partial `metadata.json`; after logout/login GNOME discovers the extension and doctor reports matching Shell registration/build.
-- [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and helper paths consistently.
-- [ ] Logout/login discovers the extension; enable succeeds without OUT_OF_DATE.
-- [ ] Settings launches from the app grid and from the extension’s preferences action.
-- [ ] Helper is enabled for graphical login and can be bus-activated after idle exit.
-- [ ] Disable/re-enable the extension 20 times: no duplicate actors, shortcuts, timers or bus names.
-- [ ] Logout/login after upgrade loads the new module code; `notch-doctor` reports matching loaded/installed extension builds.
-- [ ] Uninstall removes installed files but retains settings/shelf until explicitly purged.
-- [ ] RPM install/upgrade/remove works without file conflicts or unpackaged schema artifacts.
+### Closed notch and motion
 
-### Geometry, input and animation
+- [ ] Closed notch sits flush with the top panel, replaces the centered clock, and shows idle time.
+- [ ] Music wings appear only while a player is active; equalizer bars animate continuously and stop when hidden/paused/reduced-motion.
+- [ ] Click, hover and Super+` open/close the notch; Escape and outside click collapse it.
+- [ ] Open/close springs finish and snap under reduced motion; no repeating timeline or relayout storm remains.
 
-- [ ] Open/close and hover for 10 minutes: no sustained Shell CPU spike, no freeze, no repeated `relayout storm` warnings.
-- [ ] Rapidly hover in/out and switch tabs: notch remains responsive; if a storm is detected it snaps briefly and recovers.
+### Pages
 
-- [ ] Top-center, floating and panel modes place correctly at 100%, 125%, 150% and 200% scaling.
-- [ ] Primary and secondary monitors; hotplug/unplug; monitor index out of range falls back safely.
-- [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes. Only Alerts scrolls; Home/Music/System fit, Shelf/Clips paginate without hidden overflow.
-- [ ] Header stays centered on every tab: icon-only at normal widths, all six labels only when they fit; no tab text truncates.
-- [ ] 100%/125%/150%/200% display scaling and large text settings do not double-scale or clip the closed clock.
-- [ ] Hover dwell, click, Super+grave, Escape and outside-click behave as documented.
-- [ ] Slider dragging outside the notch does not collapse it mid-gesture.
-- [ ] Fullscreen video/game hides the notch on its monitor and restores it afterward.
-- [ ] Overview, lock screen and unlock do not leave stale chrome or expose clipboard history.
-- [ ] GNOME Enable Animations off and Notch animations off both remove motion.
-- [ ] Experimental reservation changes only the collapsed work-area inset and restores it on disable.
+- [ ] Home shows only a large clock and small date; it is never empty.
+- [ ] Music shows title/artist, transport and seek only when supported; no player shows a clean empty state; no volume or album art appears.
+- [ ] Alerts count matches real cards; long bodies expand/collapse; native actions, dismiss and clear-all work; only Alerts scrolls.
+- [ ] System shows 2×2 metric tiles and working DND/Night Light/Dark Mode toggles; sampling stops when the page is hidden.
+- [ ] Header stays centered on every tab: labels at normal widths, icons when narrow; no tab text truncates.
+- [ ] Expanded content is readable and keyboard-focusable at minimum and maximum sizes and at 100/125/150% text scaling.
 
-### MacBook notch, clock and notifications
+### Notifications and lifecycle
 
-- [ ] Default placement is the top edge; the centered GNOME clock is hidden only while the notch is visible on that monitor.
-- [ ] Idle notch shows local time and respects 12/24-hour and timezone changes.
-- [ ] Ordinary notifications appear as compact notch peeks instead of top-center banners; peek actions, Open and the full Alerts page work.
-- [ ] Critical notifications still use the native banner path.
-- [ ] DND/app banner settings still suppress normal previews; critical notifications still behave as GNOME intends.
-- [ ] Disabling routing or the extension restores native banners, including an active banner.
-- [ ] Fullscreen/overview/lock does not leave the clock hidden or expose notification content through the notch.
-- [ ] Closed notch matches panel height, shows idle clock, and grows music wings only while a player is active.
-- [ ] While music plays, the three green bars pulse rhythmically and smoothly; pause/stop, opening the notch, or disabling animations stops/resets them.
-- [ ] Open/close/page-resize spring animation is smooth, honors GNOME Enable Animations, and does not overshoot the monitor.
-- [ ] Smooth motion profile honors the configured open/close durations.
+- [ ] Ordinary banners become compact peeks; critical alerts keep the native banner path.
+- [ ] DND/app policy is respected; turning routing off restores native banners.
+- [ ] Overview, lock screen and unlock do not leave stale chrome.
+- [ ] Disable/re-enable leaves no timers, signal handlers, bus names, injections or actors behind.
 
-### Media
+### Stability and performance
 
-- [ ] Spotify, Rhythmbox, VLC and Firefox MPRIS appear and disappear cleanly.
-- [ ] Switch players; previous/play/pause/next respect advertised capabilities.
-- [ ] Seek a long track, change tracks while visible, pause, and seek from another client.
-- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no seek feedback loop, no volume controls, no art downloads or image placeholders.
-- [ ] No position timer remains after leaving Media or collapsing the notch.
+- [ ] Opening Music while YouTube/Spotify plays does not freeze the Shell or stutter audio.
+- [ ] Seek slider updates do not feed back into MPRIS commands.
+- [ ] Measure a 10-minute idle session, a visible System page, and visible Music playback. Compare Shell CPU before/after enabling Notch. Use `ps`, `pidstat`, `/proc/PID/smaps_rollup` and GNOME Looking Glass/perf as appropriate. Publish measured numbers with hardware, scaling and workload; do not copy a marketing number from this document.
 
-### Diagnostics and actions
+## Reporting rule
 
-- [ ] CPU/RAM values agree approximately with `top`/`free` over the same interval.
-- [ ] Network rates agree approximately with a known download/upload on the default interface.
-- [ ] Interface changes and counter resets do not produce negative rates.
-- [ ] Battery percentage/state updates on AC plug/unplug; desktop without battery shows AC.
-- [ ] DND, Night Light and Dark Mode reflect and change GNOME’s actual settings.
-- [ ] Hiding a quick action removes it without breaking the others.
-- [ ] Quick-action buttons show on/off state, survive repeated clicks, and report locked/failed settings writes.
-- [ ] Shelf offline state shows Retry; Retry starts the helper and buttons stop silently no-oping.
-- [ ] `notch-doctor` reports helper D-Bus service/systemd unit state and activation failures.
-- [ ] No diagnostics timer remains after leaving System or collapsing the notch.
-
-### Shelf and external drag (highest-risk integration)
-
-- [ ] Home is never blank and does not require scrolling at the default 640×220: only clock/date are visible, with or without MPRIS players.
-- [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title. With no player, Music shows a clean empty state instead of dead controls.
-- [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; Shell chrome yields to the GTK drop surface and the file is stashed on release.
-- [ ] Repeat from an XWayland app / URI-list source; `notch-shelf add <path>` works as a drag-independent fallback.
-- [ ] Repeat with the notch already open on Home/Music/Shelf; successful drop opens Shelf and shows confirmation.
-- [ ] Repeat from an XWayland file manager.
-- [ ] Repeat on secondary monitor and fractional scaling; target aligns with the collapsed notch.
-- [ ] Dropping stores references, never moves/copies/deletes originals.
-- [ ] Cancel/leave hides the GTK target and restores the previous page/open state.
-- [ ] Invalid/remote drops show an error without saving; helper success/failure signals do not leave a stale overlay.
-- [ ] Open, Reveal and Copy URI work; missing files produce an error without crashing Shell.
-- [ ] Add files uses the GTK chooser/portal and updates the Shell list.
-- [ ] Remove/Clear changes references only.
-- [ ] Unicode names, 100-item bound and corrupt shelf JSON are handled safely.
-- [ ] Helper idle exit and reactivation preserve the shelf.
-- [ ] Direct Nautilus drop stashes files without `Invalid GType`; Add files, Open, Reveal, Copy URI and Remove work after a fresh login.
-- [ ] Long notification bodies stay compact with Show more/Show less; the card count matches visible cards; the status footer never overlays page content.
-
-### Clipboard/privacy
-
-- [ ] Default install has clipboard history disabled.
-- [ ] Enabling captures plain text once, deduplicates, restores and respects the entry limit.
-- [ ] Oversized/non-text/mixed-format clips are skipped.
-- [ ] KeePassXC/libsecret-style secrecy hints are skipped when supplied.
-- [ ] Lock, logout, disable and uninstall do not leave history in memory or on disk.
-- [ ] No clipboard text or shelf URI appears in routine journal logs.
-
-### Resource measurements
-
-Measure a 10-minute idle session, a visible System page, visible Media playback, and clipboard-enabled idle. Compare Shell CPU before/after enabling Notch, and helper RSS before/after GTK loads. Use `ps`, `pidstat`, `/proc/PID/smaps_rollup` and GNOME Looking Glass/perf as appropriate. Publish measured numbers with hardware, scaling and workload; do not copy a marketing number from this document.
-
-## Release gate
-
-Do not label the project “tested on Fedora 44” until the live checklist has been run and any failures are fixed or explicitly documented. In particular, compositor-assisted GTK drop positioning must pass on real Wayland hardware before being advertised as universally supported.
+Do not label the project “tested on Fedora 44” until the live checklist has been run and any failures are fixed or explicitly documented.

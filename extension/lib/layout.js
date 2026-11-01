@@ -12,15 +12,14 @@ export const LAYOUT_LIMITS = Object.freeze({
 });
 
 export function headerMode(width) {
-    // A stable icon rail keeps the notch header centered at the default size.
-    // Full labels are only used when there is genuinely room for all six tabs.
-    return width >= 760 ? 'labels' : 'icons';
+    // Four fixed-width tabs fit with labels at the default 640 px notch.
+    // Narrow/large-text layouts collapse to a centered icon rail.
+    return width >= 560 ? 'labels' : 'icons';
 }
 
 export function statColumns(width) {
-    if (width >= 560) return 4;
-    if (width >= 320) return 2;
-    return 1;
+    // A 2x2 metric grid gives values room to breathe; very narrow pages stack.
+    return width >= 320 ? 2 : 1;
 }
 
 export function statusHeight(text, width) {

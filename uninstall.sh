@@ -22,7 +22,6 @@ else
 fi
 cat <<'EOF'
 Notch removed. Log out and back in to unload the Shell module completely.
-Settings and shelf references were retained. To remove them explicitly:
+Settings were retained. To remove them explicitly:
   dconf reset -f /io/github/pavit12301611/Notch/
-  rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/notch/shelf.json"
 EOF

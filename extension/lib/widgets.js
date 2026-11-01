@@ -59,18 +59,15 @@ export function sourceIcon(gicon, fallbackName, size = 16) {
     return widget;
 }
 
-export function emptyState(iconName, title, body) {
-    const widget = box(true, 'notch-empty', 8);
+export function emptyState(title, body) {
+    const widget = box(true, 'notch-empty', 6);
     widget.x_align = Clutter.ActorAlign.CENTER;
     widget.y_align = Clutter.ActorAlign.CENTER;
     widget.y_expand = true;
-    const image = icon(iconName, 32);
-    image.x_align = Clutter.ActorAlign.CENTER;
     const heading = label(title, 'notch-empty-title');
     heading.x_align = Clutter.ActorAlign.CENTER;
     const detail = wrapLabel(body, 'notch-empty-body', false);
     detail.x_align = Clutter.ActorAlign.CENTER;
-    widget.add_child(image);
     widget.add_child(heading);
     widget.add_child(detail);
     return widget;
@@ -114,7 +111,7 @@ export function slider(value, onInput, accessibleName) {
     widget.connect('drag-begin', () => { dragging = true; });
     widget.connect('drag-end', () => { dragging = false; onInput(widget.value); });
     widget.connect('notify::value', () => {
-        // Programmatic updates must never feed back into volume/seek commands.
+        // Programmatic updates must never feed back into seek commands.
         if (dragging || GLib.get_monotonic_time() < suppressUntil) return;
         onInput(widget.value);
     });
