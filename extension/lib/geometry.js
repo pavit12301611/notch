@@ -4,12 +4,12 @@ export {clamp};
 /** Fixed, centered page budgets. Only Alerts owns a scroll view; the other
  * pages use compact layouts and pagination instead of hidden overflow. */
 export const PAGE_SIZES = Object.freeze({
-    home: {width: 640, height: 460},
-    media: {width: 640, height: 400},
-    notifications: {width: 640, height: 400},
-    system: {width: 640, height: 340},
-    shelf: {width: 640, height: 440},
-    clipboard: {width: 640, height: 440},
+    home: {width: 640, height: 220},
+    media: {width: 640, height: 300},
+    notifications: {width: 640, height: 380},
+    system: {width: 640, height: 320},
+    shelf: {width: 640, height: 400},
+    clipboard: {width: 640, height: 400},
 });
 
 export function surfaceRadii(mode, options = {}) {

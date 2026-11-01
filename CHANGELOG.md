@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### v16 — minimal MacBook-notch Home/Music, no volume UI
+
+- Home is now only a centered clock and date. Remove the Home media card, quick
+  actions, Quick stash card and recent-file row; Shelf remains the file surface.
+- Music removes player volume, system output volume/mute and the raise button.
+  It keeps only title/artist/player switcher, progress/seek and previous/play/next.
+- Remove the Gvc `AudioController` module entirely so the extension no longer
+  connects to the Shell mixer for volume UI.
+- Compact open page budgets: Home 640×220, Music 640×300, Alerts 640×380,
+  System 640×320, Shelf/Clips 640×400. Only Alerts scrolls.
+- Bump build to 16.
+
+
 ### v15 — clean centered UI, Alerts-only scrolling, reliable file stash
 
 - Fix the GTK drop target raising `Invalid GType`: `set_gtypes` now receives

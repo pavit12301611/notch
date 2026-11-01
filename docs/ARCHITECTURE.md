@@ -42,13 +42,13 @@ This is the most compositor-sensitive part of the project and must be tested wit
 - Escape/outside-click handling does not install a modal grab. Slider grabs postpone pointer-leave/auto-hide collapse.
 - The helper window is placed only when its geometry/mapped state changes, not on every pointer-motion event.
 
-## Media and audio
+## Media
 
 `MediaController` watches `NameOwnerChanged`, creates root/player proxies, and listens for property changes and `Seeked`. It selects a playing player initially and lets the user cycle between available players. Position is fetched only when needed because MPRIS does not generally emit position property changes.
 
 Capabilities come from the player (`CanPlay`, `CanPause`, `CanSeek`, etc.). `SetPosition` is preferred when a valid track object path exists; `Seek` is the fallback. Errors are surfaced without logging media metadata.
 
-System volume reuses `ui/status/volume.js:getMixerControl()`. Opening another `Gvc.MixerControl` would create another audio connection, so the helper module deliberately does not do that. The shared control is disconnected from this extension’s signals on disable, but never closed by this extension.
+The extension does not own volume controls or open a Gvc mixer connection. System volume remains in GNOME Quick Settings; Notch only sends MPRIS transport/seek commands.
 
 ## Diagnostics
 

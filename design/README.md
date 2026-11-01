@@ -91,3 +91,7 @@ A later user screenshot showed Quick stash below the Home viewport, blue theme i
 ## v15 implementation note
 
 The user requested a clean, centered UI with no scrolling except Alerts, and a text-first Music page because album art never appeared reliably. v15 supersedes the deck’s album-art and scrollable-page mockups: only Alerts scrolls, Shelf/Clips paginate, Music removes cover art entirely, and the GTK drop target fixes the `Invalid GType` stash failure.
+
+## v16 implementation note
+
+The generated concept images were rejected. v16 follows the minimal MacBook-notch direction more strictly: Home is clock/date only, Music has no volume controls or raise button, the Gvc/audio module is removed, and open page heights are compact (Home 640×220, Music 640×300). Shelf/Clips remain paginated; only Alerts scrolls.

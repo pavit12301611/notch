@@ -81,13 +81,12 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Open/close/page-resize spring animation is smooth, honors GNOME Enable Animations, and does not overshoot the monitor.
 - [ ] Smooth motion profile honors the configured open/close durations.
 
-### Media/audio
+### Media
 
 - [ ] Spotify, Rhythmbox, VLC and Firefox MPRIS appear and disappear cleanly.
 - [ ] Switch players; previous/play/pause/next respect advertised capabilities.
 - [ ] Seek a long track, change tracks while visible, pause, and seek from another client.
-- [ ] Player volume and system output volume/mute stay synchronized with external changes.
-- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no slider/volume feedback loop, no art downloads or image placeholders.
+- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no seek feedback loop, no volume controls, no art downloads or image placeholders.
 - [ ] No position timer remains after leaving Media or collapsing the notch.
 
 ### Diagnostics and actions
@@ -105,7 +104,7 @@ journalctl --user -b -t gnome-shell -f
 
 ### Shelf and external drag (highest-risk integration)
 
-- [ ] Home is never blank and does not require scrolling at the default 640×460: clock/date, quick actions, player title and Quick stash are visible with and without MPRIS players.
+- [ ] Home is never blank and does not require scrolling at the default 640×220: only clock/date are visible, with or without MPRIS players.
 - [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title.
 - [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; Shell chrome yields to the GTK drop surface and the file is stashed on release.
 - [ ] Repeat from an XWayland app / URI-list source; `notch-shelf add <path>` works as a drag-independent fallback.

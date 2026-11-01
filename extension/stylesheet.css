@@ -42,15 +42,7 @@
 
 /* Controls. Symbolic rendering keeps icons monochrome and inheriting color. */
 .notch-tab, .notch-button, .notch-action, .notch-icon-button, .notch-small-button,
-.notch-peek-action, .notch-link, .notch-empty {
-  -st-icon-style: symbolic;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  color: #e5e5ea;
-  background-color: #2c2c2e;
-  transition-duration: 130ms;
-}
-.notch-tab { padding: 6px 10px; background-color: transparent; color: #a1a1a6; font-weight: 600; }
+.notch-peek-action, .notch-tab { padding: 6px 10px; background-color: transparent; color: #a1a1a6; font-weight: 600; }
 .notch-tab-icon { padding: 6px 8px; }
 .notch-button { padding: 7px 12px; }
 .notch-action { padding: 8px 12px; }
@@ -79,36 +71,19 @@
 .notch-play:hover, .notch-play:focus { background-color: #ffffff; }
 .notch-play-large { border-radius: 22px; padding: 10px 18px; }
 .notch-transport { padding: 10px; }
-.notch-link { background-color: transparent; color: #a1a1a6; padding: 4px 6px; font-size: 0.9em; }
-.notch-link:hover { color: #f5f5f7; }
 .notch-action-active, .notch-action-active:hover, .notch-action-active:focus {
   background-color: #f5f5f7;
   color: #000000;
   border-color: transparent;
 }
-.notch-action-compact { padding: 7px 10px; font-size: 0.9em; }
 
 /* Typography and cards. */
 .notch-title { font-weight: 700; font-size: 1.05em; color: #f5f5f7; }
 .notch-muted { color: #98989d; font-size: 0.9em; }
 .notch-home-page { spacing: 10px; }
-.notch-home-idle { spacing: 4px; }
-.notch-home-clock { font-size: 2em; font-weight: 700; color: #f5f5f7; }
+.notch-home-idle { spacing: 6px; }
+.notch-home-clock { font-size: 2.4em; font-weight: 700; color: #f5f5f7; }
 .notch-home-date { color: #98989d; font-size: 0.95em; }
-.notch-home-actions { spacing: 6px; }
-.notch-home-media { spacing: 6px; padding: 10px 12px; }
-.notch-home-title { font-size: 1.05em; font-weight: 700; color: #f5f5f7; }
-.notch-home-artist { color: #98989d; font-size: 0.85em; }
-.notch-home-controls { spacing: 6px; }
-.notch-home-play { padding: 7px 12px; }
-.notch-home-stash { spacing: 6px; padding: 10px 12px; }
-.notch-home-stash:hover { border-color: rgba(255,255,255,0.14); }
-.notch-home-stash-header { spacing: 8px; }
-.notch-home-stash-actions { spacing: 6px; }
-.notch-home-stash-hint { color: #8e8e93; font-size: 0.85em; }
-.notch-home-recent { spacing: 4px; }
-.notch-home-file { background-color: rgba(255,255,255,0.04); padding: 5px 8px; font-size: 0.9em; }
-.notch-home-file:hover { background-color: rgba(255,255,255,0.09); }
 .notch-card, .notch-row, .notch-notification { transition-duration: 150ms; }
 .notch-card {
   background-color: #1c1c1e;
@@ -124,14 +99,6 @@
 .notch-file-open, .notch-clip-copy { background-color: transparent; padding: 4px 6px; }
 .notch-file-open:hover, .notch-clip-copy:hover { background-color: rgba(255,255,255,0.06); }
 .notch-file-actions { spacing: 6px; }
-.notch-drop {
-  border: 2px dashed #48484a;
-  border-radius: 14px;
-  padding: 12px;
-  color: #98989d;
-  background-color: #111112;
-  font-size: 0.9em;
-}
 .notch-notification {
   background-color: #1c1c1e;
   border: 1px solid rgba(255,255,255,0.06);
@@ -165,17 +132,13 @@
 }
 
 /* Music: text-first, centered, no album-art placeholder. */
-.notch-media-page { spacing: 12px; }
+.notch-media-page { spacing: 10px; }
 .notch-media-title { font-size: 1.35em; font-weight: 700; color: #f5f5f7; }
 .notch-media-artist { color: #98989d; font-size: 0.95em; }
 .notch-media-player { background-color: rgba(255,255,255,0.06); }
 .notch-media-progress { spacing: 8px; padding: 0 24px; }
 .notch-media-time { color: #98989d; font-size: 0.85em; }
-.notch-media-controls { spacing: 12px; }
-.notch-volume-grid { spacing: 18px; padding: 0 24px; }
-.notch-volume-control { spacing: 6px; padding: 8px 10px; background-color: #111112; border-radius: 12px; }
-.notch-output-heading { spacing: 6px; }
-.notch-mute { padding: 4px; }
+.notch-media-controls { spacing: 14px; }
 
 /* System cards. */
 .notch-stats-grid { spacing: 8px; }

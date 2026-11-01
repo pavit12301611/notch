@@ -38,7 +38,7 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 |---|---|
 | Notifications | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps unread count, calendar heading and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible |
 | Idle clock | Local time in the collapsed MacBook-style notch when no notification is active |
-| Media | MPRIS player discovery/switching, clean text-first title/artist display, previous/play/pause/next, seek, player volume, system output volume/mute, raise player |
+| Media | MPRIS player discovery/switching, clean text-first title/artist display, previous/play/pause/next and seek; no volume controls or album art |
 | System | CPU utilization, RAM used/total, UPower battery percentage/state/power, default-interface download/upload rates |
 | Quick actions | Do Not Disturb, Night Light, Dark Mode; each can be hidden in settings |
 | File shelf | Drag local files directly onto the closed/open notch, choose files through GTK/portal, or use `notch-shelf add`; success/error feedback, open, reveal, copy URI, remove reference, clear shelf |
@@ -95,7 +95,7 @@ notch-settings
 notch-doctor
 ```
 
-The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings with a rhythmic animated equalizer, and ordinary notifications appear as compact peeks. Home always shows the clock/date, quick actions, the current song title and a Quick stash card; drag files directly onto the notch to stash them. If a player exposes empty MPRIS metadata, Notch shows “Playing in <player>” instead of a blank title. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+The default is a MacBook-style top-edge notch: idle time sits where the GNOME clock used to be, music grows small closed-state wings with a rhythmic animated equalizer, and ordinary notifications appear as compact peeks. Home shows only the clock/date, like a minimal MacBook notch; drag files directly onto the notch to stash them. If a player exposes empty MPRIS metadata, Notch shows “Playing in <player>” instead of a blank title. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ### Manual dependency installation
 
@@ -193,7 +193,6 @@ notch/
 │       ├── model.js                     # pure parsers, formatters, clipboard ring buffer
 │       ├── notifications.js             # reversible GNOME banner routing into the notch
 │       ├── media.js                     # event-driven MPRIS client
-│       ├── audio.js                     # reuses Shell's Gvc mixer connection
 │       ├── pagination.js                # bounded pagination for non-scrolling Shelf/Clips pages
 │       ├── diagnostics.js               # gated procfs sampling + UPower proxy
 │       ├── actions.js                   # GNOME quick settings
@@ -260,7 +259,7 @@ Changes are live through GSettings. The schema enforces ranges. For multi-monito
 
 - No separate polling media daemon. MPRIS names/properties/seek notifications and UPower property changes are event-driven.
 - CPU/RAM/network sampling: one timer, **only while System is visible**.
-- Media position refresh: one timer, **only while Media is visible**; playback controls themselves are signal-driven.
+- Media position refresh: one timer, **only while Media is visible**; playback controls themselves are signal-driven. No extension-owned volume/mixer UI.
 - Clipboard: automatic capture is off by default; when enabled, one bounded selection transfer per second while unlocked.
 - Music UI is text-first: no album-art downloads, image decoding or broken cover placeholders.
 - Helper: no visible window at startup, lazy GTK import, five-minute idle exit, bus activation on demand.
