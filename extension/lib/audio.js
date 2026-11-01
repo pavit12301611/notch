@@ -31,7 +31,9 @@ export class AudioController {
 
     setVolume(fraction) {
         if (!this.sink || this.snapshot().available === false) return;
-        this.sink.volume = Math.max(0, Math.min(1, fraction)) * this.control.get_vol_max_norm();
+        const next = Math.max(0, Math.min(1, fraction));
+        if (Math.abs(this.snapshot().volume - next) < 0.002) return;
+        this.sink.volume = next * this.control.get_vol_max_norm();
         this.sink.push_volume();
     }
 

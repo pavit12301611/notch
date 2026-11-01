@@ -4,7 +4,7 @@
 # Override the downloaded ref with NOTCH_REF=<branch-tag-or-commit>.
 set -euo pipefail
 
-REF="${NOTCH_REF:-arena/a8df1ad3-notch}"
+REF="${NOTCH_REF:-main}"
 REPO='pavit12301611/notch'
 
 if [[ ${1:-} == '-h' || ${1:-} == '--help' ]]; then
@@ -18,10 +18,10 @@ Usage: bash bootstrap.sh [--with-deps] [--no-enable] [--user]
 
 Environment:
   NOTCH_REF     Branch name, refs/tags/<tag>, or commit SHA.
-                Default: arena/a8df1ad3-notch
+                Default: main
 
 Example:
-  curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/a8df1ad3-notch/scripts/bootstrap.sh | bash -s -- --with-deps
+  curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/main/scripts/bootstrap.sh | bash -s -- --with-deps
 
 After installation, log out and back in. Settings and shelf data are retained.
 Do not run this script with sudo; the dependency step requests sudo itself.

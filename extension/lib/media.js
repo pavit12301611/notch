@@ -19,11 +19,13 @@ export class MediaController {
         this.onError = onError;
         this.players = new Map();
         this.selected = '';
+        this.manualSelection = false;
         this.cancellable = new Gio.Cancellable();
         this.dead = false;
         this.positionPending = false;
         this.position = {name: '', trackId: '', value: 0, updated: 0};
         this.watch = 0;
+        this._changeTimer = 0;
     }
 
     start() {
@@ -65,11 +67,12 @@ export class MediaController {
                 if ('Metadata' in keys) this.position.value = 0;
                 if ('Metadata' in keys || 'PlaybackStatus' in keys || 'Rate' in keys)
                     this.refreshPosition();
-                this.onChange();
+                if ('Metadata' in keys || 'PlaybackStatus' in keys) this.preferPlaying();
+                this.scheduleChange();
             }, 'g-signal', (_p, _sender, signal, params) => {
                 if (signal === 'Seeked') {
                     this.setPosition(name, params.deepUnpack()[0]);
-                    this.onChange();
+                    this.scheduleChange();
                 }
             }, 'notify::g-name-owner', proxy => {
                 if (!proxy.g_name_owner) this.remove(name);
@@ -77,12 +80,10 @@ export class MediaController {
             root.connectObject('notify::g-name-owner', proxy => {
                 if (!proxy.g_name_owner) this.remove(name);
             }, this);
-            if (!this.players.has(this.selected)) {
-                const playing = [...this.players.values()].find(p => p.player.PlaybackStatus === 'Playing');
-                this.selected = playing?.name ?? name;
-            }
+            if (!this.players.has(this.selected)) this.selected = name;
+            this.preferPlaying();
             this.refreshPosition();
-            this.onChange();
+            this.scheduleChange();
         } catch (e) { this.report(e); }
     }
 
@@ -93,11 +94,21 @@ export class MediaController {
         entry.root.disconnectObject(this);
         this.players.delete(name);
         if (this.selected === name) {
-            this.selected = [...this.players.values()].find(p => p.player.PlaybackStatus === 'Playing')?.name ??
-                this.players.keys().next().value ?? '';
+            this.manualSelection = false;
+            this.selected = this.players.keys().next().value ?? '';
+            this.preferPlaying();
             this.refreshPosition();
         }
-        this.onChange();
+        this.scheduleChange();
+    }
+
+    scheduleChange() {
+        if (this.dead || this._changeTimer) return;
+        this._changeTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 60, () => {
+            this._changeTimer = 0;
+            if (!this.dead) this.onChange();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     snapshot() {
@@ -124,9 +135,10 @@ export class MediaController {
     setPositionActive(active) {
         if (active && !this.positionTimer) {
             this.refreshPosition();
+            this.scheduleChange();
             this.positionTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
                 this.refreshPosition();
-                this.onChange();
+                this.scheduleChange();
                 return GLib.SOURCE_CONTINUE;
             });
         } else if (!active && this.positionTimer) {
@@ -135,12 +147,26 @@ export class MediaController {
         }
     }
 
+    preferPlaying() {
+        if (this.manualSelection || this.dead) return;
+        const current = this.players.get(this.selected);
+        if (current?.player.PlaybackStatus === 'Playing') return;
+        const playing = [...this.players.values()]
+            .filter(p => p.player.PlaybackStatus === 'Playing')
+            .sort((a, b) => Number(!!mediaMetadata(b.player.Metadata).title) - Number(!!mediaMetadata(a.player.Metadata).title))[0];
+        if (playing && playing.name !== this.selected) {
+            this.selected = playing.name;
+            this.refreshPosition();
+        }
+    }
+
     cyclePlayer() {
         const names = [...this.players.keys()];
         if (!names.length) return;
+        this.manualSelection = true;
         this.selected = names[(names.indexOf(this.selected) + 1) % names.length];
         this.refreshPosition();
-        this.onChange();
+        this.scheduleChange();
     }
 
     setPosition(name, value) {
@@ -181,14 +207,16 @@ export class MediaController {
         else
             this.command('Seek', new GLib.Variant('(x)', [target - state.positionUs]));
         this.setPosition(this.selected, target);
-        this.onChange();
+        this.scheduleChange();
     }
 
     setVolume(value) {
         const entry = this.players.get(this.selected);
         if (!entry) return;
+        const next = Math.max(0, Math.min(1, value));
+        if (typeof entry.player.Volume === 'number' && Math.abs(entry.player.Volume - next) < 0.002) return;
         const parameters = new GLib.Variant('(ssv)', [PLAYER, 'Volume',
-            new GLib.Variant('d', Math.max(0, Math.min(1, value)))]);
+            new GLib.Variant('d', next)]);
         call(entry.player, 'org.freedesktop.DBus.Properties.Set', parameters)
             .catch(e => this.report(e));
     }
@@ -205,6 +233,8 @@ export class MediaController {
 
     destroy() {
         this.setPositionActive(false);
+        if (this._changeTimer) GLib.source_remove(this._changeTimer);
+        this._changeTimer = 0;
         this.dead = true;
         this.cancellable.cancel();
         if (this.watch) Gio.DBus.session.signal_unsubscribe(this.watch);

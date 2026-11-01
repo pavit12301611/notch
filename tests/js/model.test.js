@@ -6,7 +6,7 @@ import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
     formatBytes, formatTime, seekTarget, safeTextMimetype, ClipboardHistory, plainText,
-    helperErrorMessage} from '../../extension/lib/model.js';
+    helperErrorMessage, mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -35,12 +35,40 @@ test('MPRIS metadata tolerates malformed players and recursive variants', () => 
     assert.equal(metadata.title, 'Song');
     assert.equal(metadata.artist, 'A, B');
     assert.equal(metadata.lengthUs, 123456789);
-    assert.equal(mediaMetadata({'xesam:artist': 'wrong', 'mpris:length': -5}).artist, '');
+    assert.equal(mediaMetadata({'xesam:artist': 'wrong', 'mpris:length': -5}).artist, 'wrong');
     assert.equal(mediaMetadata({'mpris:length': 'bad'}).lengthUs, 0);
     assert.equal(mediaMetadata({deepUnpack: () => ({'xesam:title': 'Wrapped'})}).title, 'Wrapped');
+    const variant = value => ({deepUnpack: () => value});
+    const nested = mediaMetadata({'xesam:title': variant('Affaaz'), 'xesam:artist': [variant('Hamza'), variant('Zain')],
+        'mpris:length': variant(200000000), 'mpris:trackid': variant('/org/mpris/track/2')});
+    assert.equal(nested.title, 'Affaaz');
+    assert.equal(nested.artist, 'Hamza, Zain');
+    assert.equal(nested.lengthUs, 200000000);
+    assert.equal(nested.trackId, '/org/mpris/track/2');
+    assert.equal(mediaDisplayTitle({names: ['brave'], status: 'Playing', identity: 'Brave', title: ''}), 'Playing in Brave');
+    assert.equal(mediaDisplayTitle({names: ['brave'], status: 'Paused', identity: 'Brave', title: ''}), 'Paused in Brave');
+    assert.equal(mediaDisplayTitle({names: [], status: 'Stopped', title: ''}), 'Nothing playing');
+    assert.equal(mediaDisplayTitle({names: ['brave'], status: 'Playing', title: 'Song'}), 'Song');
+    assert.equal(mediaDisplayArtist({names: ['brave'], identity: 'Brave', artist: ''}), 'Brave');
     assert.equal(mediaMetadata({'mpris:trackid': 'not-an-object-path'}).trackId, '');
     assert.equal(seekTarget(1000, 2), 1000);
     assert.equal(seekTarget(1000, -1), 0);
+});
+
+test('closed-notch equalizer loops through bounded rhythmic levels', () => {
+    const first = visualizerLevels(0);
+    assert.equal(first.length, 3);
+    assert.deepEqual(visualizerLevels(8), first);
+    assert.deepEqual(visualizerLevels(-1), visualizerLevels(7));
+    const seen = new Set();
+    for (let step = 0; step < 8; step++) {
+        const levels = visualizerLevels(step);
+        for (const level of levels) {
+            assert.ok(level >= 0.25 && level <= 1);
+            seen.add(level);
+        }
+    }
+    assert.ok(seen.size >= 6, 'equalizer should visibly vary instead of staying static');
 });
 
 test('CPU deltas exclude guest double-counting and handle first sample/reset', () => {
@@ -105,7 +133,7 @@ test('formatting is stable for missing values and boundaries', () => {
 
 test('MacBook notch attaches to the top edge and expands around the same center', () => {
     const mac = {...options, placement: 'panel', collapsedWidth: 185, collapsedHeight: 32,
-        expandedWidth: 640, expandedHeight: 320, matchPanelHeight: true, tab: 'home'};
+        expandedWidth: 640, expandedHeight: 360, matchPanelHeight: true, tab: 'home'};
     const closed = notchGeometry(monitor, mac, false);
     const open = notchGeometry(monitor, mac, true);
     assert.equal(closed.y, 0);

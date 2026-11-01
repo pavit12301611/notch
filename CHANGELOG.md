@@ -2,6 +2,77 @@
 
 ## Unreleased
 
+### v14 — atomic extension installation and discovery diagnostics
+
+- Publish the extension from a validated staging directory instead of writing
+  `metadata.json` and JS files in place. GNOME can no longer observe a zero-byte
+  metadata file during an upgrade; failed final publication restores the previous
+  complete directory.
+- Honor `XDG_DATA_HOME` for user installs/uninstalls and keep launcher paths in sync.
+- `notch-doctor` now distinguishes installed files from GNOME Shell registration,
+  reports load errors/out-of-date state, and tells the user to log out/in when a
+  newly installed extension has not been discovered by the current session.
+- Build 14 changes installation/diagnostics only; it is not a claimed fix for the
+  reported media freeze.
+
+### v13 — media-tab audio stutter / feedback protection
+
+- Programmatic slider updates now suppress `notify::value` feedback for 150 ms,
+  so updating the seek/volume sliders cannot re-enter `setVolume`/`seekTo`.
+- System and MPRIS volume setters ignore no-op changes, preventing PulseAudio /
+  D-Bus feedback loops when a player or sink reports the same volume back.
+- MPRIS UI updates are coalesced to at most one per 60 ms, instead of rebuilding
+  on every property burst from browsers/YouTube.
+- Audio UI updates only run while the Music page is open.
+- Album-art loading is single-flight per URL and remote art is rate-limited, so a
+  chatty YouTube MPRIS source cannot spawn repeated downloads/decodes.
+
+
+### v12 — freeze safety for open-notch use
+
+- Geometry animation is now a single-shot Clutter timeline with a hard watchdog
+  instead of a repeating timeline. If a spring stalls, the notch snaps to the
+  target instead of repainting forever.
+- Added a relayout reentrancy guard and a 40-pass/second storm budget; a feedback
+  storm temporarily snaps geometry instead of spinning the GNOME Shell main loop.
+- Geometry application is rounded/deduplicated, and page lists are no longer
+  rebuilt on every layout pass. ScrollView pages keep natural height instead of
+  y-expanding inside automatic scrollbars, avoiding allocation feedback loops.
+- Local album-art metadata is queried asynchronously so a slow FUSE/network file
+  cannot block the Shell main thread.
+- The closed-notch equalizer stops itself if an animation error occurs.
+
+
+### v11 — rhythmic closed-notch equalizer
+
+- The three green media bars now animate continuously with eased `scale_y`
+  targets from a looping rhythm pattern, instead of changing CSS height in
+  discrete steps. They grow from the bottom edge and stop/reset when playback,
+  visibility or animation settings turn off.
+
+
+### v10 — visible Quick stash, reliable drop/save, real song titles
+
+- Home now uses a compact 640×360 dashboard: clock/date + quick actions, a one-row player card with wrapped song title, and a Quick stash card that stays inside the default viewport. The old 320px preset is migrated to 360px.
+- Fixed MPRIS metadata parsing for nested GLib variants, so `xesam:title`, artists, duration and track id are read correctly from browsers/players. Active players with empty metadata show “Playing in …” instead of a misleading “Nothing playing”; disabled controls look disabled.
+- Direct file drop now hides the Shell chrome while the GTK drop surface is mapped over the notch, so the drop actually reaches GTK instead of being painted over by the extension. The helper window is reused, positioned again after map, and accepts both `GdkFileList` and URI-list/text drops.
+- Document-portal `/run/user/.../doc/...` paths are resolved back to stable host paths when possible. Shelf writes fsync the directory as well as the file.
+- Added `notch-shelf add/list/remove/clear/info` as a drag-independent way to stash files and inspect storage; added helper `GetInfo` and doctor build/storage checks.
+- Bundled original monochrome chrome icons so third-party Shell/icon themes cannot turn notch controls blue. Album art and notification app icons remain full-color.
+
+
+### v9 — Home dashboard, direct notch drop, coordinated motion
+
+- Rebuilt Home as a real scrollable page instead of a visibility-switched stack. The clock/date block is always present; Quick stash shows count, Add/Open actions and recent files, so Home cannot render as an empty black body.
+- Increased the Home page to 640×320 and kept compact/narrow reflow with vertical scrolling.
+- Direct file drop now targets the physical closed/open notch rectangle, not only a separate GTK window below the panel. The helper is prewarmed, positioned by Mutter, and reports success/failure back to the Shell.
+- Added `PrepareDropTarget`, `DropCompleted` and `DropFailed` helper D-Bus contracts; successful drops open Shelf and show an in-notch confirmation. Originals are still never moved/copied/deleted.
+- Added coordinated page crossfade/slide, open/close content translation, peek fade, status-footer fade and stash pulse. All explicit motion respects Notch animations and GNOME Enable Animations; the GTK drop card respects GTK animations.
+- Forced symbolic icon rendering at the notch root and styled notch scrollbars monochrome; album art remains full-color.
+- Fixed the remote installer documentation: `NOTCH_REF` belongs to the `bash` process after the pipe. Bootstrap default ref is now `main`; v9 development installs explicitly pin the active branch.
+- Added drop-geometry, helper drop-result and v9 contract tests.
+
+
 ### Adaptive layout and action reliability
 
 - Design/spacing polish: 20px content gutters, 44px header, consistent page/list/card spacing, centered empty-state cards, and monochrome symbolic control icons (album art stays full-color).

@@ -57,6 +57,7 @@ glib-compile-schemas %{buildroot}%{_datadir}/gnome-shell/extensions/notch@pavit1
 %{_bindir}/notch-settings
 %{_bindir}/notch-helper
 %{_bindir}/notch-doctor
+%{_bindir}/notch-shelf
 %{_datadir}/notch/
 %{_datadir}/gnome-shell/extensions/notch@pavit12301611.github.io/
 %{_datadir}/glib-2.0/schemas/io.github.pavit12301611.Notch.gschema.xml

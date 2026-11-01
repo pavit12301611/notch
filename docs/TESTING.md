@@ -40,6 +40,8 @@ journalctl --user -b -t gnome-shell -f
 ### Installation and lifetime
 
 - [ ] Fresh user install succeeds without root except optional dependency installation.
+- [ ] Upgrade while logged in never exposes partial `metadata.json`; after logout/login GNOME discovers the extension and doctor reports matching Shell registration/build.
+- [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and helper paths consistently.
 - [ ] Logout/login discovers the extension; enable succeeds without OUT_OF_DATE.
 - [ ] Settings launches from the app grid and from the extension’s preferences action.
 - [ ] Helper is enabled for graphical login and can be bus-activated after idle exit.
@@ -49,6 +51,10 @@ journalctl --user -b -t gnome-shell -f
 - [ ] RPM install/upgrade/remove works without file conflicts or unpackaged schema artifacts.
 
 ### Geometry, input and animation
+
+- [ ] Open/close and hover for 10 minutes: no sustained Shell CPU spike, no freeze, no repeated `relayout storm` warnings.
+- [ ] Rapidly hover in/out and switch tabs: notch remains responsive; if a storm is detected it snaps briefly and recovers.
+- [ ] Album art on a slow/network mount does not block the Shell while opening Home/Music.
 
 - [ ] Top-center, floating and panel modes place correctly at 100%, 125%, 150% and 200% scaling.
 - [ ] Primary and secondary monitors; hotplug/unplug; monitor index out of range falls back safely.
@@ -72,6 +78,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Disabling routing or the extension restores native banners, including an active banner.
 - [ ] Fullscreen/overview/lock does not leave the clock hidden or expose notification content through the notch.
 - [ ] Closed notch matches panel height, shows idle clock, and grows music wings only while a player is active.
+- [ ] While music plays, the three green bars pulse rhythmically and smoothly; pause/stop, opening the notch, or disabling animations stops/resets them.
 - [ ] Open/close/page-resize spring animation is smooth, honors GNOME Enable Animations, and does not overshoot the monitor.
 - [ ] Smooth motion profile honors the configured open/close durations.
 
@@ -81,6 +88,7 @@ journalctl --user -b -t gnome-shell -f
 - [ ] Switch players; previous/play/pause/next respect advertised capabilities.
 - [ ] Seek a long track, change tracks while visible, pause, and seek from another client.
 - [ ] Player volume and system output volume/mute stay synchronized with external changes.
+- [ ] YouTube/Brave playback with Music tab open for 10 minutes: no audio stutter, no slider/volume feedback loop, no repeated art downloads.
 - [ ] Local file art, data URI art and HTTPS art render; broken/oversized art falls back safely.
 - [ ] Disabling remote art prevents HTTP(S) art requests.
 - [ ] No position timer remains after leaving Media or collapsing the notch.
@@ -100,11 +108,16 @@ journalctl --user -b -t gnome-shell -f
 
 ### Shelf and external drag (highest-risk integration)
 
-- [ ] Drag one and multiple local files from native Wayland Files toward the notch.
+- [ ] Home is never blank and does not require scrolling at the default 640×360: clock/date, quick actions, player title and Quick stash are visible with and without MPRIS players.
+- [ ] Song title/artist appear for Brave/Firefox/Spotify/Rhythmbox/VLC; empty metadata shows “Playing in …”, not a blank title.
+- [ ] Drag one and multiple local files from native Wayland Files directly onto the closed notch; Shell chrome yields to the GTK drop surface and the file is stashed on release.
+- [ ] Repeat from an XWayland app / URI-list source; `notch-shelf add <path>` works as a drag-independent fallback.
+- [ ] Repeat with the notch already open on Home/Music/Shelf; successful drop opens Shelf and shows confirmation.
 - [ ] Repeat from an XWayland file manager.
 - [ ] Repeat on secondary monitor and fractional scaling; target aligns with the collapsed notch.
 - [ ] Dropping stores references, never moves/copies/deletes originals.
-- [ ] Cancel/leave hides the GTK target and restores normal window behavior.
+- [ ] Cancel/leave hides the GTK target and restores the previous page/open state.
+- [ ] Invalid/remote drops show an error without saving; helper success/failure signals do not leave a stale overlay.
 - [ ] Open, Reveal and Copy URI work; missing files produce an error without crashing Shell.
 - [ ] Add files uses the GTK chooser/portal and updates the Shell list.
 - [ ] Remove/Clear changes references only.

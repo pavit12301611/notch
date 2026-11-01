@@ -17,7 +17,7 @@ else
   UUID='notch@pavit12301611.github.io'
   if command -v gnome-extensions >/dev/null; then gnome-extensions disable "$UUID" 2>/dev/null || true; fi
   systemctl --user disable --now notch-helper.service 2>/dev/null || true
-  make -C "$ROOT" uninstall PREFIX="$HOME/.local" SYSCONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}"
+  make -C "$ROOT" uninstall PREFIX="$HOME/.local" DATADIR="${XDG_DATA_HOME:-$HOME/.local/share}" SYSCONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}"
   systemctl --user daemon-reload 2>/dev/null || true
 fi
 cat <<'EOF'

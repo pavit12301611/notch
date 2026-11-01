@@ -87,6 +87,13 @@ class ShelfStore:
                 os.fsync(stream.fileno())
             os.chmod(temporary, 0o600)
             os.replace(temporary, self.path)
+            # Persist the directory entry too, so a power loss right after a
+            # successful drop cannot leave an empty/old shelf on next login.
+            dir_fd = os.open(self.path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
         finally:
             try:
                 os.unlink(temporary)
