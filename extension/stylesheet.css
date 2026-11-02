@@ -1,5 +1,5 @@
 /* MacBook-inspired notch chrome.
-   Build 20: four pages, opt-in extras, bounded header and transient feedback.
+   Build 21: dedicated calendar tab, opt-in extras, bounded header and transient feedback.
    Only Alerts owns a scroll view; every other page is a centered natural block. */
 .notch-shell {
   background-color: transparent;
@@ -204,14 +204,52 @@
 .notch-alerts-scroll StScrollBar StButton#vhandle:hover { background-color: #98989d; }
 
 /* Optional features: use the existing quiet typography and four-page layout. */
-.notch-date-button { background-color: transparent; border-radius: 8px; padding: 2px 6px; }
-.notch-date-button:hover, .notch-date-button:focus { background-color: rgba(255,255,255,0.08); }
-.notch-timer { padding: 4px; spacing: 5px; }
-.notch-timer-value { color: #f5f5f7; font-size: 1.3em; font-weight: 600; }
-.notch-calendar { padding: 2px 0; spacing: 2px; }
-.notch-calendar-weekday { color: #98989d; font-size: 0.75em; padding: 2px 0; }
-.notch-calendar-day, .notch-calendar-today { font-size: 0.85em; padding: 2px 0; }
-.notch-calendar-today { background-color: #0a84ff; color: white; border-radius: 8px; font-weight: 700; }
+/* Calendar: quiet layered card, distinct current/selected dates and equal slots. */
+.notch-calendar-page { padding: 4px 8px 8px; }
+.notch-calendar-card {
+  padding: 12px;
+  spacing: 10px;
+  background-color: #141416;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.notch-calendar-year { color: #8e8e96; font-size: 0.75em; font-weight: 600; }
+.notch-calendar-month { color: #f5f5f7; font-size: 1.6em; font-weight: 700; }
+.notch-calendar-today-button, .notch-calendar-nav-button {
+  padding: 5px 9px;
+  color: #d1d1d6;
+  background-color: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 9px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.notch-calendar-nav-button { padding: 2px 10px; font-size: 1.2em; }
+.notch-calendar-weekday { color: #7f7f88; font-size: 0.7em; font-weight: 600; padding: 3px 0; }
+.notch-calendar-day {
+  color: #e5e5ea;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition-duration: 100ms;
+}
+.notch-calendar-weekend { color: #aaaab3; }
+.notch-calendar-adjacent { color: #505058; }
+.notch-calendar-today { color: #71b7ff; border-color: rgba(64,156,255,0.65); font-weight: 700; }
+.notch-calendar-selected { background-color: #0a84ff; color: white; border-color: #0a84ff; font-weight: 700; }
+.notch-calendar-day:hover { background-color: rgba(255,255,255,0.10); }
+.notch-calendar-selected:hover { background-color: #2997ff; }
+.notch-calendar-day:focus, .notch-calendar-today-button:focus, .notch-calendar-nav-button:focus {
+  border-color: #b4d8ff;
+  box-shadow: inset 0 0 0 1px #b4d8ff;
+}
+.notch-calendar-today-button:hover, .notch-calendar-nav-button:hover { background-color: #303036; }
+.notch-calendar-selection { padding: 10px 4px 0; border-top: 1px solid rgba(255,255,255,0.07); }
+.notch-calendar-selection-hint { color: #7f7f88; font-size: 0.7em; }
+.notch-calendar-selected-date { color: #d1d1d6; font-size: 0.85em; font-weight: 600; }
 .notch-cue { spacing: 4px; padding: 0 6px; }
 .notch-cue-text { color: #f5f5f7; font-size: 0.8em; }
 .notch-bluetooth { padding: 4px; spacing: 4px; }

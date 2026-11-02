@@ -1,11 +1,10 @@
 /** Optional feature configuration shared by the Shell view and its preferences. */
 export const FEATURES = [
-    ['timer-enabled', 'Timer / Pomodoro', 'Countdown on Home and in the closed notch. Switching off resets it.'],
     ['volume-indicator', 'Volume indicator', 'Replace the native volume OSD while the notch is available.'],
     ['brightness-indicator', 'Brightness indicator', 'Replace the native brightness OSD on the notch monitor.'],
     ['notification-privacy', 'Notification privacy', 'Hide titles, bodies and actions in notch peeks and Alerts. Native banners are unchanged.'],
     ['bluetooth-battery', 'Bluetooth battery', 'Connected BlueZ devices that expose battery data, plus connection cues.'],
-    ['calendar-enabled', 'Mini calendar', 'Click the Home date to open a local monthly calendar. No account access.'],
+    ['calendar-enabled', 'Calendar tab', 'Show a dedicated monthly calendar tab with date selection. No account access.'],
     ['per-app-peeks', 'Per-app notification peeks', 'Selected apps stay in Alerts without a notch peek. GNOME policy still applies.'],
     ['music-polish', 'Music title scrolling & player picker', 'Scroll overflowing titles and choose a player directly. Respects reduced motion.'],
     ['media-art', 'Local album artwork', 'Show local MPRIS artwork only. No remote image downloads.'],
@@ -27,58 +26,28 @@ export function notificationText(notification, privacy) {
     return {title: notification.title || notification.source?.title || 'Notification', body: notification.body || ''};
 }
 
+export function sameDate(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Move months without overflowing dates such as January 31 into March. */
+export function shiftCalendarMonth(date, delta) {
+    const first = new Date(date.getFullYear(), date.getMonth() + delta, 1, 12);
+    const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0, 12).getDate();
+    return new Date(first.getFullYear(), first.getMonth(), Math.min(date.getDate(), lastDay), 12);
+}
+
 /** Local dates (not UTC) avoid day shifts near midnight. Monday is column zero. */
 export function calendarMonth(year, month, today = new Date()) {
     const first = new Date(year, month, 1, 12);
     const offset = (first.getDay() + 6) % 7;
-    const days = new Date(year, month + 1, 0, 12).getDate();
     return {year: first.getFullYear(), month: first.getMonth(),
         title: first.toLocaleDateString([], {month: 'long', year: 'numeric'}),
         cells: Array.from({length: 42}, (_, index) => {
-            const day = index - offset + 1;
-            return {day: day > 0 && day <= days ? day : null,
-                today: day > 0 && day <= days && today.getFullYear() === first.getFullYear() &&
-                    today.getMonth() === first.getMonth() && today.getDate() === day};
+            const date = new Date(first.getFullYear(), first.getMonth(), index - offset + 1, 12);
+            return {date, day: date.getDate(), inMonth: date.getMonth() === first.getMonth(),
+                weekend: index % 7 >= 5, today: sameDate(date, today)};
         })};
-}
-
-export function countdownText(seconds) {
-    const value = Math.max(0, Math.ceil(seconds));
-    return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
-}
-
-/** Injected monotonic clock makes pause/resume and delayed ticks deterministic. */
-export class Countdown {
-    constructor(now) {
-        this.now = now;
-        this.reset(25 * 60);
-    }
-    reset(seconds) {
-        this.duration = Math.max(1, seconds);
-        this.remaining = this.duration;
-        this.running = false;
-        this.done = false;
-    }
-    seconds() {
-        return this.running ? Math.max(0, (this.deadline - this.now()) / 1000) : this.remaining;
-    }
-    start() {
-        if (this.running || this.done) return;
-        this.deadline = this.now() + this.remaining * 1000;
-        this.running = true;
-    }
-    pause() {
-        if (!this.running) return;
-        this.remaining = this.seconds();
-        this.running = false;
-    }
-    tick() {
-        if (!this.running || this.seconds() > 0) return false;
-        this.remaining = 0;
-        this.running = false;
-        this.done = true;
-        return true;
-    }
 }
 
 /** Only recognized level OSDs are routed. Microphone and unrelated OSDs stay native. */

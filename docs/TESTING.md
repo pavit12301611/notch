@@ -22,7 +22,7 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 - [ ] `./install.sh --with-deps` completes as the desktop user.
 - [ ] After logout/login, `gnome-extensions enable notch@pavit12301611.github.io` succeeds.
-- [ ] `notch-doctor` reports build 20 loaded and installed, and no legacy helper artifacts.
+- [ ] `notch-doctor` reports build 21 loaded and installed, and no legacy helper artifacts.
 - [ ] Updating from build 17 removes `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service` and old Python modules.
 - [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and doctor paths consistently.
 - [ ] Uninstall removes installed files but retains settings until explicitly purged.
@@ -61,16 +61,12 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 Do not label the project “tested on Fedora 44” until the live checklist has been run and any failures are fixed or explicitly documented.
 
-### Optional features (build 20)
+### Optional features (build 21)
 
 - [ ] Both preferences UIs show the same Features switches, initially off; settings
       persist on reopening, update each other live, and do not reset existing preferences.
-- [ ] Timer: quick timer and Focus/Break duration preferences; Start/Pause/Resume/Reset;
-      accurate delayed tick completion once; closed countdown also with idle clock off.
-      Finish Focus → Next session starts Break, finish Break → Focus. Turning off,
-      changing duration or reloading extension resets/stops the source.
-- [ ] Completion cue animates only with motion enabled; no overlay/sound over lock
-      screen; done state survives hiding/unlock until reset or next session.
+- [ ] Upgrading build 20 removes Timer/Pomodoro controls, durations, closed countdown
+      and countdown source. Existing Calendar and other feature choices are retained.
 - [ ] Volume/mute/brightness keys: level + percentage in closed notch and open
       footer. Each independent switch restores the native OSD immediately; no
       duplicates on the notch monitor. Test >100% volume, other monitors, unknown
@@ -86,17 +82,27 @@ Do not label the project “tested on Fedora 44” until the live checklist has 
       percentage and a single connection cue. Existing connections on startup do
       not peek. Test absent/stopped BlueZ, unsupported devices, disable during
       connection and repeated toggle cycles (no leftover signal handler/client).
-- [ ] Calendar: date click, month/year rollover, leap February, Today, local
-      timezone/midnight highlight and large text. Switch off closes it immediately.
+- [ ] Calendar switch on shows a separate fifth tab; off hides its tab/slot and
+      returns an active Calendar to Home. Home remains clock/date only. Repeat
+      switches while open/closed/animating; no blank page or lost header controls.
+- [ ] Calendar card has month/year, Today, previous/next month, weekday grid,
+      muted adjacent-month dates, today outline, selected fill and full date footer.
+      Click dates including adjacent-month dates. Verify leap February/year rollover.
+- [ ] Tab through navigation and one selected date; arrows move day/week, Page
+      Up/Down move month, Home returns to today. Focus survives date selection;
+      Escape/outside click still collapse. Check accessible full date/today/selection.
+- [ ] Local midnight refreshes the today marker without moving the user's selected
+      date/month. Test 100–200% text, 1×/2× scale, narrow widths, small heights and
+      vertical scrolling; no date grid horizontal spill or cropped header/close.
 - [ ] Music polish: long title smoothly scrolls, short title stays still; direct
       selection between two players; motion stops on hide/close/tab switch and
       reduced motion. Switching off restores wrapped titles and original cycling.
 - [ ] Artwork: separately opt-in local raster image displays; HTTP/SVG/missing,
       oversized and symlink files do not. Toggle off or change track during load:
       stale results never appear and pending requests cancel. No network downloads.
-- [ ] With all features enabled, verify Home/Music/System overflow is reachable by
+- [ ] With all features enabled, verify Calendar/Music/System overflow is reachable by
       pointer and keyboard at small heights, narrow monitors and 100–200% text.
-      Fixed header/close remain usable. No extra tabs or helper daemon.
-- [ ] Repeat enable/disable ten times while playing media, with a running timer,
+      Fixed header/close remain usable with either four or five tabs. No helper daemon.
+- [ ] Repeat enable/disable ten times while playing media, navigating Calendar,
       Bluetooth connected and pending OSD/artwork events; no stale callbacks,
       persistent sources, duplicate native hooks or Shell journal errors.

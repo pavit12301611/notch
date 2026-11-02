@@ -288,11 +288,6 @@ class SettingsApplication(Adw.Application):
         )
         features = [
             (
-                "timer-enabled",
-                "Timer / Pomodoro",
-                "Home and closed-notch countdown. Switching off resets it.",
-            ),
-            (
                 "volume-indicator",
                 "Volume indicator",
                 "Replace native volume OSD while the notch is available.",
@@ -314,8 +309,8 @@ class SettingsApplication(Adw.Application):
             ),
             (
                 "calendar-enabled",
-                "Mini calendar",
-                "Click the Home date for a local monthly calendar. No accounts.",
+                "Calendar tab",
+                "A dedicated monthly calendar tab with date selection. No accounts.",
             ),
             (
                 "per-app-peeks",
@@ -331,14 +326,6 @@ class SettingsApplication(Adw.Application):
         ]
         for key, title, subtitle in features:
             self.switch(optional, key, title, subtitle)
-        timer = self.group(
-            page,
-            "Timer durations",
-            "Changes reset the selected countdown. Pomodoro alternates Focus and Break; start each session yourself.",
-        )
-        self.spin(timer, "timer-minutes", "Quick timer (minutes)", 1, 180)
-        self.spin(timer, "focus-minutes", "Focus (minutes)", 1, 180)
-        self.spin(timer, "break-minutes", "Break (minutes)", 1, 60)
         apps = self.group(
             page,
             "Apps without peeks",

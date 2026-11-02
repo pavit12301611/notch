@@ -172,10 +172,6 @@ export default class NotchPreferences extends ExtensionPreferences {
         const extras = new Adw.PreferencesPage({title: 'Features', icon_name: 'applications-utilities-symbolic'});
         const optional = group(extras, 'Optional features', 'All additions are opt-in. Changes apply immediately.');
         for (const [key, title, subtitle] of FEATURES) addSwitch(optional, key, title, subtitle);
-        const timer = group(extras, 'Timer durations', 'Changes reset the selected countdown. Pomodoro alternates Focus and Break; start each session yourself.');
-        addSpin(timer, 'timer-minutes', 'Quick timer (minutes)', 1, 180);
-        addSpin(timer, 'focus-minutes', 'Focus (minutes)', 1, 180);
-        addSpin(timer, 'break-minutes', 'Break (minutes)', 1, 60);
         const apps = group(extras, 'Apps without peeks', 'Comma-separated desktop app IDs (with or without .desktop), or exact source names for generic apps. Alerts are retained.');
         const blocked = new Adw.EntryRow({title: 'App IDs / source names',
             text: settings.get_strv('peek-blocked-apps').join(', ')});

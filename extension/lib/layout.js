@@ -12,25 +12,27 @@ export const LAYOUT_LIMITS = Object.freeze({
 });
 
 export function headerMode(width) {
-    // Four fixed-width tabs fit with labels at the default 640 px notch.
+    // Four base tabs or five text-only labels fit the default 640 px notch.
     // Narrow/large-text layouts collapse to a centered icon rail.
     return width >= 560 ? 'labels' : 'icons';
 }
 
 /** Fixed header metrics. The rail, gutters and controls must fit without spill. */
-export function headerLayout(width, textScale = 1) {
+export function headerLayout(width, textScale = 1, tabCount = 4) {
     const effective = width / Math.max(0.5, textScale);
-    const ultra = width < 360;
+    const ultra = width < (tabCount > 4 ? 396 : 360);
     const metrics = mode => {
         const gutter = ultra ? 30 : 76;
-        const tabWidth = mode === 'labels' ? 92 : (ultra ? 28 : 40);
+        const textOnly = mode === 'labels' && tabCount > 4;
+        const ultraWidth = Math.max(12, Math.min(28, Math.floor((width - 2 * gutter - 8 - 8 - (tabCount - 1) * 2) / tabCount)));
+        const tabWidth = mode === 'labels' ? (textOnly ? 80 : 92) : (ultra ? ultraWidth : 40);
         const tabSpacing = ultra ? 2 : 6;
         const headerSpacing = ultra ? 4 : 6;
         // Rail padding 3px + border 1px on each side. Tab slots are unthemed
         // fixed-size bins, so these are outer widths (St.Button padding is inside).
-        const railWidth = 4 * tabWidth + 3 * tabSpacing + 8;
+        const railWidth = tabCount * tabWidth + (tabCount - 1) * tabSpacing + 8;
         const requiredWidth = 2 * gutter + railWidth + 2 * headerSpacing;
-        return {mode, ultra, gutter, controlsWidth: gutter, tabWidth, tabSpacing,
+        return {mode, textOnly, tabCount, ultra, gutter, controlsWidth: gutter, tabWidth, tabSpacing,
             headerSpacing, railWidth, requiredWidth, showSettings: !ultra};
     };
     // Labels must fit both the text-scaled rail and the physical notch width.
@@ -76,7 +78,7 @@ export function contentLayout(rect, options = {}, statusText = '') {
     const headerWidth = width;
     const footer = statusHeight(statusText, effectiveWidth);
     const pageHeight = Math.max(48, height - LAYOUT_LIMITS.headerHeight - footer);
-    const header = headerLayout(width, textScale);
+    const header = headerLayout(width, textScale, options.tabCount ?? 4);
     return {
         scale, cssScale, layoutScale: contentScale, reserveScale: cssScale * reserveScale,
         textScale, panelLogical, width, height, pageHeight, effectiveWidth, headerWidth,

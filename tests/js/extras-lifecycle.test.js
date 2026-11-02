@@ -4,9 +4,6 @@ import test from 'node:test';
 import {registerHooks} from 'node:module';
 import {FEATURES} from '../../extension/lib/features.js';
 
-let now = 0;
-let nextSource = 0;
-const sources = new Map();
 const artQueries = [];
 let timelineCount = 0;
 class Timeline {
@@ -17,14 +14,15 @@ class Timeline {
 }
 const GLib = {PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false, SOURCE_CONTINUE: true,
     filename_from_uri: uri => [decodeURIComponent(uri.slice('file://'.length)), null],
-    get_monotonic_time: () => now * 1000,
-    timeout_add_seconds: (_priority, _seconds, callback) => {
-        sources.set(++nextSource, callback);
-        return nextSource;
-    }, source_remove: id => sources.delete(id)};
+};
+
 class Widget {
     constructor(properties = {}) { Object.assign(this, properties); this.children = []; }
     add_child(child) { this.children.push(child); }
+    connect() {}
+    remove_all_transitions() {}
+    get_children() { return this.children; }
+    grab_key_focus() { this.focused = true; }
     destroy_all_children() { this.children = []; }
     set_width(width) { this.width = width; }
     set_size(width, height) { this.width = width; this.height = height; }
@@ -34,9 +32,12 @@ class Widget {
     get_preferred_height() { return [25, 25]; }
 }
 const widgets = {
+    icon: () => new Widget(), sourceIcon: () => new Widget(), emptyState: () => new Widget(),
+    slider: () => new Widget(), setSensitive() {},
     setIconSource: (widget, gicon) => { widget.gicon = gicon; },
     box: () => new Widget(), label: (text, style) => new Widget({text, style}),
     wrapLabel: text => new Widget({text}), setText: (widget, text) => { widget.text = text; },
+    pageBox: () => new Widget(),
     button: options => new Widget({...options, _notchLabel: new Widget({text: options.text})}),
 };
 class InjectionManager {
@@ -70,7 +71,10 @@ let nativeCalls = 0;
 const originalOsd = () => { nativeCalls++; };
 const Main = {osdWindowManager: {_showOsdWindow: originalOsd, _osdWindows: [{cancel() {}}]}};
 const stubs = new Map([
-    ['gi://Clutter', {default: {ActorAlign: {CENTER: 1, FILL: 2}, FixedLayout: class {}, Timeline}}],
+    ['gi://Clutter', {default: {ActorAlign: {CENTER: 1, FILL: 2, START: 0, END: 3}, BinLayout: class {}, ModifierType: {CONTROL_MASK: 1, MOD1_MASK: 2, SUPER_MASK: 4}, KEY_Left: 100, KEY_Right: 101, KEY_Up: 102, KEY_Down: 103, KEY_Page_Up: 104, KEY_Page_Down: 105, KEY_Home: 106, EVENT_STOP: true, EVENT_PROPAGATE: false, FixedLayout: class {}, Timeline}}],
+    ['gi://GnomeDesktop?version=4.0', {default: {}}],
+    ['resource:///org/gnome/shell/ui/messageTray.js', {Urgency: {CRITICAL: 2}}],
+    [new URL('../../extension/lib/surface.js', import.meta.url).href, {NotchSurface: class {}}],
     ['gi://GLib', {default: GLib}], ['gi://Gio', {default: Gio}],
     ['gi://St', {default: {Icon: Widget, Widget, ScrollView: Widget, PolicyType: {NEVER: 0, AUTOMATIC: 1}}}],
     ['resource:///org/gnome/shell/ui/main.js', Main],
@@ -97,62 +101,28 @@ const hooks = registerHooks({
 const {Extras} = await import('../../extension/lib/extras.js');
 const {BluetoothBattery} = await import('../../extension/lib/bluetooth.js');
 const {MusicExtras} = await import('../../extension/lib/musicExtras.js');
+const {CalendarPage} = await import('../../extension/lib/calendar.js');
+const {NotchView} = await import('../../extension/lib/view.js');
 hooks.deregister();
 delete globalThis.__extrasTestStubs;
 
 function fixture() {
     const values = Object.fromEntries(FEATURES.map(([key]) => [key, false]));
-    Object.assign(values, {'timer-minutes': 1, 'focus-minutes': 25, 'break-minutes': 5});
     const view = {settings: {get_boolean: key => values[key], get_int: key => values[key]},
-        homeDateButton: {}, readOptions: () => ({}), relayout() {}, updateClock() {},
+        readOptions: () => ({}), relayout() {}, updateClock() {},
         showCue: (...args) => { view.lastCue = args; }, hideCue() {},
         monitor: () => ({index: 0}), showLevel: () => true};
     const extras = new Extras(view);
-    extras.buildHome(new Widget());
     extras.buildSystem(new Widget());
     return {extras, view, values};
 }
 
-test('all optional features off create no timer, BlueZ request, or OSD injection', () => {
+test('all optional features off create no BlueZ request or OSD injection', () => {
     const {extras} = fixture();
     const previousRequests = bluezRequests.length;
     extras.configure();
-    assert.equal(extras.timerBox.visible, false);
-    assert.equal(extras.calendar.visible, false);
-    assert.equal(sources.size, 0);
     assert.equal(bluezRequests.length, previousRequests);
     assert.equal(Main.osdWindowManager._showOsdWindow, originalOsd);
-    extras.destroy();
-});
-
-test('timer controls pause/resume, finish once, alternate Pomodoro, and clean up on disable', () => {
-    const {extras, values, view} = fixture();
-    values['timer-enabled'] = true;
-    extras.configure('timer-enabled');
-    extras.resetTimer('focus');
-    extras.timerStart.onClick();
-    assert.equal(sources.size, 1);
-    extras.syncTimer();
-    assert.equal(sources.size, 1, 'no duplicate ticking sources');
-    now += 10000;
-    extras.timerStart.onClick();
-    assert.equal(sources.size, 0);
-    assert.equal(extras.summary(), 'Ⅱ 24:50');
-    extras.timerStart.onClick();
-    now += 25 * 60 * 1000;
-    const [id, tick] = sources.entries().next().value;
-    assert.equal(tick(), false);
-    sources.delete(id); // mimic GLib removing a SOURCE_REMOVE callback
-    assert.equal(extras.countdown.done, true);
-    assert.match(view.lastCue[0], /Focus complete/);
-    extras.timerStart.onClick();
-    assert.equal(extras.timerMode, 'break');
-    assert.equal(extras.countdown.running, true);
-    values['timer-enabled'] = false;
-    extras.configure('timer-enabled');
-    assert.equal(sources.size, 0);
-    assert.equal(extras.summary(), '');
-    assert.equal(extras.countdown.running, false);
     extras.destroy();
 });
 
@@ -178,23 +148,6 @@ test('OSD interception is selective and restores the exact original on disable',
     extras.configure('brightness-indicator');
     extras.destroy();
     assert.equal(Main.osdWindowManager._showOsdWindow, originalOsd);
-});
-
-test('calendar is opt-in and disabling it closes the calendar immediately', () => {
-    const {extras, values, view} = fixture();
-    extras.configure();
-    extras.toggleCalendar();
-    assert.equal(extras.calendar.visible, false);
-    values['calendar-enabled'] = true;
-    extras.configure('calendar-enabled');
-    extras.toggleCalendar();
-    assert.equal(extras.calendar.visible, true);
-    assert.equal(extras.calendar.children.length, 8);
-    values['calendar-enabled'] = false;
-    extras.configure('calendar-enabled');
-    assert.equal(extras.calendar.visible, false);
-    assert.equal(view.homeDateButton.can_focus, false);
-    extras.destroy();
 });
 
 test('BlueZ startup does not peek existing devices, handles updates, and cancels late enable', () => {
@@ -309,4 +262,97 @@ test('artwork never queries HTTP URLs, rejects unsafe files, and ignores cancell
     assert.equal(music.art.visible, true);
     music.destroy();
     assert.equal(music.art.gicon, null);
+});
+
+test('calendar is a separate styled page with 42 selectable dates and stable navigation', () => {
+    const calendar = new CalendarPage();
+    assert.equal(calendar.grid.children.length, 0, 'disabled calendar does no rendering');
+    calendar.setEnabled(true);
+    assert.equal(calendar.grid.children.length, 7, 'weekday row plus six date rows');
+    const dates = calendar.grid.children.slice(1).flatMap(row => row.children.map(slot => slot.children[0]));
+    assert.equal(dates.length, 42);
+    assert.equal(dates.filter(day => day.can_focus).length, 1, 'roving keyboard focus');
+    assert.equal(dates.filter(day => day.style.includes('notch-calendar-selected')).length, 1);
+    assert.equal(dates.filter(day => day.style.includes('notch-calendar-today')).length, 1);
+    assert.ok(calendar.selectedButton.accessibleName.includes('selected'));
+    calendar.choose(new Date(2024, 0, 31, 12));
+    calendar.next.onClick();
+    assert.equal(calendar.selected.getMonth(), 1);
+    assert.equal(calendar.selected.getDate(), 29);
+    calendar.previous.onClick();
+    assert.equal(calendar.selected.getMonth(), 0);
+    calendar.todayButton.onClick();
+    assert.equal(calendar.selected.toDateString(), new Date().toDateString());
+    calendar.destroy();
+});
+
+test('calendar keyboard crosses month boundaries, supports paging/Today, and preserves Escape', () => {
+    const calendar = new CalendarPage();
+    calendar.setEnabled(true);
+    calendar.choose(new Date(2024, 1, 29, 12));
+    const press = (key, state = 0) => calendar.keyPressed({get_key_symbol: () => key, get_state: () => state});
+    assert.equal(press(101), true); // right
+    assert.equal(calendar.selected.getMonth(), 2);
+    assert.equal(calendar.selected.getDate(), 1);
+    assert.equal(calendar.selectedButton.focused, true);
+    press(102); // up one week
+    assert.equal(calendar.selected.getDate(), 23);
+    assert.equal(calendar.selected.getMonth(), 1);
+    press(105); // next month
+    assert.equal(calendar.selected.getMonth(), 2);
+    press(104); // previous month
+    assert.equal(calendar.selected.getMonth(), 1);
+    assert.equal(press(101, 4), false, 'do not intercept Super shortcuts');
+    assert.equal(press(999), false, 'Escape and unrelated keys propagate');
+    press(106); // Home
+    assert.equal(calendar.selected.toDateString(), new Date().toDateString());
+    calendar.setEnabled(false);
+    assert.equal(press(101), false);
+    calendar.destroy();
+});
+
+test('calendar adapts equal-width slots and overflows vertically without horizontal spill', () => {
+    const calendar = new CalendarPage();
+    calendar.setEnabled(true);
+    for (const width of [200, 320, 480, 600]) {
+        for (const cssScale of [1, 2]) {
+            calendar.adapt({width, cssScale, textScale: 2, effectiveWidth: width / 2});
+            const row = calendar.grid.children[1];
+            assert.ok(row.children.every(slot => slot.width === calendar.cellWidth));
+            assert.ok(7 * calendar.cellWidth + 18 * cssScale <= calendar.card.width - 24 * cssScale);
+            assert.equal(calendar.cellHeight, 60 * cssScale);
+            assert.equal(calendar.header.vertical, true);
+        }
+    }
+    calendar.destroy();
+});
+
+test('calendar master switch hides its tab/slot and returns an active Calendar to Home', () => {
+    let enabled = true;
+    const calendarTab = new Widget();
+    const calendarSlot = new Widget();
+    const homeTab = new Widget();
+    const container = new Widget();
+    const view = {
+        settings: {get_boolean: () => enabled}, calendarPage: new CalendarPage(),
+        tabButtons: new Map([['calendar', calendarTab], ['home', homeTab]]),
+        tabSlots: new Map([['calendar', calendarSlot]]), pageContainers: {calendar: container},
+        tab: 'calendar', expanded: true, selectTab: id => { view.tab = id; },
+    };
+    NotchView.prototype.syncCalendarTab.call(view);
+    assert.equal(calendarTab.visible, true);
+    assert.equal(calendarSlot.visible, true);
+    enabled = false;
+    NotchView.prototype.syncCalendarTab.call(view);
+    assert.equal(view.tab, 'home');
+    assert.equal(homeTab.focused, true);
+    assert.equal(calendarTab.visible, false);
+    assert.equal(calendarTab.can_focus, false);
+    assert.equal(calendarSlot.visible, false);
+    assert.equal(container.visible, false);
+    assert.equal(container.reactive, false);
+    assert.equal(view.calendarPage.enabled, false);
+    // Direct/programmatic tab selection must not open a disabled calendar either.
+    NotchView.prototype.selectTab.call({pages: {calendar: {}}, settings: view.settings}, 'calendar');
+    view.calendarPage.destroy();
 });

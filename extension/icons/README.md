@@ -8,3 +8,6 @@ sources. License: GPL-3.0-or-later, same as the project.
 Build 19 keeps only the icons used by Home/Music/Alerts/System, the closed music
 wings, the sliders settings button and the charging cue. Clipboard, shelf,
 volume, pagination, helper and the old sun-like settings icons were removed.
+
+Build 21 adds a locally drawn monochrome `x-office-calendar-symbolic.svg` for
+the optional Calendar tab. No external assets are used.

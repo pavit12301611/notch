@@ -2,7 +2,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {cpuSample, mediaErrorMessage, countNotifications, chargingStarted} from '../extension/lib/model.js';
-import {FEATURES, Countdown, calendarMonth} from '../extension/lib/features.js';
+import {FEATURES, calendarMonth} from '../extension/lib/features.js';
 import {headerLayout} from '../extension/lib/layout.js';
 import {notchGeometry} from '../extension/lib/geometry.js';
 
@@ -21,7 +21,7 @@ if (directory) {
     const source = Gio.SettingsSchemaSource.new_from_directory(directory,
         Gio.SettingsSchemaSource.get_default(), false);
     const schema = source.lookup('io.github.pavit12301611.Notch', true);
-    if (!schema || schema.has_key('clipboard-enabled') || schema.has_key('clipboard-limit'))
+    if (!schema || schema.has_key('clipboard-enabled') || schema.has_key('clipboard-limit') || schema.has_key('timer-enabled'))
         throw new Error('Removed clipboard schema keys are still present');
     for (const key of ['replace-panel-clock', 'idle-clock', 'notifications-in-notch', 'auto-open-notifications']) {
         if (!schema.has_key(key) || !schema.get_default_value(key).get_boolean())
@@ -40,9 +40,8 @@ if (chargingStarted(null, {available: true, state: 1}))
     throw new Error('GJS first-sample charging guard failed');
 if (headerLayout(600, 1).requiredWidth > 600 || headerLayout(300, 1).requiredWidth > 300)
     throw new Error('GJS header budget smoke test failed');
-const countdown = new Countdown(() => 0);
-countdown.reset(60);
-countdown.start();
-if (!countdown.running || countdown.seconds() !== 60 || calendarMonth(2024, 1).cells.filter(cell => cell.day).length !== 29)
-    throw new Error('GJS optional timer/calendar smoke failed');
+if (calendarMonth(2024, 1).cells.filter(cell => cell.inMonth).length !== 29)
+    throw new Error('GJS calendar smoke failed');
+if (headerLayout(600, 1, 5).requiredWidth > 600 || headerLayout(194, 1, 5).requiredWidth > 194)
+    throw new Error('GJS five-tab header budget failed');
 print('GJS model, geometry, header, charging and schema smoke checks passed');

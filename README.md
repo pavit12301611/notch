@@ -6,25 +6,37 @@ A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 44 W
 
 > Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 44/GNOME 50 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
 
-## What changed in build 20
+## What changed in build 21
 
-Seven opt-in additions, with independent switches in **Notch Settings → Features**
+- Remove Timer / Pomodoro completely: no UI, countdown, preferences or schema keys.
+- Move Calendar out of Home into its **own optional tab**. Home is clock/date only.
+- Redesign Calendar with a layered card, prominent month/year, Today and previous/
+  next controls, a six-week grid, muted adjacent-month dates, selected-date detail
+  and distinct today/selected treatments. Click any date to browse it.
+- Keyboard: arrows move by day/week, Page Up/Down by month, Home returns to today.
+  The date grid uses one tab stop; Escape still closes the notch.
+- The header budgets either four or five tabs; at normal five-tab widths labels
+  are text-only, switching to icons when narrow/large-text. Calendar can scroll
+  vertically without displacing the fixed header.
+
+## Optional features
+
+Six opt-in additions, with independent switches in **Notch Settings → Features**
 (and the GNOME Extensions preferences). All switches default **off**, preserving
-existing behavior; no new tabs or background daemon.
+existing behavior. Calendar adds a fifth tab only when enabled; no background daemon.
 
 | Addition | Behavior / switch |
 |---|---|
-| Timer / Pomodoro | Home presets for Timer, Focus and Break, configurable minutes, Start/Pause/Reset, closed-notch countdown and completion cue. Pomodoro alternates Focus/Break; start each session yourself. Turning off or changing a duration resets it. Session-only: disabling/restarting the extension resets it too. |
 | Volume & brightness | Separate switches. Read-only level + percentage in the notch; native OSD fallback when hidden/locked/peeking, on other monitors, or for unrecognized OSDs. No duplicate OSD on the notch monitor. |
 | Notification privacy | Redacts titles, bodies and native action labels in notch peeks **and** Alerts, including accessible text. GNOME's own list, native/critical banners and source app names are unchanged. This is not automatic screen-share detection. |
 | Bluetooth battery | System lists connected devices exposing BlueZ Battery1 data. Brief connection cue; unsupported/unavailable devices degrade gracefully. No polling or pairing controls. |
-| Mini calendar | Click the Home date to toggle a localized monthly calendar, previous/next month and today highlight. No events/accounts integration. |
+| Calendar tab | Independent Calendar tab with month navigation, Today, date selection, adjacent-month dates and keyboard navigation. Turning its switch off hides the tab and returns an active Calendar to Home. No events/accounts integration. |
 | Per-app peeks | Installed-app switches plus a comma-separated app-ID/source-name list. Selected apps remain in Alerts without peeks; GNOME DND/per-app policy is never bypassed. Requires notch notification routing; native critical alerts remain native. |
 | Music polish | Overflowing-title scrolling (visible Music page only, respects reduced motion) and direct player selection. **Local album artwork has its own additional switch**; HTTP artwork is never downloaded. |
 
-When optional content needs more room, Home/Music/System can scroll within their
-existing pages. Switching a feature off immediately stops its countdown, BlueZ
-watch, title animation, pending artwork load or OSD hook as applicable.
+Calendar and optional Music/System content can scroll when needed. Switching a
+feature off stops its BlueZ watch, title animation, pending artwork load or OSD
+hook as applicable. Timer/Pomodoro settings from build 20 are no longer used.
 
 Install this checkout with `./install.sh`, or use the development-branch bootstrap
 below, then log out/in.
@@ -37,7 +49,7 @@ below, then log out/in.
 - Closed music wings are back with proportional, centered equalizer bars.
 - Plugging in the charger shows a brief green “Charging · NN%” cue in the closed notch (under two seconds).
 
-Build 18 removed Clipboard history and Quick stash / file shelf completely: no tabs, no background helper, no helper D-Bus service, no systemd unit, no CLI, no schema keys and no packaging payload. The installer also cleans up those artifacts from older builds. The remaining UI is built around four pages with a clear typographic hierarchy and layered surfaces.
+Build 18 removed Clipboard history and Quick stash / file shelf completely: no tabs, no background helper, no helper D-Bus service, no systemd unit, no CLI, no schema keys and no packaging payload. The installer also cleans up those artifacts from older builds. The base UI is built around four pages (plus the optional Calendar tab) with a clear typographic hierarchy and layered surfaces.
 
 ## Why this is a hybrid application
 
@@ -67,7 +79,8 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 
 | Page | Included behavior |
 |---|---|
-| Home | Large local clock and quiet date line; optional timer/Pomodoro and mini calendar. |
+| Home | Large local clock and quiet date line. |
+| Calendar (optional) | Dedicated month browser with date selection, Today, keyboard navigation and a responsive grid. |
 | Music | MPRIS player discovery/switching, text-first title/artist, previous/play/pause/next and seek. No volume controls; optional local artwork and music polish. |
 | Alerts | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps a real card count, compact expandable bodies and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible. |
 | System | 2×2 metric tiles: CPU utilization, RAM used/total, UPower battery percentage/state, default-interface download/upload rates. Quick actions: Do Not Disturb, Night Light, Dark Mode. |
@@ -79,7 +92,7 @@ Closed notch: idle time sits where the GNOME clock used to be; music grows small
 - **MacBook notch, not a floating Dynamic Island.** The default placement is flush with the top panel, with small outward top flares and larger bottom corners.
 - **Typographic hierarchy.** Primary values/titles are large; labels, timestamps and secondary details are smaller and muted. Decorative headings, source icons in empty states, album art, volume sliders, pagers and helper/status clutter were removed.
 - **Depth without noise.** Layered dark cards, subtle borders, inset highlights and consistent radii separate content from the black notch body.
-- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Four fixed-width tabs show labels at the default size and collapse to a centered icon rail when narrow. By default only Alerts scrolls; optional content enables overflow scrolling on the existing Home/Music/System pages.
+- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Four base tabs plus an optional Calendar tab fit a budgeted header: text-only labels for five tabs at normal widths, icons when narrow. Alerts and Calendar scroll; optional Music/System content can overflow vertically. Home remains a simple centered clock/date.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel.
 - **MPRIS capabilities vary.** Seek requires a player exposing `CanSeek`, a track length, and a usable position/track ID. Firefox must have MPRIS/media-key integration enabled. A player that does not implement a capability cannot be forced to support it.
 - Shell extensions use internal GNOME APIs. Test after every GNOME major upgrade; never bypass version checks by editing metadata blindly.
@@ -94,7 +107,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/bf1fc204-notch/scripts/bootstrap.sh | NOTCH_REF=arena/bf1fc204-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/bf1fc204-notch` development branch (build 20). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/bf1fc204-notch` development branch (build 21). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
@@ -169,8 +182,8 @@ Open **Notch Settings** from the app grid, or run `notch-settings`. The extensio
 | Motion | `animations`, `animation-profile`, `open-animation-ms`, `close-animation-ms` |
 | Opening/hiding | `open-on-hover`, `hover-delay-ms`, `auto-hide-ms`, `hide-on-fullscreen`, `hide-in-overview` |
 | Quick actions | `show-dnd`, `show-night-light`, `show-dark-mode` |
-| Optional switches | `timer-enabled`, `volume-indicator`, `brightness-indicator`, `notification-privacy`, `bluetooth-battery`, `calendar-enabled`, `per-app-peeks`, `music-polish`, `media-art` |
-| Feature options | `timer-minutes`, `focus-minutes`, `break-minutes`, `peek-blocked-apps` |
+| Optional switches | `volume-indicator`, `brightness-indicator`, `notification-privacy`, `bluetooth-battery`, `calendar-enabled`, `per-app-peeks`, `music-polish`, `media-art` |
+| Feature options | `peek-blocked-apps` |
 | Shortcut | `toggle-notch` |
 
 ## Troubleshooting

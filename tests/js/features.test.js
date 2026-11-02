@@ -1,57 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {Countdown, countdownText, calendarMonth, notificationAppId, notificationText,
+import {calendarMonth, sameDate, shiftCalendarMonth, notificationAppId, notificationText,
     peekAllowed, osdKind, bluetoothDevices} from '../../extension/lib/features.js';
 import {notchGeometry} from '../../extension/lib/geometry.js';
 import {mediaMetadata} from '../../extension/lib/model.js';
 
 const source = {title: 'Chat', policy: {id: 'org.example.Chat'}};
 
-test('countdown uses a deadline, pauses precisely and completes only once', () => {
-    let now = 0;
-    const timer = new Countdown(() => now);
-    timer.reset(60);
-    timer.start();
-    timer.start();
-    now = 15_500;
-    assert.equal(timer.seconds(), 44.5);
-    timer.pause();
-    now += 100_000;
-    assert.equal(timer.seconds(), 44.5);
-    timer.start();
-    now += 44_500;
-    assert.equal(timer.tick(), true);
-    assert.equal(timer.seconds(), 0);
-    assert.equal(timer.tick(), false);
-    timer.start();
-    assert.equal(timer.running, false);
-    timer.reset(10);
-    assert.equal(timer.done, false);
-    assert.equal(timer.seconds(), 10);
-});
-
-test('delayed ticks do not drift and reset stops a running countdown', () => {
-    let now = 1_000;
-    const timer = new Countdown(() => now);
-    timer.reset(120);
-    timer.start();
-    now += 150_000;
-    assert.equal(timer.tick(), true);
-    timer.reset(300);
-    assert.equal(timer.running, false);
-    assert.equal(timer.done, false);
-    assert.equal(countdownText(300), '5:00');
-    assert.equal(countdownText(0.1), '0:01');
-    assert.equal(countdownText(-1), '0:00');
-    assert.equal(countdownText(10800), '180:00');
-});
-
 test('calendar handles leap years, Monday alignment and adjacent year navigation', () => {
     const feb = calendarMonth(2024, 1, new Date(2024, 1, 29, 23));
-    assert.equal(feb.cells.filter(cell => cell.day).length, 29);
-    assert.equal(feb.cells.findIndex(cell => cell.day === 1), 3);
+    assert.equal(feb.cells.filter(cell => cell.inMonth).length, 29);
+    assert.equal(feb.cells.findIndex(cell => cell.inMonth && cell.day === 1), 3);
     assert.equal(feb.cells.find(cell => cell.today).day, 29);
-    assert.equal(calendarMonth(2023, 1).cells.filter(cell => cell.day).length, 28);
+    assert.equal(feb.cells.length, 42);
+    assert.equal(feb.cells[0].date.getMonth(), 0);
+    assert.equal(feb.cells.at(-1).date.getMonth(), 2);
+    assert.equal(feb.cells.filter(cell => cell.weekend).length, 12);
+    assert.equal(calendarMonth(2023, 1).cells.filter(cell => cell.inMonth).length, 28);
     assert.equal(calendarMonth(2024, 0).cells[0].day, 1);
     assert.equal(calendarMonth(2024, 12).year, 2025);
     assert.equal(calendarMonth(2024, -1).year, 2023);
@@ -112,9 +77,8 @@ test('optional geometry grows existing pages, never grows beyond the monitor', (
     const monitor = {x: 0, y: 0, width: 1280, height: 720};
     const options = {placement: 'panel', tab: 'home', panelHeight: 32, expandedHeight: 480};
     assert.equal(notchGeometry(monitor, options, true).height, 220);
-    assert.equal(notchGeometry(monitor, {...options, homeExtra: 130}, true).height, 350);
-    assert.equal(notchGeometry(monitor, {...options, homeExtra: 375}, true).height, 480);
-    const small = notchGeometry({...monitor, height: 240}, {...options, homeExtra: 375}, true);
+    assert.equal(notchGeometry(monitor, {...options, tab: 'calendar'}, true).height, 480);
+    const small = notchGeometry({...monitor, height: 240}, {...options, tab: 'calendar'}, true);
     assert.ok(small.height <= 240);
     assert.ok(small.y + small.height <= 240);
 });
@@ -123,4 +87,14 @@ test('MPRIS carries optional artwork metadata without changing playback capabili
     const metadata = mediaMetadata({'mpris:artUrl': 'file:///tmp/art.png', 'xesam:title': 'Song'});
     assert.equal(metadata.artUrl, 'file:///tmp/art.png');
     assert.equal(mediaMetadata({'mpris:artUrl': 42}).artUrl, '');
+});
+
+test('month navigation clamps day selection, handles leap years and year boundaries', () => {
+    const feb = shiftCalendarMonth(new Date(2024, 0, 31, 12), 1);
+    assert.equal(feb.getMonth(), 1);
+    assert.equal(feb.getDate(), 29);
+    assert.equal(shiftCalendarMonth(new Date(2023, 0, 31, 12), 1).getDate(), 28);
+    assert.equal(shiftCalendarMonth(new Date(2024, 11, 15, 12), 1).getFullYear(), 2025);
+    assert.equal(shiftCalendarMonth(new Date(2024, 0, 15, 12), -1).getFullYear(), 2023);
+    assert.equal(sameDate(new Date(2024, 0, 1, 0), new Date(2024, 0, 1, 23)), true);
 });

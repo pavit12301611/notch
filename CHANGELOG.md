@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### v21 — remove Timer, dedicated redesigned Calendar tab
+
+- Remove Timer/Pomodoro controls, model, GLib countdown source, preferences and
+  all four timer-related schema keys; Home is clock/date only again.
+- Give Calendar its own optional tab. Preserve the existing switch; switching off
+  hides its slot and safely returns an active Calendar to Home with keyboard focus.
+- Redesign the calendar as a layered card: prominent month/year, Today and month
+  navigation, stable six-week grid, muted adjacent dates/weekends, outlined today,
+  selected fill and full-date footer. No events/accounts integration.
+- Add date selection and roving focus with arrow/day/week, Page Up/Down/month and
+  Home/today shortcuts; accessible dates/today/selection and vertical overflow.
+- Budget the header for four or five visible tabs: five normal-width text labels,
+  compact icons at narrow/large-text widths, bounded settings/close controls.
+- Expand regression tests for leap/month boundaries, calendar interaction/scaling,
+  switch-off fallback and five-tab header containment. Live GNOME checks pending.
+
 ### v20 — independently switchable optional features
 
 - Add a Features page to both preferences UIs. Nine default-off switches cover

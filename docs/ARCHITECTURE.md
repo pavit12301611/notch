@@ -13,13 +13,14 @@ There is no helper daemon, clipboard manager, file shelf, drop target or systemd
 | Module | Responsibility |
 |---|---|
 | `extension.js` | Enable/disable, preset migration, keybinding, private D-Bus export (`Toggle`, `SetExpanded`, `GetState`). |
-| `lib/view.js` | Actor tree, four pages, closed/peek/open modes, animation, status footer, visibility and lifetime cleanup. |
+| `lib/view.js` | Actor tree, four base pages plus optional Calendar, closed/peek/open modes, animation, status footer, visibility and lifetime cleanup. |
 | `lib/surface.js` | Cairo top flares + CSS body radius. |
 | `lib/geometry.js`, `lib/layout.js` | Pure monitor/page geometry and adaptive layout decisions. |
 | `lib/spring.js` | Damped spring / smooth easing geometry interpolation. |
 | `lib/media.js` | MPRIS v2 client. Name/property/seek events do the work; only the visible Music page polls Position once per second. |
-| `lib/features.js` | Opt-in feature definitions; pure countdown, calendar, notification policy and BlueZ models. |
-| `lib/extras.js` | Optional timer, calendar, overflow wrappers, reversible OSD dispatch and Bluetooth lifecycle. |
+| `lib/features.js` | Opt-in feature definitions; pure calendar, notification policy and BlueZ models. |
+| `lib/extras.js` | Optional overflow wrappers, reversible OSD dispatch and Bluetooth lifecycle. |
+| `lib/calendar.js` | Dedicated local calendar page: month/date navigation, accessible keyboard grid, responsive card. No polling. |
 | `lib/bluetooth.js` | Cancellable system-bus BlueZ ObjectManager; signals only, created on opt-in. |
 | `lib/musicExtras.js` | Visible-only title timeline, direct player picker and cancellable local-art metadata checks. |
 | `lib/notifications.js` | Reversible message-tray banner routing. |
@@ -31,9 +32,29 @@ There is no helper daemon, clipboard manager, file shelf, drop target or systemd
 
 ## Page model
 
-The open notch has four fixed pages: Home, Music, Alerts, System. Alerts always owns a `St.ScrollView`. Other pages are natural-height centered blocks by default, inside non-scrolling wrappers; optional timer/calendar, Bluetooth or music content enables bounded vertical scrolling on those wrappers. Page budgets grow within the configured maximum and monitor limits; the four-tab header stays fixed.
+The open notch has four base pages: Home, Music, Alerts, System. Calendar is a
+fifth page/tab only while `calendar-enabled` is true. Disabling the switch hides
+the tab and its slot; if active, it returns to Home and transfers keyboard focus.
+Programmatic selection of disabled Calendar is rejected too. Calendar is not
+embedded in Home; Timer/Pomodoro and its schema/preferences have been removed.
 
-The header is a centered four-tab rail between two expanding side gutters. Tab buttons sit in fixed unthemed slots so themed padding cannot inflate the rail. A pure header budget chooses labels/icons and keeps settings/close inside the right gutter. Active/inactive icons use opacity because bundled file icons cannot be recolored by CSS `color`.
+Alerts always scrolls. Calendar uses an overflow wrapper; optional Music/System
+content also enables vertical scrolling. Home stays a natural-height centered
+clock/date. Page budgets grow within configured/monitor limits.
+
+The centered header accepts a visible tab count. Five tabs use text-only labels
+at normal widths; four retain icon+label tabs. Narrow/large-text layouts switch
+to icons, with smaller slots/gutters at very narrow widths. Hidden Calendar slots
+do not consume space. Settings/close remain in the fixed right gutter.
+
+Calendar owns only actors and a key handler. Its local-noon date model supplies a
+stable 42-day grid including adjacent-month dates. Date selection never accesses
+accounts or events. A single selected-day tab stop plus arrow/Page Up/Page Down/
+Home navigation avoids 42 keyboard tab stops; full accessible date labels and
+selected/today states are provided. Large text increases row height and scrolls
+vertically. The existing wall clock refreshes the today highlight at local day
+changes; no additional clock source or background job is created.
+
 
 ## Notification routing
 
@@ -56,14 +77,11 @@ CPU/RAM/network are sampled from procfs once per second only while System is vis
 - The closed equalizer runs only while the notch is closed, visible, playing and animations are enabled.
 - No clipboard text, file URI or notification body is written to routine logs.
 
-## Optional feature lifetimes (build 20)
+## Optional feature lifetimes (build 21)
 
-All nine switches default off in both preferences UIs. `Extras` owns one GLib
-source only while a countdown is running; pause/reset/off/destroy removes it.
-Countdown deadlines use monotonic time (not accumulated tick counts). Focus/Break
-sessions alternate on completion but require an explicit start. No state persists
-through extension reload. A completed countdown remains visible after unlock,
-but it never opens an overlay over the lock screen or plays a sound.
+All eight switches default off in both preferences UIs. Timer/Pomodoro code,
+controls and four schema keys from build 20 are removed. Old dconf values, if any,
+are inert; other preferences and the existing calendar-enabled choice are retained.
 
 BlueZ uses a cancellable `Gio.DBusObjectManagerClient` on the system bus with
 `DO_NOT_AUTO_START`; manager/property signals replace polling. Existing connected

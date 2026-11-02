@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 20)
+        self.assertEqual(metadata["version"], 21)
         self.assertIn("50", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
         keys = {key.attrib["name"] for key in schema.findall(".//key")}
@@ -33,7 +33,7 @@ class ProjectTests(unittest.TestCase):
         keys = {key.attrib["name"]: key for key in schema.findall(".//key")}
         features = (ROOT / "extension/lib/features.js").read_text()
         feature_keys = re.findall(r"^    \['([^']+)',", features, re.MULTILINE)
-        self.assertEqual(len(feature_keys), 9)
+        self.assertEqual(len(feature_keys), 8)
         python_prefs = (ROOT / "app/notch_app/settings.py").read_text()
         shell_prefs = (ROOT / "extension/prefs.js").read_text()
         self.assertIn("of FEATURES) addSwitch", shell_prefs)
@@ -42,10 +42,13 @@ class ProjectTests(unittest.TestCase):
             self.assertEqual(keys[key].find("default").text, "false")
             self.assertIn(f'"{key}"', python_prefs)
         self.assertEqual(keys["peek-blocked-apps"].attrib["type"], "as")
-        for key in ("timer-minutes", "focus-minutes", "break-minutes"):
-            self.assertEqual(keys[key].find("range").attrib["min"], "1")
-            self.assertIn(key, shell_prefs)
-            self.assertIn(key, python_prefs)
+        for key in ("timer-enabled", "timer-minutes", "focus-minutes", "break-minutes"):
+            self.assertNotIn(key, keys)
+            self.assertNotIn(key, shell_prefs)
+            self.assertNotIn(key, python_prefs)
+        for source in (ROOT / "extension").rglob("*.js"):
+            self.assertNotIn("Countdown", source.read_text())
+            self.assertNotIn("timer-enabled", source.read_text())
 
     def test_removed_features_are_absent_from_runtime_and_schema(self):
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
@@ -186,7 +189,7 @@ class ProjectTests(unittest.TestCase):
             self.assertNotIn("deepUnpack", source)
             self.assertIn(".unpack()", source)
 
-    def test_adaptive_view_has_four_pages_and_opt_in_overflow(self):
+    def test_adaptive_view_has_optional_calendar_tab_and_overflow(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("contentLayout", view)
         self.assertIn("pageContainers", view)
@@ -202,7 +205,7 @@ class ProjectTests(unittest.TestCase):
         self.assertNotIn("pageSlice", view)
         self.assertNotIn("shelfPager", view)
         self.assertNotIn("clipboardPager", view)
-        for tab in ("'home'", "'media'", "'notifications'", "'system'"):
+        for tab in ("'home'", "'calendar'", "'media'", "'notifications'", "'system'"):
             self.assertIn(tab, view)
         self.assertNotIn("'shelf'", view)
         self.assertNotIn("'clipboard'", view)

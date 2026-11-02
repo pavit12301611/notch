@@ -101,6 +101,19 @@ test('header budget keeps settings and close inside the notch', () => {
     assert.equal(headerLayout(300, 1).ultra, true);
 });
 
+test('five-tab calendar header fits normal and narrow widths without displacing close', () => {
+    for (const width of [194, 220, 300, 359, 360, 480, 560, 600, 800]) {
+        for (const textScale of [0.8, 1, 1.25, 1.5, 2]) {
+            const header = headerLayout(width, textScale, 5);
+            assert.ok(header.requiredWidth <= width, `${width} @${textScale}: ${header.requiredWidth}`);
+            assert.equal(header.tabCount, 5);
+        }
+    }
+    assert.equal(headerLayout(600, 1, 5).textOnly, true);
+    assert.equal(headerLayout(600, 1.5, 5).mode, 'icons');
+    assert.equal(headerLayout(600, 1, 4).textOnly, false);
+});
+
 test('CPU deltas exclude guest double-counting and handle first sample/reset', () => {
     const first = cpuSample('cpu  10 0 10 70 10 0 0 0 5 0\ncpu0 1 2 3');
     assert.equal(first.percent, null);

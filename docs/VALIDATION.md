@@ -1,5 +1,31 @@
 # Validation log
 
+## Build 21 — 2026-11-02
+
+Scope: remove Timer/Pomodoro entirely and move Calendar into its own optional,
+redesigned tab. Existing calendar choice and unrelated settings are preserved.
+
+### Executed in the development sandbox
+
+- `npm run check`: ESLint clean; **40/40 Node tests pass**. Includes full-date grid
+  boundaries, clamped month navigation/leap years, mocked calendar selection,
+  keyboard/focus/scaling, active-tab switch-off fallback, disabled-tab rejection
+  and four/five-tab header containment; existing OSD/BlueZ/music tests still pass.
+- `make stage check-python`: Python compilation and **37/37 tests pass**; verifies
+  all timer schema keys and runtime/preferences references are removed, and both
+  preferences expose the same eight default-off feature switches.
+- `ruff check` / `ruff format --check`, all extension `node --check`, installer
+  shell syntax and `git diff --check` pass.
+- Staged install/uninstall verifies the new calendar module and bundled icon.
+
+### Still requires Fedora / live GNOME
+
+- No GNOME Shell/GJS compositor is available here. Mocked layout/controller tests
+  do **not** validate rendered appearance, accessibility announcements or real
+  pointer/keyboard input. Follow the updated build-21 acceptance checklist.
+- `glib-compile-schemas`, `desktop-file-validate`, GJS smoke and RPM checks remain
+  unexecuted in this sandbox; XML parsing is not schema bytecode compilation.
+
 ## Build 20 — 2026-11-02
 
 Scope: opt-in timer/Pomodoro, volume and brightness OSD routing, notification

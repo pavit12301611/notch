@@ -11,6 +11,7 @@ import {notchGeometry, containsPoint} from './geometry.js';
 import {contentLayout, headerLayout} from './layout.js';
 import {MediaController} from './media.js';
 import {NotificationBridge} from './notifications.js';
+import {CalendarPage} from './calendar.js';
 import {Extras} from './extras.js';
 import {peekAllowed, notificationText} from './features.js';
 import {MusicExtras} from './musicExtras.js';
@@ -24,13 +25,14 @@ import {formatBytes, formatTime, plainText, previewText, countNotifications,
 
 const TABS = [
     ['home', 'Home', 'user-home-symbolic'],
+    ['calendar', 'Calendar', 'x-office-calendar-symbolic'],
     ['media', 'Music', 'audio-x-generic-symbolic'],
     ['notifications', 'Alerts', 'preferences-system-notifications-symbolic'],
     ['system', 'System', 'utilities-system-monitor-symbolic'],
 ];
 
 /**
- * Four-page notch: Home, Music, Alerts, System.
+ * Home, optional Calendar, Music, Alerts and System.
  * Clipboard history and the file shelf were removed in build 18.
  */
 export class NotchView {
@@ -87,6 +89,7 @@ export class NotchView {
         this.notifications.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
         this.updateNotificationCount();
         this.settings.connectObject('changed', (_settings, key) => this.settingChanged(key), this);
+        this.syncCalendarTab();
         this.extras.configure();
         this.media.start();
         this.diagnostics.start();
@@ -122,7 +125,7 @@ export class NotchView {
             panelHeight: Main.layoutManager.panelBox.height || Math.round(32 * cssScale),
             opacity: this.settings.get_double('opacity'),
             tab: this.tab,
-            homeExtra: (this.settings.get_boolean('timer-enabled') ? 130 : 0) + (this.extras?.calendar?.visible ? 245 : 0),
+            tabCount: this.settings.get_boolean('calendar-enabled') ? 5 : 4,
             systemExtra: this.settings.get_boolean('bluetooth-battery') ? 70 : 0,
             mediaExtra: this.settings.get_boolean('media-art') ? 80 : 0,
             mediaWings: this.settings.get_boolean('closed-media') && this.hasMediaWings(),
@@ -289,6 +292,7 @@ export class NotchView {
         this.pageStack = new St.Widget({layout_manager: new Clutter.BinLayout(), y_expand: true});
         this.pages = {
             home: this.buildHome(),
+            calendar: this.buildCalendar(),
             media: this.buildMedia(),
             notifications: this.buildNotifications(),
             system: this.buildSystem(),
@@ -358,14 +362,34 @@ export class NotchView {
     buildHome() {
         const page = pageBox('notch-home-page', 8);
         this.homeClock = label('', 'notch-home-clock');
-        this.homeDateButton = button({text: 'Date', wrapText: true, style: 'notch-date-button',
-            accessibleName: 'Toggle monthly calendar', onClick: () => this.extras.toggleCalendar()});
-        this.homeDate = this.homeDateButton._notchLabel;
-        this.homeDate.add_style_class_name('notch-home-date');
+        this.homeDate = label('', 'notch-home-date');
         page.add_child(this.homeClock);
-        page.add_child(this.homeDateButton);
-        this.extras.buildHome(page);
+        page.add_child(this.homeDate);
         return page;
+    }
+
+    buildCalendar() {
+        this.calendarPage = new CalendarPage();
+        return this.calendarPage.page;
+    }
+
+    syncCalendarTab() {
+        const enabled = this.settings.get_boolean('calendar-enabled');
+        this.calendarPage.setEnabled(enabled);
+        const tab = this.tabButtons.get('calendar');
+        tab.visible = enabled;
+        tab.reactive = enabled;
+        tab.can_focus = enabled;
+        this.tabSlots.get('calendar').visible = enabled;
+        if (!enabled) {
+            this.pageContainers.calendar.remove_all_transitions();
+            this.pageContainers.calendar.visible = false;
+            this.pageContainers.calendar.reactive = false;
+        }
+        if (!enabled && this.tab === 'calendar') {
+            this.selectTab('home', false);
+            if (this.expanded) this.tabButtons.get('home').grab_key_focus();
+        }
     }
 
     buildMedia() {
@@ -742,13 +766,13 @@ export class NotchView {
         if (this.dead) return;
         const now = new Date();
         const time = now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-        setText(this.summaryClock, this.extras?.summary() || (this.settings.get_boolean('idle-clock') ? time : ''));
+        setText(this.summaryClock, this.settings.get_boolean('idle-clock') ? time : '');
         setText(this.homeClock, time);
         setText(this.homeDate, now.toLocaleDateString([], {weekday: 'long', month: 'long', day: 'numeric'}));
         const dayKey = now.toDateString();
         if (dayKey !== this._calendarDay) {
             this._calendarDay = dayKey;
-            this.extras?.renderCalendar();
+            this.calendarPage?.render();
         }
         this.updateSummary();
     }
@@ -761,7 +785,7 @@ export class NotchView {
         this.liveBars.visible = show && state.status === 'Playing';
         this.leftWing.visible = show;
         this.rightWing.visible = show;
-        this.summaryClock.visible = !!this.extras?.summary() || this.settings.get_boolean('idle-clock');
+        this.summaryClock.visible = this.settings.get_boolean('idle-clock');
         this.unreadDot.visible = countNotifications(Main.messageTray.getSources()) > 0 && this.settings.get_boolean('idle-clock');
         this.musicExtras?.syncMotion();
         this.syncVisualizer();
@@ -897,7 +921,7 @@ export class NotchView {
     }
 
     selectTab(id, animate = true) {
-        if (!this.pages[id]) return;
+        if (!this.pages[id] || (id === 'calendar' && !this.settings.get_boolean('calendar-enabled'))) return;
         const previous = this.tab;
         const changed = previous !== id;
         this.tab = id;
@@ -1027,7 +1051,7 @@ export class NotchView {
     }
 
     adaptPages(layout) {
-        const hl = headerLayout(layout.headerWidth ?? layout.width, layout.textScale ?? 1);
+        const hl = headerLayout(layout.headerWidth ?? layout.width, layout.textScale ?? 1, this.settings.get_boolean('calendar-enabled') ? 5 : 4);
         this.header.style = `spacing: ${hl.headerSpacing}px;`;
         this.headerSpacer.set_size(hl.gutter, -1);
         this.headerSpacer.style = `width: ${hl.gutter}px;`;
@@ -1044,12 +1068,17 @@ export class NotchView {
             else tab.remove_style_class_name('notch-tab-icon');
             if (hl.ultra) tab.add_style_class_name('notch-tab-ultra');
             else tab.remove_style_class_name('notch-tab-ultra');
-            if (tab._notchIcon) tab._notchIcon.opacity = id === this.tab ? 255 : 150;
+            if (tab._notchIcon) {
+                tab._notchIcon.visible = !hl.textOnly;
+                tab._notchIcon.icon_size = hl.ultra ? 12 : 16;
+                tab._notchIcon.opacity = id === this.tab ? 255 : 150;
+            }
         }
         for (const control of [this.settingsButton, this.closeButton]) {
             if (hl.ultra) control.add_style_class_name('notch-header-button-ultra');
             else control.remove_style_class_name('notch-header-button-ultra');
         }
+        this.calendarPage?.adapt(layout);
         this.extras?.adapt(layout);
         this.musicExtras?.adapt(layout);
         if (this.statsGrid) this.layoutSystemCards(layout.columns);
@@ -1253,6 +1282,7 @@ export class NotchView {
     }
 
     settingChanged(key) {
+        if (key === 'calendar-enabled') this.syncCalendarTab();
         if (this.extras?.isFeatureKey(key)) {
             this.extras.configure(key);
             if (this.peekNotification) {
@@ -1419,6 +1449,7 @@ export class NotchView {
     destroy() {
         this.dead = true;
         for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer', 'chargeBadgeTimer']) this.clearTimer(name);
+        this.calendarPage?.destroy();
         this.extras?.destroy();
         this.musicExtras?.destroy();
         this.clearTimer('cueTimer');

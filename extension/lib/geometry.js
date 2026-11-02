@@ -1,10 +1,10 @@
 import {availableOpenSize, clamp} from './layout.js';
 export {clamp};
 
-/** Fixed, centered page budgets. Only Alerts owns a scroll view; the other
- * pages are natural-height centered blocks. */
+/** Page budgets are clamped to the monitor; Calendar and optional content can scroll. */
 export const PAGE_SIZES = Object.freeze({
     home: {width: 640, height: 220},
+    calendar: {width: 640, height: 520},
     media: {width: 640, height: 320},
     notifications: {width: 640, height: 380},
     system: {width: 640, height: 360},
@@ -26,7 +26,7 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
     const scale = cssScale * layoutScale;
     const state = mode ?? (expanded ? 'open' : 'closed');
     const basePage = PAGE_SIZES[options.tab] ?? PAGE_SIZES.home;
-    const extra = options.tab === 'home' ? options.homeExtra : options.tab === 'system' ? options.systemExtra : options.tab === 'media' ? options.mediaExtra : 0;
+    const extra = options.tab === 'system' ? options.systemExtra : options.tab === 'media' ? options.mediaExtra : 0;
     const page = {...basePage, height: basePage.height + Math.max(0, extra ?? 0)};
     const panelHeight = Math.max(1, options.panelHeight ?? 32);
     const available = availableOpenSize(monitor, options);
