@@ -25,7 +25,9 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
     const layoutScale = Math.max(0.5, options.layoutScale ?? 1);
     const scale = cssScale * layoutScale;
     const state = mode ?? (expanded ? 'open' : 'closed');
-    const page = PAGE_SIZES[options.tab] ?? PAGE_SIZES.home;
+    const basePage = PAGE_SIZES[options.tab] ?? PAGE_SIZES.home;
+    const extra = options.tab === 'home' ? options.homeExtra : options.tab === 'system' ? options.systemExtra : options.tab === 'media' ? options.mediaExtra : 0;
+    const page = {...basePage, height: basePage.height + Math.max(0, extra ?? 0)};
     const panelHeight = Math.max(1, options.panelHeight ?? 32);
     const available = availableOpenSize(monitor, options);
     let width;

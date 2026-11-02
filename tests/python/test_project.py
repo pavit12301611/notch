@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 19)
+        self.assertEqual(metadata["version"], 20)
         self.assertIn("50", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
         keys = {key.attrib["name"] for key in schema.findall(".//key")}
@@ -27,6 +27,25 @@ class ProjectTests(unittest.TestCase):
                 )
             )
             self.assertTrue(used <= keys, f"Unknown keys in {source}: {used - keys}")
+
+    def test_optional_features_have_default_off_switches_in_both_preferences(self):
+        schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
+        keys = {key.attrib["name"]: key for key in schema.findall(".//key")}
+        features = (ROOT / "extension/lib/features.js").read_text()
+        feature_keys = re.findall(r"^    \['([^']+)',", features, re.MULTILINE)
+        self.assertEqual(len(feature_keys), 9)
+        python_prefs = (ROOT / "app/notch_app/settings.py").read_text()
+        shell_prefs = (ROOT / "extension/prefs.js").read_text()
+        self.assertIn("of FEATURES) addSwitch", shell_prefs)
+        for key in feature_keys:
+            self.assertEqual(keys[key].attrib["type"], "b")
+            self.assertEqual(keys[key].find("default").text, "false")
+            self.assertIn(f'"{key}"', python_prefs)
+        self.assertEqual(keys["peek-blocked-apps"].attrib["type"], "as")
+        for key in ("timer-minutes", "focus-minutes", "break-minutes"):
+            self.assertEqual(keys[key].find("range").attrib["min"], "1")
+            self.assertIn(key, shell_prefs)
+            self.assertIn(key, python_prefs)
 
     def test_removed_features_are_absent_from_runtime_and_schema(self):
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
@@ -167,12 +186,15 @@ class ProjectTests(unittest.TestCase):
             self.assertNotIn("deepUnpack", source)
             self.assertIn(".unpack()", source)
 
-    def test_adaptive_view_has_four_pages_and_only_alerts_scrolls(self):
+    def test_adaptive_view_has_four_pages_and_opt_in_overflow(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("contentLayout", view)
         self.assertIn("pageContainers", view)
         self.assertIn("notificationScroll", view)
         self.assertEqual(view.count("new St.ScrollView"), 1)
+        extras = (ROOT / "extension/lib/extras.js").read_text()
+        self.assertIn("enabled ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER", extras)
+        self.assertIn("this.extras.wrapPage(id, page)", view)
         self.assertIn("headerMode", (ROOT / "extension/lib/layout.js").read_text())
         self.assertIn("syncActions", view)
         self.assertIn("showStatus", view)

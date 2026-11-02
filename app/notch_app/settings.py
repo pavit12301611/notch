@@ -36,6 +36,7 @@ class SettingsApplication(Adw.Application):
         )
         self.window.add(self.appearance_page())
         self.window.add(self.behavior_page())
+        self.window.add(self.features_page())
         self.window.add(self.about_page())
         self.window.connect("close-request", self._window_closed)
         self.window.present()
@@ -278,6 +279,129 @@ class SettingsApplication(Adw.Application):
             title="Keyboard shortcut", subtitle="Super + ` (the key above Tab on US keyboards)"
         )
         media.add(shortcut)
+        return page
+
+    def features_page(self):
+        page = Adw.PreferencesPage(title="Features", icon_name="applications-utilities-symbolic")
+        optional = self.group(
+            page, "Optional features", "All additions are opt-in. Changes apply immediately."
+        )
+        features = [
+            (
+                "timer-enabled",
+                "Timer / Pomodoro",
+                "Home and closed-notch countdown. Switching off resets it.",
+            ),
+            (
+                "volume-indicator",
+                "Volume indicator",
+                "Replace native volume OSD while the notch is available.",
+            ),
+            (
+                "brightness-indicator",
+                "Brightness indicator",
+                "Replace native brightness OSD on the notch monitor.",
+            ),
+            (
+                "notification-privacy",
+                "Notification privacy",
+                "Hide titles, bodies and actions in notch peeks and Alerts. Native banners are unchanged.",
+            ),
+            (
+                "bluetooth-battery",
+                "Bluetooth battery",
+                "Connected BlueZ devices with battery data, plus connection cues.",
+            ),
+            (
+                "calendar-enabled",
+                "Mini calendar",
+                "Click the Home date for a local monthly calendar. No accounts.",
+            ),
+            (
+                "per-app-peeks",
+                "Per-app notification peeks",
+                "Selected apps stay in Alerts without notch peeks. GNOME policy still applies.",
+            ),
+            (
+                "music-polish",
+                "Music title scrolling & player picker",
+                "Scrolling titles and direct player selection. Respects reduced motion.",
+            ),
+            ("media-art", "Local album artwork", "Local MPRIS images only. No remote downloads."),
+        ]
+        for key, title, subtitle in features:
+            self.switch(optional, key, title, subtitle)
+        timer = self.group(
+            page,
+            "Timer durations",
+            "Changes reset the selected countdown. Pomodoro alternates Focus and Break; start each session yourself.",
+        )
+        self.spin(timer, "timer-minutes", "Quick timer (minutes)", 1, 180)
+        self.spin(timer, "focus-minutes", "Focus (minutes)", 1, 180)
+        self.spin(timer, "break-minutes", "Break (minutes)", 1, 60)
+        apps = self.group(
+            page,
+            "Apps without peeks",
+            "Comma-separated desktop app IDs (with or without .desktop), or exact source names for generic apps. Alerts are retained.",
+        )
+        blocked = Adw.EntryRow(
+            title="App IDs / source names",
+            text=", ".join(self.settings.get_strv("peek-blocked-apps")),
+        )
+
+        def parse_ids():
+            return [value.strip() for value in blocked.get_text().split(",") if value.strip()]
+
+        def changed(*_):
+            values = parse_ids()
+            if values != self.settings.get_strv("peek-blocked-apps"):
+                self.settings.set_strv("peek-blocked-apps", values)
+
+        def external(*_):
+            values = self.settings.get_strv("peek-blocked-apps")
+            if parse_ids() != values:
+                blocked.set_text(", ".join(values))
+
+        self.bindings.append((blocked, blocked.connect("notify::text", changed)))
+        self.bindings.append(
+            (self.settings, self.settings.connect("changed::peek-blocked-apps", external))
+        )
+        apps.add(blocked)
+        known = self.group(
+            page,
+            "Installed applications",
+            "Turn a switch off to keep that app in Alerts only. Requires Per-app notification peeks above.",
+        )
+        for app in sorted(Gio.AppInfo.get_all(), key=lambda app: app.get_display_name()):
+            app_id = (app.get_id() or "").removesuffix(".desktop")
+            if not app_id or not app.should_show():
+                continue
+            row = Adw.SwitchRow(title=app.get_display_name(), subtitle=app_id)
+
+            def sync(*_, row=row, app_id=app_id):
+                values = self.settings.get_strv("peek-blocked-apps")
+                row.set_active(
+                    not any(value.removesuffix(".desktop") == app_id for value in values)
+                )
+
+            def toggle(*_, row=row, app_id=app_id):
+                values = [
+                    value
+                    for value in self.settings.get_strv("peek-blocked-apps")
+                    if value.removesuffix(".desktop") != app_id
+                ]
+                if not row.get_active():
+                    values.append(app_id)
+                if values != self.settings.get_strv("peek-blocked-apps"):
+                    self.settings.set_strv("peek-blocked-apps", values)
+
+            sync()
+            self.bindings.append((row, row.connect("notify::active", toggle)))
+            self.bindings.append(
+                (self.settings, self.settings.connect("changed::peek-blocked-apps", sync))
+            )
+            self.settings.bind("per-app-peeks", row, "sensitive", Gio.SettingsBindFlags.GET)
+            known.add(row)
         return page
 
     def about_page(self):

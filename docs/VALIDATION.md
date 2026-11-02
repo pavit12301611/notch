@@ -1,5 +1,39 @@
 # Validation log
 
+## Build 20 — 2026-11-02
+
+Scope: opt-in timer/Pomodoro, volume and brightness OSD routing, notification
+privacy, Bluetooth battery, mini calendar, per-app peeks and music polish with
+separate local-art opt-in. All additions default off; no new tabs or daemon.
+
+### Executed in the development sandbox
+
+- `npm ci` and `npm run check`: ESLint clean; **38/38 Node tests pass**.
+  Includes pure countdown/calendar/privacy/app-filter/BlueZ/geometry regressions
+  and mocked controller tests for timer cleanup, OSD fallback/restoration,
+  calendar opt-in, BlueZ startup/cancellation, visible-only music motion,
+  direct player selection and local artwork rejection/cancellation.
+- `make stage check-python`: Python compilation and **37/37 tests pass**, including
+  schema/default-off switches and parity between both preference UIs.
+- `ruff check app tests scripts` and `ruff format --check app tests scripts` pass.
+- `node --check` on every extension module and `bash -n` on installer,
+  uninstaller and bootstrap pass.
+- Schema and D-Bus XML parse through Python project tests.
+- `make install` / `make uninstall` with `DESTDIR` staging; verified all four
+  optional-feature modules are included in the published extension payload.
+- `git diff --check` passes.
+
+### Not executed here
+
+- No GNOME Shell/GJS compositor, Bluetooth hardware or live MPRIS players are
+  available. **Mocked controller tests do not certify desktop behavior.** Follow
+  the new build-20 checklist in `docs/TESTING.md` on Fedora 44/GNOME 50 Wayland.
+- `glib-compile-schemas` and `desktop-file-validate` are unavailable. XML parsing
+  is not schema bytecode compilation; the full `make check` target, GJS smoke
+  and RPM validation remain for the Fedora environment/CI.
+- No real visual/input/large-text/accessibility validation has been performed.
+  Native GNOME internals used by OSD/banner routing still require live testing.
+
 ## Build 19 — 2026-11-01
 
 Scope: replace the settings glyph; keep the expanded header inside the notch;

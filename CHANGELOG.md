@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### v20 — independently switchable optional features
+
+- Add a Features page to both preferences UIs. Nine default-off switches cover
+  the seven requested additions, separating volume/brightness and local artwork.
+- Home: session-only Timer/Focus/Break presets, configurable minutes, precise
+  pause/resume/reset, closed countdown and completion cue; localized monthly calendar.
+- Route recognized volume/brightness levels into the notch with native fallback
+  and reversible per-monitor OSD hooks. No system level writes.
+- Redact notch notification titles, bodies/actions and accessible text; per-app
+  peek controls retain notifications in Alerts and respect native GNOME policy.
+- Signal-driven opt-in BlueZ battery rows/connection cues, with cancellation and
+  graceful unsupported-device behavior.
+- Visible-only/reduced-motion-aware music title scrolling, direct player picker,
+  and independently optional, asynchronous, bounded local raster artwork.
+- Allow optional page overflow within the existing four tabs; stop timers,
+  animations, pending loads, BlueZ clients and OSD hooks on disable.
+- Add pure feature tests and mocked controller-lifecycle/fallback regressions.
+  Live GNOME 50 Wayland validation is still required; not desktop-certified here.
+
+
 ### v19 — bounded header, corrected flare, closed music wings, charging cue
 
 - Replace the sun-like settings glyph with a sliders icon.

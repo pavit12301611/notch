@@ -122,6 +122,21 @@
     <key name="show-dark-mode" type="b">
       <default>true</default><summary>Show the Dark Mode quick action</summary>
     </key>
+
+    <!-- Optional features preserve the existing experience until explicitly enabled. -->
+    <key name="timer-enabled" type="b"><default>false</default><summary>Enable timer enabled</summary></key>
+    <key name="volume-indicator" type="b"><default>false</default><summary>Enable volume indicator</summary></key>
+    <key name="brightness-indicator" type="b"><default>false</default><summary>Enable brightness indicator</summary></key>
+    <key name="notification-privacy" type="b"><default>false</default><summary>Enable notification privacy</summary></key>
+    <key name="bluetooth-battery" type="b"><default>false</default><summary>Enable bluetooth battery</summary></key>
+    <key name="calendar-enabled" type="b"><default>false</default><summary>Enable calendar enabled</summary></key>
+    <key name="per-app-peeks" type="b"><default>false</default><summary>Enable per app peeks</summary></key>
+    <key name="music-polish" type="b"><default>false</default><summary>Enable music polish</summary></key>
+    <key name="media-art" type="b"><default>false</default><summary>Enable media art</summary></key>
+    <key name="timer-minutes" type="i"><default>5</default><range min="1" max="180"/><summary>timer minutes</summary></key>
+    <key name="focus-minutes" type="i"><default>25</default><range min="1" max="180"/><summary>focus minutes</summary></key>
+    <key name="break-minutes" type="i"><default>5</default><range min="1" max="60"/><summary>break minutes</summary></key>
+    <key name="peek-blocked-apps" type="as"><default>[]</default><summary>App IDs or source names to keep in Alerts without peeks</summary></key>
     <key name="toggle-notch" type="as">
       <default><![CDATA[['<Super>grave']]]></default>
       <summary>Keyboard shortcut to expand or collapse the notch</summary>

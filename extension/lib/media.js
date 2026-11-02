@@ -159,6 +159,14 @@ export class MediaController {
         }
     }
 
+    selectPlayer(name) {
+        if (!this.players.has(name) || this.dead) return;
+        this.manualSelection = true;
+        this.selected = name;
+        this.refreshPosition();
+        this.scheduleChange();
+    }
+
     cyclePlayer() {
         const names = [...this.players.keys()];
         if (!names.length) return;

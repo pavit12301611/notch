@@ -1,5 +1,5 @@
 /* MacBook-inspired notch chrome.
-   Build 19: four pages, layered surfaces, bounded header, charging feedback.
+   Build 20: four pages, opt-in extras, bounded header and transient feedback.
    Only Alerts owns a scroll view; every other page is a centered natural block. */
 .notch-shell {
   background-color: transparent;
@@ -202,3 +202,18 @@
 .notch-alerts-scroll StScrollBar StBin#trough { background-color: #1c1c1e; border-radius: 3px; }
 .notch-alerts-scroll StScrollBar StButton#vhandle { background-color: #636366; border-radius: 3px; }
 .notch-alerts-scroll StScrollBar StButton#vhandle:hover { background-color: #98989d; }
+
+/* Optional features: use the existing quiet typography and four-page layout. */
+.notch-date-button { background-color: transparent; border-radius: 8px; padding: 2px 6px; }
+.notch-date-button:hover, .notch-date-button:focus { background-color: rgba(255,255,255,0.08); }
+.notch-timer { padding: 4px; spacing: 5px; }
+.notch-timer-value { color: #f5f5f7; font-size: 1.3em; font-weight: 600; }
+.notch-calendar { padding: 2px 0; spacing: 2px; }
+.notch-calendar-weekday { color: #98989d; font-size: 0.75em; padding: 2px 0; }
+.notch-calendar-day, .notch-calendar-today { font-size: 0.85em; padding: 2px 0; }
+.notch-calendar-today { background-color: #0a84ff; color: white; border-radius: 8px; font-weight: 700; }
+.notch-cue { spacing: 4px; padding: 0 6px; }
+.notch-cue-text { color: #f5f5f7; font-size: 0.8em; }
+.notch-bluetooth { padding: 4px; spacing: 4px; }
+.notch-album-art { border-radius: 10px; }
+.notch-player-picker { spacing: 4px; }

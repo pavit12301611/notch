@@ -3,6 +3,8 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+import {FEATURES} from './lib/features.js';
+
 /** Native Libadwaita preferences shown directly by GNOME Extensions. */
 export default class NotchPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -167,5 +169,46 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(actions, 'show-night-light', 'Night Light');
         addSwitch(actions, 'show-dark-mode', 'Dark Mode');
         window.add(behavior);
+        const extras = new Adw.PreferencesPage({title: 'Features', icon_name: 'applications-utilities-symbolic'});
+        const optional = group(extras, 'Optional features', 'All additions are opt-in. Changes apply immediately.');
+        for (const [key, title, subtitle] of FEATURES) addSwitch(optional, key, title, subtitle);
+        const timer = group(extras, 'Timer durations', 'Changes reset the selected countdown. Pomodoro alternates Focus and Break; start each session yourself.');
+        addSpin(timer, 'timer-minutes', 'Quick timer (minutes)', 1, 180);
+        addSpin(timer, 'focus-minutes', 'Focus (minutes)', 1, 180);
+        addSpin(timer, 'break-minutes', 'Break (minutes)', 1, 60);
+        const apps = group(extras, 'Apps without peeks', 'Comma-separated desktop app IDs (with or without .desktop), or exact source names for generic apps. Alerts are retained.');
+        const blocked = new Adw.EntryRow({title: 'App IDs / source names',
+            text: settings.get_strv('peek-blocked-apps').join(', ')});
+        track(blocked, blocked.connect('notify::text', () => {
+            const values = blocked.text.split(',').map(value => value.trim()).filter(Boolean);
+            if (JSON.stringify(values) !== JSON.stringify(settings.get_strv('peek-blocked-apps')))
+                settings.set_strv('peek-blocked-apps', values);
+        }));
+        track(settings, settings.connect('changed::peek-blocked-apps', () => {
+            const values = blocked.text.split(',').map(value => value.trim()).filter(Boolean);
+            const next = settings.get_strv('peek-blocked-apps');
+            if (JSON.stringify(values) !== JSON.stringify(next)) blocked.text = next.join(', ');
+        }));
+        apps.add(blocked);
+        const known = group(extras, 'Installed applications', 'Turn a switch off to keep that app in Alerts only. Requires Per-app notification peeks above.');
+        for (const app of Gio.AppInfo.get_all().filter(app => app.should_show()).sort((a, b) => a.get_display_name().localeCompare(b.get_display_name()))) {
+            const id = app.get_id()?.replace(/\.desktop$/, '');
+            if (!id) continue;
+            const row = new Adw.SwitchRow({title: app.get_display_name(), subtitle: id,
+                active: !settings.get_strv('peek-blocked-apps').includes(id)});
+            track(row, row.connect('notify::active', () => {
+                const values = settings.get_strv('peek-blocked-apps').filter(value => value.replace(/\.desktop$/, '') !== id);
+                if (!row.active) values.push(id);
+                settings.set_strv('peek-blocked-apps', values);
+            }));
+            track(settings, settings.connect('changed::peek-blocked-apps', () => {
+                const active = !settings.get_strv('peek-blocked-apps').some(value => value.replace(/\.desktop$/, '') === id);
+                if (row.active !== active) row.active = active;
+            }));
+            settings.bind('per-app-peeks', row, 'sensitive', Gio.SettingsBindFlags.GET);
+            known.add(row);
+        }
+        window.add(extras);
+
     }
 }

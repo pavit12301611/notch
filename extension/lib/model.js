@@ -28,6 +28,7 @@ export function mediaMetadata(raw) {
         title: string('xesam:title'),
         artist: artistList.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()).join(', '),
         lengthUs: number('mpris:length'),
+        artUrl: string('mpris:artUrl'),
         trackId: /^\/[A-Za-z0-9_/.]*$/.test(trackId) ? trackId : '',
     };
 }
