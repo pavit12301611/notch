@@ -162,7 +162,8 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSpin(opening, 'auto-hide-ms', 'Auto-hide delay (ms)', 0, 60000, 500, '0 disables');
         addSwitch(opening, 'animations', 'Smooth animations');
         addSwitch(opening, 'hide-on-fullscreen', 'Hide on fullscreen');
-        addSwitch(opening, 'hide-in-overview', 'Hide in Activities overview');
+        addSwitch(opening, 'hide-in-overview', 'Hide in Activities overview',
+            'Off by default so Music and volume indicators work while the workspace picker is open.');
         addSwitch(opening, 'reserve-space', 'Reserve collapsed space (experimental)');
         const actions = group(behavior, 'Quick actions');
         addSwitch(actions, 'show-dnd', 'Do Not Disturb');

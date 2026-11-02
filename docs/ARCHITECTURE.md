@@ -101,3 +101,20 @@ redact native banners or detect screen sharing.
 Music uses a single Clutter timeline only for an overflowing title on the visible
 Music page with animations enabled. Closing, hiding, switching off, reduced motion
 or disabling tears it down. Local artwork has a separate opt-in/cancellable.
+
+## Overview and audio controls (build 22)
+
+`hide-in-overview` defaults false; explicit choices are preserved. Super retains
+GNOME's normal overview binding. The existing Super+grave shortcut is already
+registered for NORMAL and OVERVIEW modes. When visible, notch chrome is moved
+immediately above `overviewGroup` in the same `uiGroup`, not reparented and not
+raised over shield/modal/screenshot groups. On exit it returns below
+`global.top_window_group`. `showing`, `shown`, `hiding` and `hidden` all resync;
+the final `hidden` signal is necessary because `visible` remains true during the
+hiding animation.
+
+The view is the sole owner of notch visibility (`trackFullscreen: false`). A
+fullscreen window behind overview does not hide its controls, while lock, greeter,
+ScreenSaver, explicit overview hiding and desktop fullscreen rules still apply.
+Media position polling stays active only for a visible expanded Music page.
+Unavailable/hidden/notification-peek indicators retain native OSD fallback.

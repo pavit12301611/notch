@@ -153,7 +153,9 @@ export class NotchView {
         this.actor = new St.Widget({style_class: 'notch-shell', reactive: true,
             track_hover: true, clip_to_allocation: true, layout_manager: new Clutter.FixedLayout(),
             accessible_name: 'Notch'});
-        Main.layoutManager.addChrome(this.actor, {trackFullscreen: true});
+        // Own visibility here; Shell's fullscreen tracker can otherwise override
+        // the overview/user preference and reshow chrome during lock transitions.
+        Main.layoutManager.addChrome(this.actor, {trackFullscreen: false});
         this.surface = new NotchSurface();
         this.actor.add_child(this.surface);
 
@@ -1252,7 +1254,9 @@ export class NotchView {
     connectEnvironment() {
         Main.layoutManager.connectObject('monitors-changed', () => this.relayout('resize', true), this);
         Main.overview.connectObject('showing', () => this.syncVisibility(),
-            'hiding', () => this.syncVisibility(), this);
+            'shown', () => this.syncVisibility(),
+            'hiding', () => this.syncVisibility(),
+            'hidden', () => this.syncVisibility(), this);
         Main.sessionMode.connectObject('updated', () => this.syncVisibility(), this);
         global.display.connectObject('in-fullscreen-changed', () => this.syncVisibility(), this);
         this.stagePress = global.stage.connect('captured-event', (_stage, event) => {
@@ -1353,13 +1357,29 @@ export class NotchView {
         this.reserve.visible = this.allowed;
     }
 
+    syncOverviewStacking(inOverview) {
+        // addChrome normally puts the notch BELOW overviewGroup. Merely setting
+        // visible=true there leaves controls obscured by the workspace picker.
+        // Raise only above overviewGroup, not above lock/modal/screenshot chrome.
+        const layout = Main.layoutManager;
+        const parent = this.actor.get_parent();
+        const sibling = inOverview ? layout.overviewGroup : global.top_window_group;
+        if (parent !== layout.uiGroup || !sibling || sibling.get_parent() !== parent ||
+            this._overviewStacked === inOverview) return;
+        if (inOverview) parent.set_child_above_sibling(this.actor, sibling);
+        else parent.set_child_below_sibling(this.actor, sibling);
+        this._overviewStacked = inOverview;
+    }
+
     syncVisibility() {
         const monitor = this.monitor();
         const locked = !!this.locked || !!Main.sessionMode.isLocked || !!Main.sessionMode.isGreeter;
+        const inOverview = !!Main.overview.visible;
         this.allowed = !locked &&
-            !(this.settings.get_boolean('hide-on-fullscreen') &&
+            !(this.settings.get_boolean('hide-on-fullscreen') && !inOverview &&
               global.display.get_monitor_in_fullscreen(monitor.index)) &&
-            !(this.settings.get_boolean('hide-in-overview') && Main.overview.visible);
+            !(this.settings.get_boolean('hide-in-overview') && inOverview);
+        this.syncOverviewStacking(inOverview && !locked);
         if (!this.allowed) this.hideCue();
         this.actor.visible = this.allowed;
         this.actor.reactive = this.allowed;

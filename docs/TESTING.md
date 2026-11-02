@@ -22,7 +22,7 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 - [ ] `./install.sh --with-deps` completes as the desktop user.
 - [ ] After logout/login, `gnome-extensions enable notch@pavit12301611.github.io` succeeds.
-- [ ] `notch-doctor` reports build 21 loaded and installed, and no legacy helper artifacts.
+- [ ] `notch-doctor` reports build 22 loaded and installed, and no legacy helper artifacts.
 - [ ] Updating from build 17 removes `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service` and old Python modules.
 - [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and doctor paths consistently.
 - [ ] Uninstall removes installed files but retains settings until explicitly purged.
@@ -106,3 +106,26 @@ Do not label the project “tested on Fedora 44” until the live checklist has 
 - [ ] Repeat enable/disable ten times while playing media, navigating Calendar,
       Bluetooth connected and pending OSD/artwork events; no stale callbacks,
       persistent sources, duplicate native hooks or Shell journal errors.
+
+### Super / overview audio regression (build 22)
+
+- [ ] With Music open, press Super: workspace overview opens normally, notch stays
+      above it, title/transport/seek/player selection remain clickable, and media
+      position updates. Repeat through workspace picker and app grid.
+- [ ] With the volume indicator enabled, press volume/mute keys in overview:
+      exactly one level cue appears on the notch monitor. Check both closed-notch
+      cue and expanded footer. Brightness, other-monitor and unknown-OSD fallback
+      still behave normally. Actual audio level changes are owned by GNOME.
+- [ ] Press Super repeatedly to enter/exit, including interrupted animations. The
+      notch returns to ordinary stacking, never stays hidden and does not retain
+      duplicate signal hooks. Super+grave remains usable in both action modes.
+- [ ] Turn Hide in Activities overview ON explicitly: notch hides, media polling
+      stops and volume uses the native OSD. Exit overview: notch returns. OFF
+      enables overview controls immediately; upgrading preserves explicit choices.
+- [ ] A fullscreen player behind overview does not hide controls there. Leaving
+      overview into fullscreen obeys the fullscreen preference; desktop windows
+      and popups are not covered by changed stacking.
+- [ ] Lock/greeter/ScreenSaver always hide notch and stop media polling; no notch
+      controls or private peeks are exposed over the shield. Test unlock both with
+      overview previously visible and with it closed. Modal dialogs/screenshot UI
+      must remain above notch.

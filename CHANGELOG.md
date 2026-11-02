@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### v22 — Music/volume controls in Super overview
+
+- Default `hide-in-overview` to false, retaining explicit user overrides and
+  documenting the setting/command for existing installations. Do not rebind Super.
+- Stack notch above overviewGroup only while overview is visible, below lock and
+  modal layers; restore standard chrome stacking when it closes.
+- Sync showing/shown/hiding/hidden transitions, fixing the stale-hidden exit path.
+- Ignore background fullscreen-window hiding inside overview; preserve lock,
+  greeter, fullscreen desktop and explicit overview-hide rules. Disable independent
+  Shell fullscreen tracking for the notch so view visibility has one owner.
+- Add mocked media polling/stacking/lock/native-OSD regressions plus schema/shortcut
+  contract tests. Live Fedora 44/GNOME 50 acceptance remains required.
+
 ### v21 — remove Timer, dedicated redesigned Calendar tab
 
 - Remove Timer/Pomodoro controls, model, GLib countdown source, preferences and

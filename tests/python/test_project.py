@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 21)
+        self.assertEqual(metadata["version"], 22)
         self.assertIn("50", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
         keys = {key.attrib["name"] for key in schema.findall(".//key")}
@@ -49,6 +49,20 @@ class ProjectTests(unittest.TestCase):
         for source in (ROOT / "extension").rglob("*.js"):
             self.assertNotIn("Countdown", source.read_text())
             self.assertNotIn("timer-enabled", source.read_text())
+
+    def test_overview_keeps_audio_controls_available_without_rebinding_super(self):
+        schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
+        keys = {key.attrib["name"]: key for key in schema.findall(".//key")}
+        self.assertEqual(keys["hide-in-overview"].find("default").text, "false")
+        self.assertEqual(keys["hide-on-fullscreen"].find("default").text, "true")
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("'shown', () => this.syncVisibility()", view)
+        self.assertIn("'hidden', () => this.syncVisibility()", view)
+        self.assertIn("addChrome(this.actor, {trackFullscreen: false})", view)
+        entry = (ROOT / "extension/extension.js").read_text()
+        self.assertIn("Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW", entry)
+        self.assertNotIn("overlay-key", entry)
+        self.assertNotIn("overlay-key", view)
 
     def test_removed_features_are_absent_from_runtime_and_schema(self):
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()

@@ -6,6 +6,26 @@ A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 44 W
 
 > Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 44/GNOME 50 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
 
+## What changed in build 22
+
+- Keep Music controls and optional volume/brightness indicators usable when
+  **Super** opens the Activities/workspace overview. Super's GNOME binding is
+  unchanged; the Notch shortcut remains **Super + `**.
+- `Hide in Activities overview` now defaults **off**. An explicit existing choice
+  is retained: turn it off in Settings → Behavior, or run:
+
+  ```bash
+  gsettings set io.github.pavit12301611.Notch hide-in-overview false
+  ```
+
+- Place Notch above the overview while retaining lock-screen/modal layering;
+  restore desktop stacking on exit. Sync both start and completion of overview
+  transitions so it cannot remain hidden after leaving the workspace picker.
+- A fullscreen player behind the overview no longer hides controls there. Lock,
+  greeter and desktop fullscreen hiding still win; unavailable notch OSDs use the
+  native fallback. The extension owns its visibility instead of Shell's separate
+  fullscreen tracker overriding it.
+
 ## What changed in build 21
 
 - Remove Timer / Pomodoro completely: no UI, countdown, preferences or schema keys.
@@ -107,7 +127,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/bf1fc204-notch/scripts/bootstrap.sh | NOTCH_REF=arena/bf1fc204-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/bf1fc204-notch` development branch (build 21). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/bf1fc204-notch` development branch (build 22). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 

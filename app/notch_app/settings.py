@@ -261,7 +261,12 @@ class SettingsApplication(Adw.Application):
             "Also respects GNOME’s Enable Animations accessibility setting",
         )
         self.switch(behavior, "hide-on-fullscreen", "Hide on fullscreen")
-        self.switch(behavior, "hide-in-overview", "Hide in Activities overview")
+        self.switch(
+            behavior,
+            "hide-in-overview",
+            "Hide in Activities overview",
+            "Off by default so Music and volume indicators work while the workspace picker is open.",
+        )
         self.switch(
             behavior,
             "reserve-space",

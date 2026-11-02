@@ -1,5 +1,29 @@
 # Validation log
 
+## Build 22 — 2026-11-02
+
+Scope: Volume/Music controls remain usable in Super's workspace overview without
+changing GNOME's Super binding. Default overview hiding off, correct chrome
+stacking, completion-signal resync, and one owner of fullscreen/lock visibility.
+
+### Executed in the development sandbox
+
+- `npm run check`: ESLint clean and **43/43 Node tests pass**. New mocked tests
+  exercise expanded Music polling across overview enter/exit, raising only above
+  workspace chrome, desktop stacking restoration, explicit hide/native OSD
+  fallback, lock/greeter/ScreenSaver hiding and fullscreen-player background cases.
+- `make stage check-python`: compilation and **38/38 tests pass**, including
+  overview defaults, lifecycle signals and unchanged shortcut contracts.
+- Ruff lint/format, extension JS syntax, shell syntax, XML parsing, staged
+  install/uninstall and `git diff --check` pass.
+
+### Still requires live Fedora 44 / GNOME 50
+
+No compositor/hardware is available here. Input dispatch, real media keys/audio,
+visual stacking and lock/modal interactions are **not** desktop-certified by the
+mock tests. Run the build-22 overview/audio checklist. GJS, schema bytecode
+compilation, desktop-file validation and RPM remain unavailable/unexecuted here.
+
 ## Build 21 — 2026-11-02
 
 Scope: remove Timer/Pomodoro entirely and move Calendar into its own optional,

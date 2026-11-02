@@ -69,7 +69,8 @@ const Gio = {FileQueryInfoFlags: {NOFOLLOW_SYMLINKS: 1}, FileType: {REGULAR: 1},
     }};
 let nativeCalls = 0;
 const originalOsd = () => { nativeCalls++; };
-const Main = {osdWindowManager: {_showOsdWindow: originalOsd, _osdWindows: [{cancel() {}}]}};
+const Main = {overview: {visible: false}, sessionMode: {isLocked: false, isGreeter: false}, layoutManager: {},
+    osdWindowManager: {_showOsdWindow: originalOsd, _osdWindows: [{cancel() {}}]}};
 const stubs = new Map([
     ['gi://Clutter', {default: {ActorAlign: {CENTER: 1, FILL: 2, START: 0, END: 3}, BinLayout: class {}, ModifierType: {CONTROL_MASK: 1, MOD1_MASK: 2, SUPER_MASK: 4}, KEY_Left: 100, KEY_Right: 101, KEY_Up: 102, KEY_Down: 103, KEY_Page_Up: 104, KEY_Page_Down: 105, KEY_Home: 106, EVENT_STOP: true, EVENT_PROPAGATE: false, FixedLayout: class {}, Timeline}}],
     ['gi://GnomeDesktop?version=4.0', {default: {}}],
@@ -355,4 +356,155 @@ test('calendar master switch hides its tab/slot and returns an active Calendar t
     // Direct/programmatic tab selection must not open a disabled calendar either.
     NotchView.prototype.selectTab.call({pages: {calendar: {}}, settings: view.settings}, 'calendar');
     view.calendarPage.destroy();
+});
+
+function overviewFixture() {
+    const oldDisplay = global.display;
+    const oldTop = global.top_window_group;
+    const oldLayout = {...Main.layoutManager};
+    const children = [];
+    const parent = {
+        set_child_above_sibling(actor, sibling) {
+            children.splice(children.indexOf(actor), 1);
+            children.splice(children.indexOf(sibling) + 1, 0, actor);
+        },
+        set_child_below_sibling(actor, sibling) {
+            children.splice(children.indexOf(actor), 1);
+            children.splice(children.indexOf(sibling), 0, actor);
+        },
+    };
+    const actor = name => ({name, get_parent: () => parent});
+    const overview = actor('overview');
+    const shield = actor('lock shield');
+    const top = actor('top windows');
+    const notch = actor('notch');
+    const modal = actor('modal');
+    children.push(overview, shield, notch, top, modal);
+    Object.assign(Main.layoutManager, {uiGroup: parent, overviewGroup: overview});
+    let fullscreen = false;
+    global.display = {get_monitor_in_fullscreen: () => fullscreen};
+    global.top_window_group = top;
+    const values = {'hide-in-overview': false, 'hide-on-fullscreen': true,
+        'notifications-in-notch': true, 'volume-indicator': true};
+    const view = {
+        settings: {get_boolean: key => values[key]}, allowed: true, expanded: true, mode: 'open', tab: 'media',
+        actor: notch, monitor: () => ({index: 0}), reserve: {}, hideCue() { this.cueHidden = true; },
+        syncPanelClock() {}, syncVisualizer() {}, musicExtras: {syncMotion() {}},
+        diagnostics: {setActive() {}}, media: {setPositionActive: active => { view.positionActive = active; }},
+        notifications: {configure: (_enabled, allowed) => { view.notificationAllowed = allowed; }},
+        setExpanded: expanded => { view.expanded = expanded; view.mode = expanded ? 'open' : 'closed'; },
+        showCue: () => view.allowed && view.mode !== 'peek',
+        statusLevel: {_notchSet: value => { view.indicatedLevel = value; }},
+        cueIcon: {}, cueText: {}, cueLevel: {_notchSet: value => { view.indicatedLevel = value; }},
+    };
+    view.syncOverviewStacking = inOverview => NotchView.prototype.syncOverviewStacking.call(view, inOverview);
+    view.showLevel = (...args) => NotchView.prototype.showLevel.call(view, ...args);
+    const sync = () => NotchView.prototype.syncVisibility.call(view);
+    const restore = () => {
+        global.display = oldDisplay;
+        global.top_window_group = oldTop;
+        for (const key of Object.keys(Main.layoutManager)) delete Main.layoutManager[key];
+        Object.assign(Main.layoutManager, oldLayout);
+        Main.overview.visible = false;
+        Main.sessionMode.isLocked = false;
+        Main.sessionMode.isGreeter = false;
+    };
+    return {view, values, sync, restore, children, overview, shield, notch, top, modal,
+        setFullscreen: value => { fullscreen = value; }};
+}
+
+test('Super overview keeps Music active and lifts notch above workspaces, below lock/modal layers', () => {
+    const f = overviewFixture();
+    try {
+        f.sync();
+        assert.equal(f.view.allowed, true);
+        assert.equal(f.view.positionActive, true);
+        assert.equal(f.children[f.children.indexOf(f.notch) + 1], f.top);
+        Main.overview.visible = true;
+        f.sync();
+        assert.equal(f.view.allowed, true);
+        assert.equal(f.view.expanded, true, 'do not collapse playing media on Super');
+        assert.equal(f.view.positionActive, true);
+        assert.equal(f.children[f.children.indexOf(f.overview) + 1], f.notch);
+        assert.ok(f.children.indexOf(f.notch) < f.children.indexOf(f.shield));
+        assert.ok(f.children.indexOf(f.notch) < f.children.indexOf(f.modal));
+        f.setFullscreen(true); // workspace picker over an otherwise fullscreen player
+        f.sync();
+        assert.equal(f.view.allowed, true);
+        Main.overview.visible = false; // hidden transition must restore desktop rules
+        f.setFullscreen(false);
+        f.sync();
+        assert.equal(f.view.allowed, true);
+        assert.equal(f.view.positionActive, true);
+        assert.equal(f.children[f.children.indexOf(f.notch) + 1], f.top);
+    } finally { f.restore(); }
+});
+
+test('explicit overview hiding, fullscreen, lock and greeter still hide media and stop polling', () => {
+    const f = overviewFixture();
+    try {
+        Main.overview.visible = true;
+        f.values['hide-in-overview'] = true;
+        f.sync();
+        assert.equal(f.view.allowed, false);
+        assert.equal(f.view.actor.reactive, false);
+        assert.equal(f.view.positionActive, false);
+        assert.equal(f.view.expanded, false);
+        Main.overview.visible = false;
+        f.sync();
+        assert.equal(f.view.allowed, true, 'hidden signal re-enables notch after overview exits');
+        assert.equal(f.view.actor.reactive, true);
+        f.setFullscreen(true);
+        f.sync();
+        assert.equal(f.view.allowed, false);
+        f.values['hide-in-overview'] = false;
+        Main.overview.visible = true;
+        for (const key of ['isLocked', 'isGreeter']) {
+            Main.sessionMode[key] = true;
+            f.sync();
+            assert.equal(f.view.allowed, false);
+            assert.equal(f.view.notificationAllowed, false);
+            assert.equal(f.view.actor.visible, false);
+            Main.sessionMode[key] = false;
+        }
+        f.view.locked = true; // ScreenSaver signal must also win over overview
+        f.sync();
+        assert.equal(f.view.allowed, false);
+    } finally { f.restore(); }
+});
+
+test('volume OSD routes in overview; hiding/lock/peek fall back natively without duplicates', () => {
+    const f = overviewFixture();
+    const extras = new Extras(f.view);
+    const volume = {get_names: () => ['audio-volume-high-symbolic']};
+    try {
+        nativeCalls = 0;
+        extras.configureOsd();
+        Main.overview.visible = true;
+        f.sync();
+        Main.osdWindowManager._showOsdWindow(0, volume, '', 0.65, 1);
+        assert.equal(nativeCalls, 0);
+        assert.equal(f.view.indicatedLevel, 0.65);
+        f.values['hide-in-overview'] = true;
+        f.sync();
+        Main.osdWindowManager._showOsdWindow(0, volume, '', 0.7, 1);
+        assert.equal(nativeCalls, 1);
+        f.values['hide-in-overview'] = false;
+        Main.sessionMode.isLocked = true;
+        f.sync();
+        Main.osdWindowManager._showOsdWindow(0, volume, '', 0.75, 1);
+        assert.equal(nativeCalls, 2);
+        Main.sessionMode.isLocked = false;
+        f.sync();
+        f.view.mode = 'peek';
+        Main.osdWindowManager._showOsdWindow(0, volume, '', 0.8, 1);
+        assert.equal(nativeCalls, 3);
+        f.view.mode = 'closed';
+        Main.overview.visible = false;
+        f.sync();
+        Main.osdWindowManager._showOsdWindow(0, volume, '', 0.85, 1);
+        assert.equal(nativeCalls, 3);
+        assert.equal(f.view.indicatedLevel, 0.85);
+    } finally { extras.destroy(); f.restore(); }
+    assert.equal(Main.osdWindowManager._showOsdWindow, originalOsd);
 });

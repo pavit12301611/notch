@@ -31,6 +31,8 @@ if (directory) {
         if (!schema.has_key(key) || schema.get_default_value(key).get_boolean())
             throw new Error(`Optional feature must default off: ${key}`);
     }
+    if (schema.get_default_value('hide-in-overview').get_boolean())
+        throw new Error('Overview controls must be available by default');
     if (schema.get_default_value('placement').get_string() !== 'panel')
         throw new Error('MacBook placement default check failed');
 }

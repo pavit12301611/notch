@@ -107,7 +107,7 @@
       <default>true</default><summary>Hide on a monitor containing a fullscreen window</summary>
     </key>
     <key name="hide-in-overview" type="b">
-      <default>true</default><summary>Hide while the Activities overview is open</summary>
+      <default>false</default><summary>Hide while the Activities overview is open (optional)</summary>
     </key>
     <key name="reserve-space" type="b">
       <default>false</default><summary>Reserve collapsed notch space in the monitor work area (experimental)</summary>
