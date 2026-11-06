@@ -1,18 +1,20 @@
 # Notch for GNOME
 
-A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 44 Workstation / GNOME Wayland**: idle clock, in-notch notifications, MPRIS media controls, live system status and GNOME quick actions.
+A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 45 Workstation / GNOME Wayland**: idle clock, in-notch notifications, MPRIS media controls, live system status and GNOME quick actions.
 
-**Version target:** Fedora 44 ships GNOME **50**. The extension declares Shell 46–50 compatibility, but **GNOME 50 is the primary release target**; older versions need their own live desktop validation.
+**Version target:** Fedora 45 ships GNOME **51**. The extension declares Shell 46–51 compatibility, but **GNOME 51 is the primary release target**; older versions need their own live desktop validation. Fedora 44 / GNOME 50 and Fedora 42–43 / GNOME 48–49 use the same build.
 
-> Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 44/GNOME 50 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
+> Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 45/GNOME 51 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
 
-## What changed in build 19
+## What changed in build 20
 
-- Settings uses a sliders icon instead of the old sun-like glyph.
-- The expanded header is budgeted: tabs, settings and close stay inside the notch at narrow widths and large text scaling.
-- The left top flare was corrected, removing the stray rectangle outside the notch.
-- Closed music wings are back with proportional, centered equalizer bars.
-- Plugging in the charger shows a brief green “Charging · NN%” cue in the closed notch (under two seconds).
+- **Fedora 45 / GNOME Shell 51 support.** GNOME Shell 51 removed the deprecated `St.BoxLayout:vertical` property. Every vertical box now uses `:orientation` (Shell 48+), with a runtime fallback to `:vertical` on Shell 46/47, so one build runs across Shell 46–51.
+- `metadata.json` declares Shell 46–51; the GNOME Shell 51 check no longer reports the extension as *Out of Date*.
+- Opening/closing, peeks and the closed-state equalizer also respect GNOME 51's **reduced motion** setting (`St.ReducedMotion.REDUCE`), not just `enable-animations`.
+- CI runs on the Fedora 45 container; the RPM changelog and doctor target Fedora 45 / GNOME 51.
+- Upgrading from Fedora 44 keeps your settings; re-run the installer once and log out/in.
+
+Build 19 tightened the expanded header, corrected the left top flare, restored the closed music wings and added the charging cue.
 
 Build 18 removed Clipboard history and Quick stash / file shelf completely: no tabs, no background helper, no helper D-Bus service, no systemd unit, no CLI, no schema keys and no packaging payload. The installer also cleans up those artifacts from older builds. The remaining UI is built around four pages with a clear typographic hierarchy and layered surfaces.
 
@@ -61,24 +63,24 @@ Closed notch: idle time sits where the GNOME clock used to be; music grows small
 - **MPRIS capabilities vary.** Seek requires a player exposing `CanSeek`, a track length, and a usable position/track ID. Firefox must have MPRIS/media-key integration enabled. A player that does not implement a capability cannot be forced to support it.
 - Shell extensions use internal GNOME APIs. Test after every GNOME major upgrade; never bypass version checks by editing metadata blindly.
 
-## Quick start on Fedora 44
+## Quick start on Fedora 45
 
 ### One command — no GitHub page or git clone needed
 
 Run this in your Fedora desktop terminal (as your normal user, **not** with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh | NOTCH_REF=arena/3b6a968b-notch bash -s -- --with-deps
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/556fb93a-notch/scripts/bootstrap.sh | NOTCH_REF=arena/556fb93a-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/3b6a968b-notch` development branch (build 19+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/556fb93a-notch` development branch (build 20+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/3b6a968b-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/556fb93a-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
 less /tmp/notch-bootstrap.sh
-NOTCH_REF=arena/3b6a968b-notch bash /tmp/notch-bootstrap.sh --with-deps
+NOTCH_REF=arena/556fb93a-notch bash /tmp/notch-bootstrap.sh --with-deps
 ```
 
 ### From a local checkout
@@ -133,6 +135,16 @@ make rpm
 
 The spec installs the extension, schema, settings app, doctor and desktop entry. It does not install a helper daemon, clipboard manager or file shelf. See [packaging/rpm/notch.spec](packaging/rpm/notch.spec).
 
+### Upgrading from Fedora 44 (GNOME 50)
+
+The extension is the same package; only the Shell compatibility range changed. After `dnf system-upgrade`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/556fb93a-notch/scripts/bootstrap.sh | NOTCH_REF=arena/556fb93a-notch bash -s --
+```
+
+Then log out and back in. `gnome-extensions info notch@pavit12301611.github.io` should report `State: ACTIVE`, not `OUT OF DATE`. Your existing Notch settings (GSettings/dconf) are retained.
+
 ## Configuration
 
 Open **Notch Settings** from the app grid, or run `notch-settings`. The extension’s own Preferences dialog (GNOME Extensions → Notch → Settings) exposes the same core schema inline.
@@ -157,6 +169,8 @@ journalctl -b _COMM=gnome-shell --no-pager -n 300 | grep -E -i 'notch|JS ERROR'
 
 - **Extension “does not exist” after install:** log out/in once. GNOME Shell discovers newly installed extensions at session start; enabling alone does not reload code on Wayland.
 - **Old helper warnings:** re-run the build-18 installer. `notch-doctor` reports leftover `notch-helper`/`notch-shelf` artifacts.
+- **`State: OUT OF DATE` after upgrading to Fedora 45:** your installed copy predates build 20 and does not declare GNOME Shell 51. Re-run the installer above; do not edit `shell-version` by hand or disable version validation. On Shell 51 a metadata-only spoof loads code that still calls the removed `St.BoxLayout:vertical` property.
+- **`No property vertical on StBoxLayout` in the journal:** same cause; update to build 20, which uses `St.BoxLayout:orientation` on Shell 48–51.
 - **Music controls disabled:** the player does not expose that MPRIS capability, or no player is connected.
 - **Freeze/stutter triage:** capture `pidstat -p "$(pgrep -x gnome-shell | head -n1)" 1` and the journal grep above. Do not assume a static test proves the live issue is fixed.
 

@@ -73,10 +73,35 @@ export function emptyState(title, body) {
     return widget;
 }
 
+/**
+ * GNOME Shell 48 added St.BoxLayout:orientation and deprecated :vertical;
+ * GNOME Shell 51 removed :vertical. Detect the property once per call so one
+ * build covers Shell 46-51 without a version table or a metadata-only bump.
+ */
+function stBoxLayoutUsesOrientation() {
+    const prototype = St.BoxLayout.prototype;
+    // :orientation on Shell 48+, or a future Shell that drops :vertical too.
+    return 'orientation' in prototype || !('vertical' in prototype);
+}
+
+function stBoxOrientation(vertical) {
+    return vertical ? Clutter.Orientation.VERTICAL : Clutter.Orientation.HORIZONTAL;
+}
+
+/** Set box direction on both the pre-48 and the 48+ St.BoxLayout API. */
+export function setBoxOrientation(widget, vertical) {
+    if (!widget) return;
+    if ('orientation' in widget) widget.orientation = stBoxOrientation(vertical);
+    else widget.vertical = !!vertical;
+}
+
 export function box(vertical = false, style = '', spacing = 8) {
     // St.BoxLayout has no GObject "spacing" property; spacing is an St CSS style.
-    return new St.BoxLayout({vertical, style_class: style,
-        style: `spacing: ${Number(spacing) || 0}px;`, x_expand: !vertical});
+    const properties = {style_class: style, style: `spacing: ${Number(spacing) || 0}px;`,
+        x_expand: !vertical};
+    if (stBoxLayoutUsesOrientation()) properties.orientation = stBoxOrientation(vertical);
+    else properties.vertical = vertical;
+    return new St.BoxLayout(properties);
 }
 
 export function button({text = '', iconName = '', onClick, style = 'notch-button', accessibleName = '', wrapText = false}) {

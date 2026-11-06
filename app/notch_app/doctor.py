@@ -77,8 +77,12 @@ def inspect_project() -> list[tuple[str, str, str]]:
             "Operating system",
             release.get("PRETTY_NAME", "Unknown"),
         )
-        if release.get("ID") == "fedora" and release.get("VERSION_ID") != "44":
-            check("WARN", "Fedora release", "This release targets Fedora 44 / GNOME 50")
+        if release.get("ID") == "fedora" and release.get("VERSION_ID") not in {"44", "45"}:
+            check(
+                "WARN",
+                "Fedora release",
+                "This release targets Fedora 44-45 / GNOME 50-51 (GNOME Shell 46-51)",
+            )
     except OSError:
         check("WARN", "Operating system", "No os-release file")
     session = os.environ.get("XDG_CURRENT_DESKTOP", "")
@@ -98,11 +102,12 @@ def inspect_project() -> list[tuple[str, str, str]]:
         except (OSError, subprocess.TimeoutExpired):
             pass
     major = re.search(r"(\d+)(?:\.\d+)*\s*$", version)
-    shell_ok = bool(major and int(major.group(1)) == 50)
+    shell_major = int(major.group(1)) if major else 0
+    shell_ok = 46 <= shell_major <= 51
     check(
         "PASS" if shell_ok else "WARN",
         "GNOME Shell",
-        version or "Not installed; 46–50 metadata compatibility, primary target 50",
+        version or "Not installed; 46-51 metadata compatibility, primary target 51",
     )
     directory = extension_dir()
     metadata_file = directory / "metadata.json"

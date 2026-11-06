@@ -16,16 +16,24 @@ Fedora CI additionally runs the GJS/GLib smoke test under `dbus-run-session`, `n
 
 These checks do **not** start a real GNOME Shell compositor. A headless container cannot certify overlay input, animations, Wayland lifecycle or live MPRIS behavior.
 
-## Live acceptance checklist (Fedora 44 / GNOME 50 Wayland)
+## Live acceptance checklist (Fedora 45 / GNOME 51 Wayland)
 
 ### Install and discovery
 
 - [ ] `./install.sh --with-deps` completes as the desktop user.
 - [ ] After logout/login, `gnome-extensions enable notch@pavit12301611.github.io` succeeds.
-- [ ] `notch-doctor` reports build 19 loaded and installed, and no legacy helper artifacts.
+- [ ] `notch-doctor` reports build 20 loaded and installed, and no legacy helper artifacts.
 - [ ] Updating from build 17 removes `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service` and old Python modules.
 - [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and doctor paths consistently.
 - [ ] Uninstall removes installed files but retains settings until explicitly purged.
+
+### GNOME Shell 51 compatibility
+
+- [ ] After upgrading Fedora 44 → 45, the installed build still reports `State: ACTIVE`; a pre-build-20 copy shows `OUT OF DATE` until it is reinstalled.
+- [ ] `journalctl -b _COMM=gnome-shell --no-pager | grep -E 'No property|JS ERROR'` shows no `No property vertical on StBoxLayout`; every page, the notification list, the media block and the system action row lay out vertically where intended.
+- [ ] `gnome-extensions info notch@pavit12301611.github.io` reports `Version: 20` after a logout/login.
+- [ ] On GNOME 51, Settings → Accessibility → Seeing → Reduce Motion makes open/close snap and stops the equalizer without leaving the notch in a partial size.
+- [ ] On a GNOME 48–50 machine the same build still opens, closes and lays out vertically through the `:vertical` fallback (or through `:orientation` on 48+).
 
 ### Closed notch and motion
 
@@ -59,4 +67,4 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 ## Reporting rule
 
-Do not label the project “tested on Fedora 44” until the live checklist has been run and any failures are fixed or explicitly documented.
+Do not label the project “tested on Fedora 45” until the live checklist has been run and any failures are fixed or explicitly documented.

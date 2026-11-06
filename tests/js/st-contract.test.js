@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
 
-// Exercise the real widgets.js against a strict St.Icon contract. The property
-// list matches GNOME Shell 50.6 st-icon.c plus the inherited actor properties we
-// use. This catches invalid constructor properties and later invalid writes;
-// a syntax-only check cannot do either.
+// Exercise the real widgets.js against a strict St contract. The icon property
+// list matches GNOME Shell 51 st-icon.c plus the inherited actor properties we
+// use, and St.BoxLayout mimics Shell 51 where :vertical is gone and only
+// :orientation exists. This catches invalid constructor properties and later
+// invalid writes; a syntax-only check cannot do either.
 const iconProperties = new Set([
     'gicon', 'fallback_gicon', 'icon_name', 'icon_size', 'fallback_icon_name',
     'style_class', 'style', 'x_expand', 'y_expand', 'x_align', 'y_align', 'visible',
@@ -65,8 +66,25 @@ class BoxLayout extends Actor {
     constructor(properties = {}) {
         if (Object.hasOwn(properties, 'spacing'))
             throw new Error('No property spacing on StBoxLayout');
+        if (Object.hasOwn(properties, 'vertical'))
+            throw new Error('No property vertical on StBoxLayout (removed in GNOME Shell 51)');
         super(properties);
     }
+    get orientation() { return this._orientation ?? 0; }
+    set orientation(value) {
+        if (value !== 0 && value !== 1) throw new Error('Invalid StBoxLayout orientation');
+        this._orientation = value;
+    }
+}
+// GNOME Shell 46/47 only had :vertical; :orientation arrived in 48.
+class LegacyBoxLayout extends Actor {
+    constructor(properties = {}) {
+        if (Object.hasOwn(properties, 'orientation'))
+            throw new Error('No property orientation on StBoxLayout before GNOME Shell 48');
+        super(properties);
+    }
+    get vertical() { return this._vertical ?? false; }
+    set vertical(value) { this._vertical = !!value; }
 }
 class Slider {
     constructor(value) { this.value = value; }
@@ -80,7 +98,8 @@ class FileIcon {
 const Gio = {FileIcon, ThemedIcon: {new: name => ({themed: name})}};
 const GLib = {get_monotonic_time: () => 1_000_000};
 const St = {Icon, Label, Button, BoxLayout};
-const Clutter = {ActorAlign: {START: 0, CENTER: 1, FILL: 2, END: 3}};
+const Clutter = {ActorAlign: {START: 0, CENTER: 1, FILL: 2, END: 3},
+    Orientation: {HORIZONTAL: 0, VERTICAL: 1}};
 const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}, Alignment: {CENTER: 1}};
 const stubs = new Map([
     ['gi://St', {default: St}],
@@ -116,7 +135,7 @@ icons.setIconDirectory({get_child: name => ({name, query_exists: () => true})});
 hooks.deregister();
 delete globalThis[globalKey];
 
-test('icon helper constructs a valid GNOME 50 St.Icon without icon_type', () => {
+test('icon helper constructs a valid GNOME 51 St.Icon without icon_type', () => {
     const widget = widgets.icon('user-home-symbolic', 22);
     assert.equal(widget.gicon.file.name, 'user-home-symbolic.svg');
     assert.equal(widget.icon_name, null);
@@ -147,13 +166,37 @@ test('button, label and box helpers use valid St construction properties', () =>
     assert.equal(wrapped.clutter_text.line_wrap, true);
     assert.equal(wrapped.clutter_text.ellipsize, Pango.EllipsizeMode.NONE);
     const container = widgets.box(true, 'notch-page', 6);
-    assert.equal(container.vertical, true);
+    assert.equal(container.orientation, Clutter.Orientation.VERTICAL);
+    assert.equal(container.vertical, undefined);
     assert.match(container.style, /spacing: 6px/);
+});
+
+test('box helper uses GNOME 51 orientation and never the removed vertical', () => {
+    const row = widgets.box(false);
+    assert.equal(row.orientation, Clutter.Orientation.HORIZONTAL);
+    assert.equal(row.x_expand, true);
+    widgets.setBoxOrientation(row, true);
+    assert.equal(row.orientation, Clutter.Orientation.VERTICAL);
+    assert.equal(row.vertical, undefined);
+});
+
+test('box helper falls back to vertical on GNOME 46/47', () => {
+    const modern = St.BoxLayout;
+    St.BoxLayout = LegacyBoxLayout;
+    try {
+        const container = widgets.box(true, 'notch-legacy', 4);
+        assert.equal(container.vertical, true);
+        assert.equal(container.orientation, undefined);
+        widgets.setBoxOrientation(container, false);
+        assert.equal(container.vertical, false);
+    } finally {
+        St.BoxLayout = modern;
+    }
 });
 
 test('empty states are centered text cards with title and body', () => {
     const widget = widgets.emptyState('Nothing playing', 'Start a song to see controls.');
-    assert.equal(widget.vertical, true);
+    assert.equal(widget.orientation, Clutter.Orientation.VERTICAL);
     assert.equal(widget.children.length, 2);
     assert.equal(widget.children[0].text, 'Nothing playing');
     assert.equal(widget.children[1].clutter_text.line_wrap, true);

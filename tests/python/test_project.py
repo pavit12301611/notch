@@ -16,8 +16,9 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 19)
-        self.assertIn("50", metadata["shell-version"])
+        self.assertEqual(metadata["version"], 20)
+        self.assertIn("51", metadata["shell-version"])
+        self.assertIn("46", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
         keys = {key.attrib["name"] for key in schema.findall(".//key")}
         for source in (ROOT / "extension").rglob("*.js"):
@@ -143,6 +144,23 @@ class ProjectTests(unittest.TestCase):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("emptyState(", view)
         self.assertIn("notch-page-header", view)
+
+    def test_gnome51_box_orientation_compat(self):
+        widgets = (ROOT / "extension/lib/widgets.js").read_text()
+        self.assertIn("setBoxOrientation", widgets)
+        self.assertIn("'orientation' in prototype", widgets)
+        self.assertIn("'vertical' in prototype", widgets)
+        self.assertNotIn("{vertical,", widgets)
+        # widgets.js owns the only :vertical fallback; nothing else may touch it.
+        for source in (ROOT / "extension").rglob("*.js"):
+            if source.name == "widgets.js":
+                continue
+            self.assertNotIn(".vertical =", source.read_text(), str(source))
+            self.assertNotIn("vertical:", source.read_text(), str(source))
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertIn("setBoxOrientation(this.actionsRow", view)
+        self.assertIn("St.ReducedMotion", view)
+        self.assertNotIn("!!St.Settings.get().enable_animations", view)
 
     def test_st_icon_uses_real_gnome50_properties(self):
         for source in (ROOT / "extension").rglob("*.js"):

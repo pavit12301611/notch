@@ -1,6 +1,6 @@
 # Contributing
 
-Target Fedora 44 / GNOME 50 first. Keep the Shell overlay in GJS/St/Clutter and the settings/doctor companions in Python/GTK4/Libadwaita. Do not import GTK into GNOME Shell.
+Target Fedora 45 / GNOME 51 first; the same build must keep working on GNOME Shell 46-51. Keep the Shell overlay in GJS/St/Clutter and the settings/doctor companions in Python/GTK4/Libadwaita. Do not import GTK into GNOME Shell.
 
 1. Install the complete project, not just the extension directory.
 2. Run `npm ci`, `make stage`, `make check`.

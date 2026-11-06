@@ -1,4 +1,4 @@
-name: Fedora checks
+name: Fedora 45 checks
 on:
   push:
   pull_request:
@@ -6,7 +6,7 @@ on:
 jobs:
   fedora:
     runs-on: ubuntu-latest
-    container: fedora:44
+    container: fedora:45
     steps:
       - uses: actions/checkout@v4
       - name: Install build and test dependencies

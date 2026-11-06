@@ -9,7 +9,7 @@ REPO='pavit12301611/notch'
 
 if [[ ${1:-} == '-h' || ${1:-} == '--help' ]]; then
   cat <<'EOF'
-Notch remote installer for Fedora 44 / GNOME Wayland.
+Notch remote installer for Fedora 45 / GNOME 51 Wayland.
 
 Usage: bash bootstrap.sh [--with-deps] [--no-enable] [--user]
   --with-deps   Install Fedora dependencies using sudo/dnf.

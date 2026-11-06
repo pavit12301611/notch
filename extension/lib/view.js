@@ -14,10 +14,20 @@ import {NotificationBridge} from './notifications.js';
 import {QuickActions} from './actions.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
-import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, setText, slider, setSensitive} from './widgets.js';
+import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, setText, slider,
+    setSensitive, setBoxOrientation} from './widgets.js';
 import {setIconDirectory, setNotchIcon} from './icons.js';
 import {formatBytes, formatTime, plainText, previewText, countNotifications,
     mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from './model.js';
+
+/** GNOME Shell 51 exposes St.ReducedMotion; older shells only have enable-animations. */
+function systemMotionEnabled() {
+    const stSettings = St.Settings.get();
+    if (!stSettings?.enable_animations) return false;
+    if (St.ReducedMotion && stSettings.reduced_motion !== undefined)
+        return stSettings.reduced_motion !== St.ReducedMotion.REDUCE;
+    return true;
+}
 
 const TABS = [
     ['home', 'Home', 'user-home-symbolic'],
@@ -714,7 +724,7 @@ export class NotchView {
 
     visualizerActive() {
         return this.allowed && this.mode === 'closed' && this.liveBars?.visible &&
-            this.settings.get_boolean('animations') && !!St.Settings.get().enable_animations;
+            this.settings.get_boolean('animations') && systemMotionEnabled();
     }
 
     stopVisualizer() {
@@ -873,7 +883,7 @@ export class NotchView {
     }
 
     motionDuration(ms) {
-        return this.settings.get_boolean('animations') && !!St.Settings.get().enable_animations ? ms : 0;
+        return this.settings.get_boolean('animations') && systemMotionEnabled() ? ms : 0;
     }
 
     scheduleClose() {
@@ -941,7 +951,7 @@ export class NotchView {
         }
         if (this.statsGrid) this.layoutSystemCards(layout.columns);
         if (this.actionsRow) {
-            this.actionsRow.vertical = layout.narrow;
+            setBoxOrientation(this.actionsRow, layout.narrow);
             this.actionsRow.x_align = Clutter.ActorAlign.CENTER;
             for (const {widget} of this.actionButtons ?? []) widget.x_expand = layout.narrow;
         }
@@ -1013,7 +1023,7 @@ export class NotchView {
         this.stopTimeline();
         if (!this.springs) this.springs = new SpringGeometry(rect);
         const inSafeMode = GLib.get_monotonic_time() < this._safeUntil;
-        const animated = this.settings.get_boolean('animations') && !!St.Settings.get().enable_animations &&
+        const animated = this.settings.get_boolean('animations') && systemMotionEnabled() &&
             !immediate && !inSafeMode;
         if (!animated) {
             this.springs.snap(rect);
