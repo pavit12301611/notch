@@ -1,5 +1,43 @@
 # Validation log
 
+## Build 20 — 2026-11-06
+
+Scope: Fedora 45 / GNOME Shell 51 compatibility; no design changes.
+
+### Executed in the development sandbox
+
+- `npm run check`: ESLint clean; Node model/layout/St-contract tests **23/23** pass,
+  including a strict GNOME Shell 51 `St.BoxLayout` mock that rejects `:vertical`
+  and a Shell 46/47 mock that exercises the `:vertical` fallback.
+- Python unit tests: project contracts, doctor, atomic extension installer **37/37** pass.
+- `bash -n` on `install.sh`, `uninstall.sh`, `scripts/bootstrap.sh`.
+- `node --check` on every extension module; schema/D-Bus XML parse.
+- `make stage PREFIX=/usr SYSCONFDIR=/etc`.
+- `git diff --check`.
+- Cross-checked the GNOME Shell 51.0 / Mutter 51.0 sources for the APIs this
+  extension touches: `st-box-layout.c` exposes only `:orientation` (and GNOME
+  Shell's own `panelBox` constructs it that way), `st-settings.c` keeps
+  `enable-animations` and adds `reduced-motion`, `st-icon.c` keeps the same icon
+  properties, and the `messageTray` (`_notificationQueue`, `_showNotification`,
+  `Urgency`, `getSources`), `dateMenu.container`, `statusArea`, `addChrome`,
+  `MonitorsChanged` and `in-fullscreen-changed` APIs used by the overlay are
+  unchanged. This is source inspection, not execution.
+
+### Not executed here
+
+- Live GNOME Shell 51 Wayland overlay, input, animation, media, notification,
+  charging and lifecycle tests. The reduced-motion path and the Shell 51
+  orientation layout need the live acceptance checklist on the target machine.
+- `glib-compile-schemas` binary compilation (DTD/XML validation is not a substitute).
+- `desktop-file-validate`.
+- GJS smoke test.
+- RPM build/install.
+
+The Fedora 45 CI recipe (`container: fedora:45`) is configured to run the
+missing schema/desktop/GJS/RPM checks when the repository is pushed. The live
+desktop acceptance checklist in `docs/TESTING.md` remains mandatory before a
+“tested on Fedora 45” claim.
+
 ## Build 19 — 2026-11-01
 
 Scope: replace the settings glyph; keep the expanded header inside the notch;

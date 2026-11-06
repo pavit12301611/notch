@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### v20 — Fedora 45 / GNOME Shell 51 compatibility
+
+- Add GNOME Shell 51 to `metadata.json` (shell-version 46-51). Fedora 45
+  Workstation ships GNOME 51 and previously reported build 19 as *Out of Date*.
+- Fix the one Shell 51 API break this extension hit: `St.BoxLayout:vertical` was
+  removed (deprecated in Shell 48). Boxes now use `:orientation` when the
+  property exists and fall back to `:vertical` on Shell 46/47, through
+  `box()`/`setBoxOrientation()` in `widgets.js`. The system quick-action row no
+  longer assigns `.vertical` directly.
+- Respect Shell 51's reduced-motion setting (`St.ReducedMotion.REDUCE`) in
+  addition to `enable-animations` for open/close, peeks and the closed equalizer.
+- Move CI to the Fedora 45 container, update `notch-doctor` to accept Fedora
+  44-45 / GNOME Shell 46-51, and refresh README, testing checklist and RPM
+  changelog for Fedora 45.
+- Bump build to 20.
+
 ### v19 — bounded header, corrected flare, closed music wings, charging cue
 
 - Replace the sun-like settings glyph with a sliders icon.
