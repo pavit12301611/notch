@@ -140,7 +140,8 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(macbook, 'notifications-in-notch', 'Show notifications in the notch');
         addSwitch(macbook, 'auto-open-notifications', 'Compact notification peeks');
         addSpin(macbook, 'peek-duration-ms', 'Peek duration (ms)', 2000, 15000, 500);
-        addSwitch(macbook, 'closed-media', 'Closed music wings');
+        addSwitch(macbook, 'closed-media', 'Show music icon while playing',
+            'The collapsed notch stays clear when playback is paused or stopped.');
         const profileValues = ['mac-spring', 'smooth'];
         const profileModel = new Gtk.StringList();
         ['Mac spring', 'Smooth easing'].forEach(s => profileModel.append(s));
@@ -158,7 +159,13 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(opening, 'open-on-hover', 'Open on hover');
         addSpin(opening, 'hover-delay-ms', 'Hover delay (ms)', 0, 1500, 50);
         addSpin(opening, 'auto-hide-ms', 'Auto-hide delay (ms)', 0, 60000, 500, '0 disables');
-        addSwitch(opening, 'animations', 'Smooth animations');
+        addSwitch(opening, 'animations', 'Smooth open and close animations');
+        const eventAnimations = group(behavior, 'Event animations',
+            'Choose which brief status animations appear in the collapsed notch.');
+        addSwitch(eventAnimations, 'show-volume-osd', 'Volume changes');
+        addSwitch(eventAnimations, 'show-brightness-osd', 'Brightness changes');
+        addSwitch(eventAnimations, 'show-device-osd', 'Bluetooth device connected or disconnected');
+        addSwitch(eventAnimations, 'show-charge-osd', 'Charging started');
         addSwitch(opening, 'hide-on-fullscreen', 'Hide on fullscreen');
         addSwitch(opening, 'hide-in-overview', 'Hide in Activities overview');
         addSwitch(opening, 'reserve-space', 'Reserve collapsed space (experimental)');

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### v21 — quiet collapsed media and configurable system event animations
+
+- Remove the animated mini equalizer from the collapsed notch. A static music glyph
+  appears only while an MPRIS player is actively `Playing`; paused, stopped and
+  idle players no longer make the notch look like playback is underway.
+- Add compact animated status badges for volume up/down, brightness up/down,
+  Bluetooth device connect/disconnect and charging-start events. Each event type
+  has its own switch in GNOME Extensions → Notch → Settings → Event animations.
+- Watch Shell quick-settings values and BlueZ events without opening extra volume
+  controls or requiring a helper process.
+- Bump build to 21.
+
+
 ### v20 — Fedora 45 / GNOME Shell 51 compatibility
 
 - Add GNOME Shell 51 to `metadata.json` (shell-version 46-51). Fedora 45

@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 20)
+        self.assertEqual(metadata["version"], 21)
         self.assertIn("51", metadata["shell-version"])
         self.assertIn("46", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
@@ -111,6 +111,10 @@ class ProjectTests(unittest.TestCase):
             "match-panel-height",
             "adaptive-corners",
             "closed-media",
+            "show-volume-osd",
+            "show-brightness-osd",
+            "show-device-osd",
+            "show-charge-osd",
             "peek-duration-ms",
         ):
             self.assertIn(name, keys)
@@ -209,9 +213,10 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-home-clock", view)
         self.assertIn("notch-home-date", view)
         self.assertIn("translation_y", view)
-        self.assertIn("visualizerLevels", view)
-        self.assertIn("set_pivot_point(0.5, 1)", view)
-        self.assertIn("scale_y: levels[index]", view)
+        self.assertNotIn("visualizerLevels", view)
+        self.assertIn("state.status === 'Playing'", view)
+        self.assertIn("showEventBadge", view)
+        self.assertIn("new SystemEvents", view)
         self.assertNotIn("bar.style = `height:", view)
         self.assertIn("repeat_count: 1", view)
         self.assertIn("_animationWatchdog", view)
@@ -235,7 +240,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("notch-stat-value", view)
         self.assertIn("notch-stat-label", view)
 
-    def test_build19_header_icons_and_charging_contract(self):
+    def test_header_icons_and_event_badge_contract(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         layout = (ROOT / "extension/lib/layout.js").read_text()
         surface = (ROOT / "extension/lib/surface.js").read_text()
@@ -257,9 +262,9 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("onChargeStart", diagnostics)
         self.assertIn("_batteryInitialized", diagnostics)
         self.assertIn("chargingStarted", diagnostics)
-        self.assertIn("showChargingBadge", view)
-        self.assertIn("chargeBadgeTimer", view)
-        self.assertIn("this.setTimer('chargeBadgeTimer', 1640", view)
+        self.assertIn("showEventBadge", view)
+        self.assertIn("eventBadgeTimer", view)
+        self.assertIn("this.setTimer('eventBadgeTimer', 1640", view)
         self.assertIn("duration: this.motionDuration(120)", view)
         self.assertIn("this.mode !== 'closed'", view)
 

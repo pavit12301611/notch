@@ -22,7 +22,8 @@ if (directory) {
     const schema = source.lookup('io.github.pavit12301611.Notch', true);
     if (!schema || schema.has_key('clipboard-enabled') || schema.has_key('clipboard-limit'))
         throw new Error('Removed clipboard schema keys are still present');
-    for (const key of ['replace-panel-clock', 'idle-clock', 'notifications-in-notch', 'auto-open-notifications']) {
+    for (const key of ['replace-panel-clock', 'idle-clock', 'notifications-in-notch', 'auto-open-notifications',
+        'show-volume-osd', 'show-brightness-osd', 'show-device-osd', 'show-charge-osd']) {
         if (!schema.has_key(key) || !schema.get_default_value(key).get_boolean())
             throw new Error(`MacBook default check failed: ${key}`);
     }

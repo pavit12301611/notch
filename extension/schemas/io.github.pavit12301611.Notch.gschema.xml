@@ -80,7 +80,19 @@
       <default>true</default><summary>Use smaller closed corners and larger open corners</summary>
     </key>
     <key name="closed-media" type="b">
-      <default>true</default><summary>Show compact music indicator and playback wings while music plays</summary>
+      <default>true</default><summary>Show a compact music icon only while a player is actively playing</summary>
+    </key>
+    <key name="show-volume-osd" type="b">
+      <default>true</default><summary>Animate a compact volume indicator when the output volume changes</summary>
+    </key>
+    <key name="show-brightness-osd" type="b">
+      <default>true</default><summary>Animate a compact brightness indicator when screen brightness changes</summary>
+    </key>
+    <key name="show-device-osd" type="b">
+      <default>true</default><summary>Animate Bluetooth device connect and disconnect events</summary>
+    </key>
+    <key name="show-charge-osd" type="b">
+      <default>true</default><summary>Animate a compact indicator when charging starts</summary>
     </key>
     <key name="animation-profile" enum="io.github.pavit12301611.Notch.AnimationProfile">
       <default>'mac-spring'</default><summary>Mac-style damped spring or smooth easing</summary>

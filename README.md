@@ -153,9 +153,10 @@ Open **Notch Settings** from the app grid, or run `notch-settings`. The extensio
 |---|---|
 | Placement | `placement`, `monitor-index`, `horizontal-offset`, `floating-margin`, `reserve-space` |
 | Shape | `collapsed-width`, `collapsed-height`, `expanded-width`, `expanded-height`, `corner-radius`, `adaptive-corners`, `match-panel-height`, `notch-scale`, `opacity` |
-| Closed behavior | `replace-panel-clock`, `idle-clock`, `closed-media` |
+| Closed behavior | `replace-panel-clock`, `idle-clock`, `closed-media` (static music glyph only during active playback) |
 | Notifications | `notifications-in-notch`, `auto-open-notifications`, `peek-duration-ms` |
 | Motion | `animations`, `animation-profile`, `open-animation-ms`, `close-animation-ms` |
+| Event animations | `show-volume-osd`, `show-brightness-osd`, `show-device-osd`, `show-charge-osd` |
 | Opening/hiding | `open-on-hover`, `hover-delay-ms`, `auto-hide-ms`, `hide-on-fullscreen`, `hide-in-overview` |
 | Quick actions | `show-dnd`, `show-night-light`, `show-dark-mode` |
 | Shortcut | `toggle-notch` |

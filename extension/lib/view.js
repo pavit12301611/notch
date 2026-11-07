@@ -10,6 +10,7 @@ import {Diagnostics} from './diagnostics.js';
 import {notchGeometry, containsPoint} from './geometry.js';
 import {contentLayout, headerLayout} from './layout.js';
 import {MediaController} from './media.js';
+import {SystemEvents} from './system-events.js';
 import {NotificationBridge} from './notifications.js';
 import {QuickActions} from './actions.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
@@ -18,7 +19,7 @@ import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, se
     setSensitive, setBoxOrientation} from './widgets.js';
 import {setIconDirectory, setNotchIcon} from './icons.js';
 import {formatBytes, formatTime, plainText, previewText, countNotifications,
-    mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from './model.js';
+    mediaDisplayTitle, mediaDisplayArtist} from './model.js';
 
 /** GNOME Shell 51 exposes St.ReducedMotion; older shells only have enable-animations. */
 function systemMotionEnabled() {
@@ -56,8 +57,6 @@ export class NotchView {
         this.timers = new Map();
         this.springs = null;
         this.timeline = null;
-        this.visualTimer = 0;
-        this.visualStep = 0;
         this._relayoutDepth = 0;
         this._relayoutPending = null;
         this._relayoutTimes = [];
@@ -72,7 +71,11 @@ export class NotchView {
         this.options = this.readOptions();
         this.media = new MediaController(this.directory, () => this.updateMedia(), e => this.showError(e));
         this.diagnostics = new Diagnostics(this.directory, () => this.updateSystem(),
-            battery => this.showChargingBadge(battery));
+            battery => {
+                if (this.settings.get_boolean('show-charge-osd')) this.showEventBadge('battery-charging-symbolic',
+                    `Charging${Number.isFinite(battery?.percent) ? ` · ${Math.round(battery.percent)}%` : ''}`);
+            });
+        this.systemEvents = new SystemEvents(event => this.handleSystemEvent(event));
         this.actions = new QuickActions(this.settings, () => this.updateActions());
         this.clock = new GnomeDesktop.WallClock();
         this.clock.connectObject('notify::clock', () => this.updateClock(), this);
@@ -90,6 +93,7 @@ export class NotchView {
         this.updateNotificationCount();
         this.settings.connectObject('changed', (_settings, key) => this.settingChanged(key), this);
         this.media.start();
+        this.systemEvents.start();
         this.diagnostics.start();
         this.updateMedia();
         this.updateClock();
@@ -131,7 +135,7 @@ export class NotchView {
 
     hasMediaWings() {
         const state = this.media?.snapshot();
-        return !!state?.names.length && state.status !== 'Stopped';
+        return !!state?.names.length && state.status === 'Playing';
     }
 
     monitor() {
@@ -164,27 +168,8 @@ export class NotchView {
         leftWing.x_expand = false;
         leftWing.x_align = Clutter.ActorAlign.CENTER;
         leftWing.set_size(28, -1);
-        const rightWing = box(false, 'notch-closed-wing', 0);
-        rightWing.visible = false;
-        rightWing.y_align = Clutter.ActorAlign.CENTER;
-        rightWing.x_expand = false;
-        rightWing.x_align = Clutter.ActorAlign.CENTER;
-        rightWing.set_size(28, -1);
         this.liveMusicIcon = icon('audio-x-generic-symbolic', 16);
         this.liveMusicIcon.add_style_class_name('notch-live-music');
-        this.liveBars = box(false, 'notch-live-bars', 2);
-        this.liveBars.x_expand = false;
-        this.liveBars.x_align = Clutter.ActorAlign.CENTER;
-        this.liveBars.y_align = Clutter.ActorAlign.CENTER;
-        this.liveBars.set_size(-1, 16);
-        this.barWidgets = [0.42, 0.88, 0.58].map(level => {
-            const bar = new St.Widget({style_class: 'notch-live-bar', y_align: Clutter.ActorAlign.END});
-            bar.set_size(3, 14);
-            bar.set_pivot_point(0.5, 1);
-            bar.set_scale(1, level);
-            this.liveBars.add_child(bar);
-            return bar;
-        });
         const clockBox = box(false, 'notch-clock-box', 5);
         clockBox.x_expand = true;
         clockBox.x_align = Clutter.ActorAlign.CENTER;
@@ -193,12 +178,9 @@ export class NotchView {
         clockBox.add_child(this.summaryClock);
         clockBox.add_child(this.unreadDot);
         this.leftWing = leftWing;
-        this.rightWing = rightWing;
         leftWing.add_child(this.liveMusicIcon);
-        rightWing.add_child(this.liveBars);
         closedRow.add_child(leftWing);
         closedRow.add_child(clockBox);
-        closedRow.add_child(rightWing);
         this.pill.set_child(closedRow);
         this.pill.connect('clicked', () => {
             if (this.mode === 'peek') this.openNotifications();
@@ -215,7 +197,7 @@ export class NotchView {
         this.chargeBadge.visible = false;
         this.chargeBadge.opacity = 0;
         this.chargeBadgeIcon = icon('battery-charging-symbolic', 16);
-        this.chargeBadgeLabel = label('', 'notch-charge-label');
+        this.chargeBadgeLabel = label('', 'notch-event-label');
         this.chargeBadge.add_child(this.chargeBadgeIcon);
         this.chargeBadge.add_child(this.chargeBadgeLabel);
         this.closedLayer.add_child(this.chargeBadge);
@@ -709,85 +691,54 @@ export class NotchView {
     updateSummary() {
         if (this.dead || !this.liveMusicIcon) return;
         const state = this.media.snapshot();
-        const show = this.settings.get_boolean('closed-media') && state.names.length > 0 && state.status !== 'Stopped';
+        // Keep the collapsed state still and quiet; only show a static music glyph
+        // for active playback, never for an idle/paused MPRIS player.
+        const show = this.settings.get_boolean('closed-media') && state.names.length > 0 && state.status === 'Playing';
         this.liveMusicIcon.visible = show;
-        this.liveBars.visible = show && state.status === 'Playing';
         this.leftWing.visible = show;
-        this.rightWing.visible = show;
         this.summaryClock.visible = this.settings.get_boolean('idle-clock');
         this.unreadDot.visible = countNotifications(Main.messageTray.getSources()) > 0 && this.settings.get_boolean('idle-clock');
-        this.syncVisualizer();
         const previous = this.options.mediaWings;
         this.options.mediaWings = this.settings.get_boolean('closed-media') && show;
         if (previous !== this.options.mediaWings) this.relayout('resize');
     }
 
-    visualizerActive() {
-        return this.allowed && this.mode === 'closed' && this.liveBars?.visible &&
-            this.settings.get_boolean('animations') && systemMotionEnabled();
-    }
-
-    stopVisualizer() {
-        if (this.visualTimer) GLib.source_remove(this.visualTimer);
-        this.visualTimer = 0;
-        for (const bar of this.barWidgets ?? []) {
-            bar.remove_all_transitions();
-            bar.set_scale(1, 0.62);
+    handleSystemEvent(event) {
+        if (this.dead || !event) return;
+        if (event.type === 'volume' && this.settings.get_boolean('show-volume-osd')) {
+            const arrow = event.direction === 'up' ? '↑' : '↓';
+            this.showEventBadge('audio-x-generic-symbolic', `Volume ${arrow} ${Math.round(event.value * 100)}%`);
+        } else if (event.type === 'brightness' && this.settings.get_boolean('show-brightness-osd')) {
+            const arrow = event.direction === 'up' ? '↑' : '↓';
+            this.showEventBadge('display-brightness-symbolic', `Brightness ${arrow} ${Math.round(event.value * 100)}%`);
+        } else if (event.type === 'device' && this.settings.get_boolean('show-device-osd')) {
+            const device = String(event.device || 'Bluetooth device').slice(0, 28);
+            this.showEventBadge(event.connected ? 'bluetooth-active-symbolic' : 'bluetooth-disabled-symbolic',
+                `${device} ${event.connected ? 'connected' : 'disconnected'}`);
         }
     }
 
-    syncVisualizer() {
-        const active = this.visualizerActive();
-        if (active && !this.visualTimer) {
-            this.visualStep = 0;
-            const tick = () => {
-                if (this.dead) return GLib.SOURCE_REMOVE;
-                if (!this.visualizerActive()) {
-                    this.stopVisualizer();
-                    return GLib.SOURCE_REMOVE;
-                }
-                try {
-                    const levels = visualizerLevels(this.visualStep++);
-                    this.barWidgets.forEach((bar, index) => {
-                        bar.remove_all_transitions();
-                        bar.ease({scale_y: levels[index], duration: 190,
-                            mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD});
-                    });
-                } catch (e) {
-                    console.warn(`Notch: equalizer stopped after animation error: ${e.message ?? e}`);
-                    this.stopVisualizer();
-                    return GLib.SOURCE_REMOVE;
-                }
-                return GLib.SOURCE_CONTINUE;
-            };
-            tick();
-            this.visualTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 210, tick);
-        } else if (!active && this.visualTimer) {
-            this.stopVisualizer();
-        }
-    }
-
-    showChargingBadge(battery) {
+    showEventBadge(iconName, text) {
         if (this.dead || !this.chargeBadge || !this.allowed || this.mode !== 'closed') return;
-        this.clearTimer('chargeBadgeTimer');
-        const pct = Number.isFinite(battery?.percent) ? ` · ${Math.round(battery.percent)}%` : '';
-        setText(this.chargeBadgeLabel, `Charging${pct}`);
+        this.clearTimer('eventBadgeTimer');
+        setNotchIcon(this.chargeBadgeIcon, iconName);
+        setText(this.chargeBadgeLabel, text);
         this.chargeBadge.visible = true;
         this.chargeBadge.remove_all_transitions();
         this.chargeBadge.opacity = 0;
         this.chargeBadge.set_scale(0.92, 0.92);
         this.chargeBadge.ease({opacity: 255, scale_x: 1, scale_y: 1,
             duration: this.motionDuration(140), mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
-        this.chargeBadge.accessible_name = `Charging started${pct}`;
+        this.chargeBadge.accessible_name = text;
         this.pill.remove_all_transitions();
         this.pill.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         // Total visible time: 140ms in + 1500ms hold + 120ms out = 1760ms < 2s.
-        this.setTimer('chargeBadgeTimer', 1640, () => this.hideChargingBadge());
+        this.setTimer('eventBadgeTimer', 1640, () => this.hideEventBadge());
     }
 
-    hideChargingBadge() {
+    hideEventBadge() {
         if (this.dead || !this.chargeBadge) return;
-        this.clearTimer('chargeBadgeTimer');
+        this.clearTimer('eventBadgeTimer');
         this.chargeBadge.remove_all_transitions();
         this.chargeBadge.ease({opacity: 0, scale_x: 0.92, scale_y: 0.92,
             duration: this.motionDuration(120), mode: Clutter.AnimationMode.EASE_IN_QUAD,
@@ -845,7 +796,7 @@ export class NotchView {
         this.clearTimer('hoverTimer');
         this.clearTimer('closeTimer');
         if (expanded) {
-            this.hideChargingBadge();
+            this.hideEventBadge();
             this.clearTimer('peekTimer');
             this.peek.visible = false;
             this.peekNotification = null;
@@ -859,7 +810,6 @@ export class NotchView {
             this.closedLayer.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
             this.selectTab(this.tab, false);
             this.relayout('open');
-            this.syncVisualizer();
         } else {
             this.mode = 'closed';
             this.peek.visible = false;
@@ -1151,7 +1101,7 @@ export class NotchView {
 
     settingChanged(key) {
         this.options = this.readOptions();
-        if (key.startsWith('show-')) {
+        if (['show-dnd', 'show-night-light', 'show-dark-mode'].includes(key)) {
             this.actions.destroy();
             this.actions = new QuickActions(this.settings, () => this.updateActions());
             this._actionSignature = null;
@@ -1218,7 +1168,7 @@ export class NotchView {
         this.actor.visible = this.allowed;
         this.actor.reactive = this.allowed;
         if (!this.allowed && this.chargeBadge) {
-            this.clearTimer('chargeBadgeTimer');
+            this.clearTimer('eventBadgeTimer');
             this.chargeBadge.remove_all_transitions();
             this.chargeBadge.visible = false;
             this.chargeBadge.opacity = 0;
@@ -1230,7 +1180,6 @@ export class NotchView {
         this.syncPanelClock();
         this.diagnostics.setActive(this.allowed && this.expanded && this.tab === 'system');
         this.media.setPositionActive(this.allowed && this.expanded && this.tab === 'media');
-        this.syncVisualizer();
         if (!this.allowed) this.setExpanded(false);
     }
 
@@ -1299,9 +1248,8 @@ export class NotchView {
 
     destroy() {
         this.dead = true;
-        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer', 'chargeBadgeTimer']) this.clearTimer(name);
+        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer', 'eventBadgeTimer']) this.clearTimer(name);
         this.stopTimeline();
-        this.stopVisualizer();
         this.injections?.clear();
         this.content?.remove_all_transitions();
         this.closedLayer?.remove_all_transitions();
@@ -1329,6 +1277,7 @@ export class NotchView {
         Main.sessionMode.disconnectObject(this);
         global.display.disconnectObject(this);
         this.media?.destroy();
+        this.systemEvents?.destroy();
         this.diagnostics?.destroy();
         this.actions?.destroy();
         if (this.reserve) Main.layoutManager.removeChrome(this.reserve);
