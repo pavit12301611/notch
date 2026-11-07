@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### v22 — suppress stale/empty MPRIS playback indicators
+
+- Require a non-empty track title and a positive duration in addition to MPRIS
+  `PlaybackStatus=Playing` before showing the collapsed music icon. Idle media
+  services and sound-only players can no longer make the notch look like a track
+  is playing.
+- Bump build to 22.
+
+
 ### v21 — quiet collapsed media and configurable system event animations
 
 - Remove the animated mini equalizer from the collapsed notch. A static music glyph

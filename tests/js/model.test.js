@@ -6,7 +6,7 @@ import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../
 import {NotificationBridge} from '../../extension/lib/notifications.js';
 import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
     formatBytes, formatTime, seekTarget, plainText, mediaErrorMessage,
-    mediaDisplayTitle, mediaDisplayArtist,
+    mediaDisplayTitle, mediaDisplayArtist, isActiveMediaTrack,
     previewText, countNotifications, chargingStarted} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
@@ -54,6 +54,16 @@ test('MPRIS metadata tolerates malformed players and recursive variants', () => 
     assert.equal(mediaMetadata({'mpris:trackid': 'not-an-object-path'}).trackId, '');
     assert.equal(seekTarget(1000, 2), 1000);
     assert.equal(seekTarget(1000, -1), 0);
+});
+
+test('collapsed music indicator requires a playing track with real metadata', () => {
+    const track = {status: 'Playing', title: 'A song', lengthUs: 180_000_000};
+    assert.equal(isActiveMediaTrack(track), true);
+    assert.equal(isActiveMediaTrack({...track, status: 'Paused'}), false);
+    assert.equal(isActiveMediaTrack({...track, title: ''}), false);
+    assert.equal(isActiveMediaTrack({...track, title: '   '}), false);
+    assert.equal(isActiveMediaTrack({...track, lengthUs: 0}), false);
+    assert.equal(isActiveMediaTrack({status: 'Playing', title: '', lengthUs: 0}), false);
 });
 
 test('charging badge triggers only on a real plug-in transition', () => {

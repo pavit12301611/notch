@@ -48,6 +48,12 @@ export function mediaDisplayArtist(state) {
     return 'No media player connected';
 }
 
+/** A player advertising Playing alone is not enough: require actual track metadata. */
+export function isActiveMediaTrack(state) {
+    return state?.status === 'Playing' && typeof state.title === 'string' && !!state.title.trim() &&
+        Number.isFinite(state.lengthUs) && state.lengthUs > 0;
+}
+
 /** True only on a real plug-in transition, never on the first UPower sample. */
 export function chargingStarted(previous, next) {
     return !!next?.available && next.state === 1 && !!previous?.available &&

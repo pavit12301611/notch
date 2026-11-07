@@ -19,7 +19,7 @@ import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, se
     setSensitive, setBoxOrientation} from './widgets.js';
 import {setIconDirectory, setNotchIcon} from './icons.js';
 import {formatBytes, formatTime, plainText, previewText, countNotifications,
-    mediaDisplayTitle, mediaDisplayArtist} from './model.js';
+    mediaDisplayTitle, mediaDisplayArtist, isActiveMediaTrack} from './model.js';
 
 /** GNOME Shell 51 exposes St.ReducedMotion; older shells only have enable-animations. */
 function systemMotionEnabled() {
@@ -135,7 +135,7 @@ export class NotchView {
 
     hasMediaWings() {
         const state = this.media?.snapshot();
-        return !!state?.names.length && state.status === 'Playing';
+        return !!state?.names.length && isActiveMediaTrack(state);
     }
 
     monitor() {
@@ -693,7 +693,7 @@ export class NotchView {
         const state = this.media.snapshot();
         // Keep the collapsed state still and quiet; only show a static music glyph
         // for active playback, never for an idle/paused MPRIS player.
-        const show = this.settings.get_boolean('closed-media') && state.names.length > 0 && state.status === 'Playing';
+        const show = this.settings.get_boolean('closed-media') && state.names.length > 0 && isActiveMediaTrack(state);
         this.liveMusicIcon.visible = show;
         this.leftWing.visible = show;
         this.summaryClock.visible = this.settings.get_boolean('idle-clock');
