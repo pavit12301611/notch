@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### v21 — music and motion removed
+
+- Remove the Music page, MPRIS player discovery and controls, closed-state music
+  wings and the animated equalizer. The notch now has Home, Alerts and System.
+- Remove every transition and spring: open/close, page changes, peeks, status
+  messages and the charging cue change instantly. `St.ReducedMotion` handling
+  is gone with the animation code.
+- Remove the `closed-media`, `animations`, `animation-profile`,
+  `open-animation-ms` and `close-animation-ms` schema keys, and the matching
+  Settings controls. Existing values are simply unused.
+- Remove the MPRIS check from `notch-doctor`; the bus check and extension
+  revision check remain.
+- Bump build to 21.
+
 ### v20 — Fedora 45 / GNOME Shell 51 compatibility
 
 - Add GNOME Shell 51 to `metadata.json` (shell-version 46-51). Fedora 45

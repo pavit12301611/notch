@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 20)
+        self.assertEqual(metadata["version"], 21)
         self.assertIn("51", metadata["shell-version"])
         self.assertIn("46", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
@@ -97,20 +97,16 @@ class ProjectTests(unittest.TestCase):
             "idle-clock",
             "notifications-in-notch",
             "auto-open-notifications",
-            "open-animation-ms",
-            "close-animation-ms",
         ):
             self.assertIn(name, keys)
         self.assertEqual(keys["placement"].find("default").text, "'panel'")
         self.assertEqual(keys["collapsed-width"].find("default").text, "185")
         self.assertEqual(keys["expanded-width"].find("default").text, "640")
         self.assertEqual(keys["expanded-height"].find("default").text, "480")
-        self.assertEqual(keys["animation-profile"].find("default").text, "'mac-spring'")
         for name in (
             "notch-scale",
             "match-panel-height",
             "adaptive-corners",
-            "closed-media",
             "peek-duration-ms",
         ):
             self.assertIn(name, keys)
@@ -129,7 +125,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("syncPanelClock", view)
         self.assertIn("container.opacity = this.clockOriginal?.opacity ?? 255", view)
         self.assertIn("new NotchSurface", view)
-        self.assertIn("SpringGeometry", view)
+        self.assertNotIn("SpringGeometry", view)
 
     def test_design_spacing_and_symbolic_icons(self):
         layout = (ROOT / "extension/lib/layout.js").read_text()
@@ -159,7 +155,6 @@ class ProjectTests(unittest.TestCase):
             self.assertNotIn("vertical:", source.read_text(), str(source))
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("setBoxOrientation(this.actionsRow", view)
-        self.assertIn("St.ReducedMotion", view)
         self.assertNotIn("!!St.Settings.get().enable_animations", view)
 
     def test_st_icon_uses_real_gnome50_properties(self):
@@ -172,12 +167,6 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("widget.icon_name = null;\n        widget.gicon = gicon;", widgets)
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("sourceIcon(gicon", view)
-
-    def test_gjs_dbus_results_are_unpacked_not_destructured(self):
-        media = (ROOT / "extension/lib/media.js").read_text()
-        self.assertIn("result.deepUnpack()[0]", media)
-        self.assertNotIn(".then(([names])", media)
-        self.assertNotIn(".then(([variant])", media)
 
     def test_pyobject_dbus_apis_match_gio(self):
         for name in ("doctor.py", "settings.py"):
@@ -198,42 +187,70 @@ class ProjectTests(unittest.TestCase):
         self.assertNotIn("pageSlice", view)
         self.assertNotIn("shelfPager", view)
         self.assertNotIn("clipboardPager", view)
-        for tab in ("'home'", "'media'", "'notifications'", "'system'"):
+        for tab in ("'home'", "'notifications'", "'system'"):
             self.assertIn(tab, view)
         self.assertNotIn("'shelf'", view)
         self.assertNotIn("'clipboard'", view)
+        self.assertNotIn("'media'", view)
 
-    def test_home_music_system_and_stability_contracts(self):
+    def test_home_alerts_system_and_stability_contracts(self):
         view = (ROOT / "extension/lib/view.js").read_text()
         self.assertIn("notch-home-page", view)
         self.assertIn("notch-home-clock", view)
         self.assertIn("notch-home-date", view)
-        self.assertIn("translation_y", view)
-        self.assertIn("visualizerLevels", view)
-        self.assertIn("set_pivot_point(0.5, 1)", view)
-        self.assertIn("scale_y: levels[index]", view)
-        self.assertNotIn("bar.style = `height:", view)
-        self.assertIn("repeat_count: 1", view)
-        self.assertIn("_animationWatchdog", view)
-        self.assertIn("relayout storm", view)
         self.assertIn("page.y_expand = false", view)
-        media = (ROOT / "extension/lib/media.js").read_text()
-        self.assertIn("scheduleChange", media)
-        self.assertIn("suppressUntil", (ROOT / "extension/lib/widgets.js").read_text())
-        self.assertIn("mediaDisplayTitle", view)
         self.assertIn("setIconDirectory", view)
         self.assertTrue((ROOT / "extension/icons/user-home-symbolic.svg").is_file())
-        self.assertNotIn("ArtLoader", view)
-        self.assertNotIn("remote-art", view)
-        self.assertNotIn("AudioController", view)
-        self.assertNotIn("playerVolume", view)
-        self.assertNotIn("outputVolume", view)
-        self.assertNotIn("notch-home-media", view)
-        self.assertIn("mediaEmpty", view)
         self.assertIn("countNotifications", view)
         self.assertIn("previewText", view)
         self.assertIn("notch-stat-value", view)
         self.assertIn("notch-stat-label", view)
+        self.assertIn("this.applyGeometry(rect)", view)
+
+    def test_music_and_animation_are_removed(self):
+        for path in (
+            "extension/lib/media.js",
+            "extension/lib/spring.js",
+            "extension/dbus/org.mpris.MediaPlayer2.xml",
+            "extension/dbus/org.mpris.MediaPlayer2.Player.xml",
+            "extension/icons/media-playback-start-inverse-symbolic.svg",
+        ):
+            self.assertFalse((ROOT / path).exists(), path)
+        schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
+        keys = {key.attrib["name"] for key in schema.findall(".//key")}
+        for name in (
+            "closed-media",
+            "animations",
+            "animation-profile",
+            "open-animation-ms",
+            "close-animation-ms",
+        ):
+            self.assertNotIn(name, keys)
+        self.assertEqual(schema.findall(".//enum[@id='io.github.pavit12301611.Notch.AnimationProfile']"), [])
+        forbidden = (
+            "MediaController",
+            "mediaWings",
+            "visualizerLevels",
+            "closed-media",
+            "animation-profile",
+            "AnimationMode",
+            "Clutter.Timeline",
+            "remove_all_transitions",
+            "motionDuration",
+            "org.mpris",
+            "setPositionActive",
+            "notch-live",
+            "notch-media",
+        )
+        for source in list((ROOT / "extension").rglob("*.js")) + list((ROOT / "extension").rglob("*.css")) + list((ROOT / "app/notch_app").glob("*.py")):
+            text = source.read_text()
+            for token in forbidden:
+                self.assertNotIn(token, text, f"{token} still in {source}")
+        view = (ROOT / "extension/lib/view.js").read_text()
+        self.assertNotIn(".ease(", view)
+        self.assertNotIn("St.ReducedMotion", view)
+        self.assertNotIn("liveBars", view)
+        self.assertNotIn("buildMedia", view)
 
     def test_build19_header_icons_and_charging_contract(self):
         view = (ROOT / "extension/lib/view.js").read_text()
@@ -260,7 +277,6 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("showChargingBadge", view)
         self.assertIn("chargeBadgeTimer", view)
         self.assertIn("this.setTimer('chargeBadgeTimer', 1640", view)
-        self.assertIn("duration: this.motionDuration(120)", view)
         self.assertIn("this.mode !== 'closed'", view)
 
     def test_templates_are_fully_substituted(self):

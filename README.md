@@ -1,10 +1,16 @@
 # Notch for GNOME
 
-A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 45 Workstation / GNOME Wayland**: idle clock, in-notch notifications, MPRIS media controls, live system status and GNOME quick actions.
+A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 45 Workstation / GNOME Wayland**: idle clock, in-notch notifications, live system status and GNOME quick actions.
 
 **Version target:** Fedora 45 ships GNOME **51**. The extension declares Shell 46–51 compatibility, but **GNOME 51 is the primary release target**; older versions need their own live desktop validation. Fedora 44 / GNOME 50 and Fedora 42–43 / GNOME 48–49 use the same build.
 
 > Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 45/GNOME 51 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
+
+## What changed in build 21
+
+- **Music removed.** The Music page, MPRIS player switching and controls, closed-state music wings and the equalizer are gone, along with the MPRIS check in `notch-doctor`. The notch has three pages: Home, Alerts and System.
+- **Animations removed.** Open/close, page changes, peeks, status messages and the charging cue now change instantly. Spring physics, the animation timers and the GNOME reduced-motion handling are gone with them.
+- **Settings keys removed.** `closed-media`, `animations`, `animation-profile`, `open-animation-ms` and `close-animation-ms` no longer exist. Your other settings are kept; re-run the installer and log out/in once.
 
 ## What changed in build 20
 
@@ -27,7 +33,7 @@ Notch therefore uses the same privileged desktop layer as GNOME’s own panel:
 ```text
 ┌──────────────────────── GNOME Shell / Mutter (Wayland) ────────────────────────┐
 │ GJS + St/Clutter extension                                                    │
-│   animated notch • idle clock • MPRIS • notifications • CPU/RAM/network        │
+│   notch • idle clock • notifications • CPU/RAM/network                         │
 │   UPower battery • Do Not Disturb / Night Light / Dark Mode                    │
 └───────────────────────────────────────────────────────────────────────────────┘
                 │ session D-Bus (state only)
@@ -47,20 +53,18 @@ Inspired by [akalikbergenov/cyclop](https://github.com/akalikbergenov/cyclop). N
 | Page | Included behavior |
 |---|---|
 | Home | Large local clock and a quiet date line. Nothing else. |
-| Music | MPRIS player discovery/switching, text-first title/artist, previous/play/pause/next and seek. No volume controls or album art. |
 | Alerts | Ordinary GNOME banners become compact in-notch peeks with native actions; full Alerts page keeps a real card count, compact expandable bodies and dismiss-all. Critical alerts keep the native banner path. Routing respects GNOME DND/app policy and is reversible. |
 | System | 2×2 metric tiles: CPU utilization, RAM used/total, UPower battery percentage/state, default-interface download/upload rates. Quick actions: Do Not Disturb, Night Light, Dark Mode. |
 
-Closed notch: idle time sits where the GNOME clock used to be; music grows small closed-state wings with a rhythmic animated equalizer. Plugging in the charger briefly shows a green charging badge. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
+Closed notch: idle time sits where the GNOME clock used to be. Plugging in the charger briefly shows a green charging badge. Click a peek or the Alerts tab for the full notification list. Click the notch, hover over it, or press **Super + `** (the key above Tab on a US keyboard). Press Escape or click outside to collapse it.
 
 ## Design notes
 
 - **MacBook notch, not a floating Dynamic Island.** The default placement is flush with the top panel, with small outward top flares and larger bottom corners.
 - **Typographic hierarchy.** Primary values/titles are large; labels, timestamps and secondary details are smaller and muted. Decorative headings, source icons in empty states, album art, volume sliders, pagers and helper/status clutter were removed.
 - **Depth without noise.** Layered dark cards, subtle borders, inset highlights and consistent radii separate content from the black notch body.
-- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Four fixed-width tabs show labels at the default size and collapse to a centered icon rail when narrow. Only Alerts scrolls; Home/Music/System are centered natural-height blocks.
+- **Adaptive layout is automatic.** The notch uses the actual monitor rectangle and text scale. Three fixed-width tabs show labels at the default size and collapse to a centered icon rail when narrow. Only Alerts scrolls; Home/Alerts/System are centered natural-height blocks.
 - **Work-area reservation is experimental and opt-in.** It reserves the collapsed edge region, not the expanded panel.
-- **MPRIS capabilities vary.** Seek requires a player exposing `CanSeek`, a track length, and a usable position/track ID. Firefox must have MPRIS/media-key integration enabled. A player that does not implement a capability cannot be forced to support it.
 - Shell extensions use internal GNOME APIs. Test after every GNOME major upgrade; never bypass version checks by editing metadata blindly.
 
 ## Quick start on Fedora 45
@@ -70,17 +74,17 @@ Closed notch: idle time sits where the GNOME clock used to be; music grows small
 Run this in your Fedora desktop terminal (as your normal user, **not** with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/556fb93a-notch/scripts/bootstrap.sh | NOTCH_REF=arena/556fb93a-notch bash -s -- --with-deps
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/8c3a205a-notch/scripts/bootstrap.sh | NOTCH_REF=arena/8c3a205a-notch bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/556fb93a-notch` development branch (build 20+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/8c3a205a-notch` development branch (build 21+). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged, the same command can use `main` on both sides.
 
 If you prefer to inspect the bootstrap before running it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/556fb93a-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/8c3a205a-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
 less /tmp/notch-bootstrap.sh
-NOTCH_REF=arena/556fb93a-notch bash /tmp/notch-bootstrap.sh --with-deps
+NOTCH_REF=arena/8c3a205a-notch bash /tmp/notch-bootstrap.sh --with-deps
 ```
 
 ### From a local checkout
@@ -110,7 +114,7 @@ sudo dnf install \
 ./install.sh
 ```
 
-There is **no package named `mpris` to install**. MPRIS is a D-Bus specification implemented by media players. Notch talks to it through Gio. `gobject-introspection` and the GTK/Adwaita typelibs supply the language bindings; `python3-gobject` supplies PyGObject. There are no runtime PyPI dependencies.
+`gobject-introspection` and the GTK/Adwaita typelibs supply the language bindings; `python3-gobject` supplies PyGObject. There are no runtime PyPI dependencies.
 
 ### What the installer changes
 
@@ -140,7 +144,7 @@ The spec installs the extension, schema, settings app, doctor and desktop entry.
 The extension is the same package; only the Shell compatibility range changed. After `dnf system-upgrade`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/556fb93a-notch/scripts/bootstrap.sh | NOTCH_REF=arena/556fb93a-notch bash -s --
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/8c3a205a-notch/scripts/bootstrap.sh | NOTCH_REF=arena/8c3a205a-notch bash -s --
 ```
 
 Then log out and back in. `gnome-extensions info notch@pavit12301611.github.io` should report `State: ACTIVE`, not `OUT OF DATE`. Your existing Notch settings (GSettings/dconf) are retained.
@@ -153,9 +157,8 @@ Open **Notch Settings** from the app grid, or run `notch-settings`. The extensio
 |---|---|
 | Placement | `placement`, `monitor-index`, `horizontal-offset`, `floating-margin`, `reserve-space` |
 | Shape | `collapsed-width`, `collapsed-height`, `expanded-width`, `expanded-height`, `corner-radius`, `adaptive-corners`, `match-panel-height`, `notch-scale`, `opacity` |
-| Closed behavior | `replace-panel-clock`, `idle-clock`, `closed-media` |
+| Closed behavior | `replace-panel-clock`, `idle-clock` |
 | Notifications | `notifications-in-notch`, `auto-open-notifications`, `peek-duration-ms` |
-| Motion | `animations`, `animation-profile`, `open-animation-ms`, `close-animation-ms` |
 | Opening/hiding | `open-on-hover`, `hover-delay-ms`, `auto-hide-ms`, `hide-on-fullscreen`, `hide-in-overview` |
 | Quick actions | `show-dnd`, `show-night-light`, `show-dark-mode` |
 | Shortcut | `toggle-notch` |
@@ -171,7 +174,6 @@ journalctl -b _COMM=gnome-shell --no-pager -n 300 | grep -E -i 'notch|JS ERROR'
 - **Old helper warnings:** re-run the build-18 installer. `notch-doctor` reports leftover `notch-helper`/`notch-shelf` artifacts.
 - **`State: OUT OF DATE` after upgrading to Fedora 45:** your installed copy predates build 20 and does not declare GNOME Shell 51. Re-run the installer above; do not edit `shell-version` by hand or disable version validation. On Shell 51 a metadata-only spoof loads code that still calls the removed `St.BoxLayout:vertical` property.
 - **`No property vertical on StBoxLayout` in the journal:** same cause; update to build 20, which uses `St.BoxLayout:orientation` on Shell 48–51.
-- **Music controls disabled:** the player does not expose that MPRIS capability, or no player is connected.
 - **Freeze/stutter triage:** capture `pidstat -p "$(pgrep -x gnome-shell | head -n1)" 1` and the journal grep above. Do not assume a static test proves the live issue is fixed.
 
 ## Repository layout

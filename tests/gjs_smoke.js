@@ -1,12 +1,10 @@
 /* Run inside dbus-run-session on Fedora. Does not pretend to test GNOME Shell UI. */
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import {cpuSample, mediaErrorMessage, countNotifications, chargingStarted} from '../extension/lib/model.js';
+import {cpuSample, countNotifications, chargingStarted} from '../extension/lib/model.js';
 import {headerLayout} from '../extension/lib/layout.js';
 import {notchGeometry} from '../extension/lib/geometry.js';
 
-if (mediaErrorMessage('NotSupported') !== 'This player does not support that control.')
-    throw new Error('GJS media error smoke test failed');
 if (countNotifications([{notifications: [1, 2]}, {}]) !== 2)
     throw new Error('GJS notification count smoke test failed');
 if (cpuSample('cpu 1 0 1 8 0 0 0 0').raw.total !== 10)

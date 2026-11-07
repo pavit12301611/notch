@@ -61,7 +61,7 @@ export default class NotchPreferences extends ExtensionPreferences {
         }));
         shape.add(placement);
         const preset = new Adw.ActionRow({title: 'MacBook preset',
-            subtitle: 'Top-edge notch, idle clock, notification routing and smooth open/close animation'});
+            subtitle: 'Top-edge notch, idle clock and notification routing'});
         const presetButton = new Gtk.Button({label: 'Apply', valign: Gtk.Align.CENTER});
         presetButton.connect('clicked', () => {
             settings.set_string('placement', 'panel');
@@ -73,16 +73,11 @@ export default class NotchPreferences extends ExtensionPreferences {
             settings.set_double('notch-scale', 1.0);
             settings.set_boolean('match-panel-height', true);
             settings.set_boolean('adaptive-corners', true);
-            settings.set_boolean('closed-media', true);
-            settings.set_string('animation-profile', 'mac-spring');
             settings.set_double('opacity', 1.0);
             settings.set_boolean('replace-panel-clock', true);
             settings.set_boolean('idle-clock', true);
             settings.set_boolean('notifications-in-notch', true);
             settings.set_boolean('auto-open-notifications', true);
-            settings.set_boolean('animations', true);
-            settings.set_int('open-animation-ms', 420);
-            settings.set_int('close-animation-ms', 450);
             settings.set_int('peek-duration-ms', 5000);
             window.add_toast(new Adw.Toast({title: 'MacBook preset applied'}));
         });
@@ -140,25 +135,10 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(macbook, 'notifications-in-notch', 'Show notifications in the notch');
         addSwitch(macbook, 'auto-open-notifications', 'Compact notification peeks');
         addSpin(macbook, 'peek-duration-ms', 'Peek duration (ms)', 2000, 15000, 500);
-        addSwitch(macbook, 'closed-media', 'Closed music wings');
-        const profileValues = ['mac-spring', 'smooth'];
-        const profileModel = new Gtk.StringList();
-        ['Mac spring', 'Smooth easing'].forEach(s => profileModel.append(s));
-        const profile = new Adw.ComboRow({title: 'Motion profile', model: profileModel,
-            selected: Math.max(0, profileValues.indexOf(settings.get_string('animation-profile')))});
-        track(profile, profile.connect('notify::selected', () => settings.set_string('animation-profile', profileValues[profile.selected])));
-        track(settings, settings.connect('changed::animation-profile', () => {
-            const index = profileValues.indexOf(settings.get_string('animation-profile'));
-            if (index >= 0 && profile.selected !== index) profile.selected = index;
-        }));
-        macbook.add(profile);
-        addSpin(macbook, 'open-animation-ms', 'Smooth open duration (ms)', 0, 1000, 20);
-        addSpin(macbook, 'close-animation-ms', 'Smooth close duration (ms)', 0, 1000, 20);
         const opening = group(behavior, 'Opening & hiding');
         addSwitch(opening, 'open-on-hover', 'Open on hover');
         addSpin(opening, 'hover-delay-ms', 'Hover delay (ms)', 0, 1500, 50);
         addSpin(opening, 'auto-hide-ms', 'Auto-hide delay (ms)', 0, 60000, 500, '0 disables');
-        addSwitch(opening, 'animations', 'Smooth animations');
         addSwitch(opening, 'hide-on-fullscreen', 'Hide on fullscreen');
         addSwitch(opening, 'hide-in-overview', 'Hide in Activities overview');
         addSwitch(opening, 'reserve-space', 'Reserve collapsed space (experimental)');

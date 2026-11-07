@@ -1,79 +1,7 @@
-/** Dependency-free models, also exercised by Node and GJS tests. */
-export function unwrap(value, depth = 0) {
-    if (depth > 8 || value === null || value === undefined) return value;
-    if (typeof value?.deepUnpack === 'function') return unwrap(value.deepUnpack(), depth + 1);
-    if (Array.isArray(value)) return value.map(item => unwrap(item, depth + 1));
-    if (typeof value === 'object') {
-        const result = {};
-        for (const [key, item] of Object.entries(value)) result[key] = unwrap(item, depth + 1);
-        return result;
-    }
-    return value;
-}
-
-export function mediaMetadata(raw) {
-    const metadata = unwrap(raw) ?? {};
-    const string = (key, fallback = '') => {
-        const value = metadata[key];
-        return typeof value === 'string' && value.trim() ? value.trim() : fallback;
-    };
-    const artists = metadata['xesam:artist'];
-    const artistList = Array.isArray(artists) ? artists : typeof artists === 'string' ? [artists] : [];
-    const number = (key, fallback = 0) => {
-        const n = Number(metadata[key] ?? fallback);
-        return Number.isFinite(n) && n >= 0 ? n : fallback;
-    };
-    const trackId = string('mpris:trackid');
-    return {
-        title: string('xesam:title'),
-        artist: artistList.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()).join(', '),
-        lengthUs: number('mpris:length'),
-        trackId: /^\/[A-Za-z0-9_/.]*$/.test(trackId) ? trackId : '',
-    };
-}
-
-/** Never show a blank/“Nothing playing” title while a player is actually active. */
-export function mediaDisplayTitle(state) {
-    if (state?.title) return state.title;
-    if (state?.names?.length && state.status === 'Playing')
-        return `Playing in ${state.identity || 'media player'}`;
-    if (state?.names?.length && state.status === 'Paused')
-        return `Paused in ${state.identity || 'media player'}`;
-    return 'Nothing playing';
-}
-
-export function mediaDisplayArtist(state) {
-    if (state?.artist) return state.artist;
-    if (state?.names?.length) return state.identity || 'Media player';
-    return 'No media player connected';
-}
-
-/** Smooth closed-notch equalizer targets. Values are scale_y, not CSS heights. */
-export const VISUALIZER_PATTERN = Object.freeze([
-    [0.42, 0.88, 0.58],
-    [0.72, 0.48, 1.00],
-    [1.00, 0.34, 0.70],
-    [0.58, 0.82, 0.40],
-    [0.34, 1.00, 0.76],
-    [0.84, 0.54, 0.34],
-    [0.56, 0.74, 0.94],
-    [0.94, 0.40, 0.60],
-]);
-
-export function visualizerLevels(step) {
-    const length = VISUALIZER_PATTERN.length;
-    const index = ((Math.trunc(Number(step) || 0) % length) + length) % length;
-    return VISUALIZER_PATTERN[index];
-}
-
 /** True only on a real plug-in transition, never on the first UPower sample. */
 export function chargingStarted(previous, next) {
     return !!next?.available && next.state === 1 && !!previous?.available &&
         (previous.state === 2 || previous.state === 5 || previous.state === 6);
-}
-
-export function seekTarget(lengthUs, fraction) {
-    return Math.round(Math.max(0, Math.min(1, fraction)) * Math.max(0, lengthUs));
 }
 
 export function cpuSample(text, previous = null) {
@@ -152,12 +80,6 @@ export function formatBytes(bytes, suffix = '') {
     return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}${suffix}`;
 }
 
-export function formatTime(microseconds) {
-    const seconds = Math.max(0, Math.floor((Number(microseconds) || 0) / 1e6));
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-}
-
-/** Convert GNOME notification markup to safe single-line/plain display text. */
 export function plainText(value) {
     return String(value ?? '')
         .replace(/<br\s*\/?>/gi, ' ')
@@ -181,16 +103,4 @@ export function previewText(value, limit = 160) {
     const max = Math.max(24, Math.floor(Number(limit) || 160));
     if (text.length <= max) return {text, truncated: false};
     return {text: `${text.slice(0, max).trimEnd()}…`, truncated: true};
-}
-
-/** Keep MPRIS failures short and actionable instead of dumping raw D-Bus text. */
-export function mediaErrorMessage(message) {
-    const text = String(message ?? '');
-    if (/NotSupported|UnknownMethod|Unknown method/i.test(text))
-        return 'This player does not support that control.';
-    if (/NameHasNoOwner|ServiceUnknown|NoReply|Timeout|timed out/i.test(text))
-        return 'The media player is not responding.';
-    if (/AccessDenied|not allowed/i.test(text))
-        return 'The media player blocked that command.';
-    return text ? `Media: ${text.replace(/\s+/g, ' ').slice(0, 160)}` : 'Media command failed.';
 }

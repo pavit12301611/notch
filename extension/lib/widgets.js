@@ -1,8 +1,6 @@
 import St from 'gi://St';
-import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
 import Clutter from 'gi://Clutter';
-import * as Slider from 'resource:///org/gnome/shell/ui/slider.js';
 import {iconGicon} from './icons.js';
 
 export function label(text = '', style = 'notch-muted', expand = false) {
@@ -124,26 +122,6 @@ export function button({text = '', iconName = '', onClick, style = 'notch-button
     widget._notchIcon = iconWidget;
     widget._notchLabel = labelWidget;
     if (onClick) widget.connect('clicked', onClick);
-    return widget;
-}
-
-export function slider(value, onInput, accessibleName) {
-    const widget = new Slider.Slider(value);
-    widget.add_style_class_name('notch-slider');
-    widget.accessible_name = accessibleName;
-    let dragging = false;
-    let suppressUntil = 0;
-    widget.connect('drag-begin', () => { dragging = true; });
-    widget.connect('drag-end', () => { dragging = false; onInput(widget.value); });
-    widget.connect('notify::value', () => {
-        // Programmatic updates must never feed back into seek commands.
-        if (dragging || GLib.get_monotonic_time() < suppressUntil) return;
-        onInput(widget.value);
-    });
-    widget._notchSet = next => {
-        suppressUntil = GLib.get_monotonic_time() + 150_000;
-        widget.value = Math.max(0, Math.min(1, Number(next) || 0));
-    };
     return widget;
 }
 

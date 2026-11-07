@@ -115,7 +115,7 @@ class SettingsApplication(Adw.Application):
         geometry.add(placement)
         preset = Adw.ActionRow(
             title="MacBook preset",
-            subtitle="Top-edge notch, idle clock, notification routing and smooth animation",
+            subtitle="Top-edge notch, idle clock and notification routing",
         )
         preset_button = Gtk.Button(label="Apply", valign=Gtk.Align.CENTER)
         preset_button.connect("clicked", lambda *_: self.apply_macbook_preset())
@@ -191,16 +191,11 @@ class SettingsApplication(Adw.Application):
         self.settings.set_double("notch-scale", 1.0)
         self.settings.set_boolean("match-panel-height", True)
         self.settings.set_boolean("adaptive-corners", True)
-        self.settings.set_boolean("closed-media", True)
-        self.settings.set_string("animation-profile", "mac-spring")
         self.settings.set_double("opacity", 1.0)
         self.settings.set_boolean("replace-panel-clock", True)
         self.settings.set_boolean("idle-clock", True)
         self.settings.set_boolean("notifications-in-notch", True)
         self.settings.set_boolean("auto-open-notifications", True)
-        self.settings.set_boolean("animations", True)
-        self.settings.set_int("open-animation-ms", 420)
-        self.settings.set_int("close-animation-ms", 450)
         self.settings.set_int("peek-duration-ms", 5000)
 
     def behavior_page(self):
@@ -215,30 +210,6 @@ class SettingsApplication(Adw.Application):
         self.switch(macbook, "notifications-in-notch", "Show notifications in the notch")
         self.switch(macbook, "auto-open-notifications", "Compact notification peeks")
         self.spin(macbook, "peek-duration-ms", "Peek duration", 2000, 15000, 500, "Milliseconds")
-        self.switch(macbook, "closed-media", "Closed music wings")
-        profile = Adw.ComboRow(
-            title="Motion profile", model=Gtk.StringList.new(["Mac spring", "Smooth easing"])
-        )
-        profile_values = ["mac-spring", "smooth"]
-        profile.set_selected(profile_values.index(self.settings.get_string("animation-profile")))
-
-        def profile_changed(row, _param):
-            self.settings.set_string("animation-profile", profile_values[row.get_selected()])
-
-        def profile_external(*_):
-            profile.set_selected(
-                profile_values.index(self.settings.get_string("animation-profile"))
-            )
-
-        self.bindings.append((profile, profile.connect("notify::selected", profile_changed)))
-        self.bindings.append(
-            (self.settings, self.settings.connect("changed::animation-profile", profile_external))
-        )
-        macbook.add(profile)
-        self.spin(macbook, "open-animation-ms", "Smooth open duration", 0, 1000, 20, "Milliseconds")
-        self.spin(
-            macbook, "close-animation-ms", "Smooth close duration", 0, 1000, 20, "Milliseconds"
-        )
         behavior = self.group(page, "Opening & hiding")
         self.switch(
             behavior, "open-on-hover", "Open on hover", "Clicking the collapsed notch always works"
@@ -252,12 +223,6 @@ class SettingsApplication(Adw.Application):
             60000,
             500,
             "Milliseconds; 0 disables. Pointer activity and slider grabs postpone hiding.",
-        )
-        self.switch(
-            behavior,
-            "animations",
-            "Smooth animations",
-            "Also respects GNOME’s Enable Animations accessibility setting",
         )
         self.switch(behavior, "hide-on-fullscreen", "Hide on fullscreen")
         self.switch(behavior, "hide-in-overview", "Hide in Activities overview")
@@ -273,11 +238,12 @@ class SettingsApplication(Adw.Application):
         self.switch(actions, "show-dnd", "Do Not Disturb")
         self.switch(actions, "show-night-light", "Night Light")
         self.switch(actions, "show-dark-mode", "Dark Mode")
-        media = self.group(page, "Media")
+        keyboard = self.group(page, "Keyboard")
         shortcut = Adw.ActionRow(
-            title="Keyboard shortcut", subtitle="Super + ` (the key above Tab on US keyboards)"
+            title="Open or close the notch",
+            subtitle="Super + ` (the key above Tab on US keyboards)",
         )
-        media.add(shortcut)
+        keyboard.add(shortcut)
         return page
 
     def about_page(self):

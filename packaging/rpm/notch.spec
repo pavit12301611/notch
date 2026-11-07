@@ -1,7 +1,7 @@
 Name:           notch
 Version:        0.1.0
-Release:        4%{?dist}
-Summary:        Native GNOME notch with media, notifications and system status
+Release:        5%{?dist}
+Summary:        Native GNOME notch with notifications and system status
 License:        GPL-3.0-or-later
 URL:            https://github.com/pavit12301611/notch
 Source0:        %{name}-%{version}.tar.gz
@@ -22,9 +22,9 @@ Recommends:     gnome-extensions-app
 
 %description
 Notch is a hybrid GNOME Shell extension and GTK4/Libadwaita settings app.
-The extension owns the animated MacBook-style top-edge overlay: idle clock,
-in-notch notifications, MPRIS media controls, procfs diagnostics, UPower
-battery state and GNOME quick actions. There is no background helper daemon,
+The extension owns the MacBook-style top-edge overlay: idle clock,
+in-notch notifications, procfs diagnostics, UPower battery state and GNOME
+quick actions. Music controls and motion were removed in build 21. There is no background helper daemon,
 clipboard history or file shelf. Primary target: Fedora 45, GNOME 51.
 
 %prep
@@ -51,6 +51,12 @@ glib-compile-schemas %{buildroot}%{_datadir}/gnome-shell/extensions/notch@pavit1
 %{_datadir}/icons/hicolor/scalable/apps/io.github.pavit12301611.Notch.svg
 
 %changelog
+* Sat Nov 07 2026 Notch contributors <noreply@github.com> - 0.1.0-5
+- Build 21: remove the Music page, MPRIS controls, closed music wings, the
+  equalizer and all open/close and page animations. Settings keys
+  closed-media, animations, animation-profile, open-animation-ms and
+  close-animation-ms are removed.
+
 * Fri Nov 06 2026 Notch contributors <noreply@github.com> - 0.1.0-4
 - Add Fedora 45 / GNOME Shell 51 support: declare shell-version 46-51 and use
   St.BoxLayout:orientation with a :vertical fallback for Shell 46/47, where
