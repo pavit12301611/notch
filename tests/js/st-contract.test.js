@@ -62,6 +62,17 @@ class Label extends Actor {
     }
 }
 class Button extends Actor {}
+const widgetProperties = new Set([
+    'style_class', 'style', 'x_expand', 'y_expand', 'x_align', 'y_align', 'visible',
+]);
+class Widget extends Actor {
+    constructor(properties = {}) {
+        for (const name of Object.keys(properties)) {
+            if (!widgetProperties.has(name)) throw new Error(`No property ${name} on StWidget`);
+        }
+        super(properties);
+    }
+}
 class BoxLayout extends Actor {
     constructor(properties = {}) {
         if (Object.hasOwn(properties, 'spacing'))
@@ -97,7 +108,7 @@ class FileIcon {
 }
 const Gio = {FileIcon, ThemedIcon: {new: name => ({themed: name})}};
 const GLib = {get_monotonic_time: () => 1_000_000};
-const St = {Icon, Label, Button, BoxLayout};
+const St = {Icon, Label, Button, BoxLayout, Widget};
 const Clutter = {ActorAlign: {START: 0, CENTER: 1, FILL: 2, END: 3},
     Orientation: {HORIZONTAL: 0, VERTICAL: 1}};
 const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}, Alignment: {CENTER: 1}};
@@ -200,6 +211,16 @@ test('empty states are centered text cards with title and body', () => {
     assert.equal(widget.children.length, 2);
     assert.equal(widget.children[0].text, 'Nothing playing');
     assert.equal(widget.children[1].clutter_text.line_wrap, true);
+});
+
+test('CSS-sized decorative dots center themselves instead of stretching', () => {
+    // BoxLayout's cross-axis default is FILL; an unaligned 5px dot was drawn as
+    // a full-height white line beside the closed clock (build 20 regression).
+    const dot = widgets.dot('notch-unread-dot');
+    assert.equal(dot.style_class, 'notch-unread-dot');
+    assert.equal(dot.x_align, Clutter.ActorAlign.CENTER);
+    assert.equal(dot.y_align, Clutter.ActorAlign.CENTER);
+    assert.equal(dot.visible, undefined);
 });
 
 test('disabled controls lose focus and look disabled', () => {

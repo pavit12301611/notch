@@ -4,6 +4,12 @@
 
 ### v20 — Fedora 45 / GNOME Shell 51 compatibility
 
+- Fix the closed notch drawing a white vertical line next to the clock: the
+  unread-notification dot is a bare `St.Widget` in the clock row, and Clutter's
+  BoxLayout stretches children in the cross axis (FILL) by default, so the
+  stylesheet's 5 px height was overridden by the row height. The new `dot()`
+  helper in `widgets.js` centers CSS-sized markers, and the St contract test
+  pins the alignment.
 - Add GNOME Shell 51 to `metadata.json` (shell-version 46-51). Fedora 45
   Workstation ships GNOME 51 and previously reported build 19 as *Out of Date*.
 - Fix the one Shell 51 API break this extension hit: `St.BoxLayout:vertical` was

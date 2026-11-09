@@ -40,6 +40,17 @@ export function icon(name, size = 16) {
         y_align: Clutter.ActorAlign.CENTER});
 }
 
+/**
+ * Small CSS-sized marker (the unread dot next to the clock). A bare St.Widget
+ * inherits BoxLayout's cross-axis FILL, which stretches it to the row height
+ * and turns a 5px stylesheet dot into a full-height line; center it so the
+ * stylesheet width/height win.
+ */
+export function dot(style = '') {
+    return new St.Widget({style_class: style,
+        x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
+}
+
 /** Switch between a loaded GIcon and a themed fallback without clearing the new source. */
 export function setIconSource(widget, gicon, fallbackName) {
     widget.fallback_gicon = null;

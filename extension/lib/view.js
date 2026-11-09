@@ -15,7 +15,7 @@ import {QuickActions} from './actions.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
 import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, setText, slider,
-    setSensitive, setBoxOrientation} from './widgets.js';
+    setSensitive, setBoxOrientation, dot} from './widgets.js';
 import {setIconDirectory, setNotchIcon} from './icons.js';
 import {formatBytes, formatTime, plainText, previewText, countNotifications,
     mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from './model.js';
@@ -189,7 +189,8 @@ export class NotchView {
         clockBox.x_expand = true;
         clockBox.x_align = Clutter.ActorAlign.CENTER;
         this.summaryClock = label('', 'notch-summary-clock');
-        this.unreadDot = new St.Widget({style_class: 'notch-unread-dot', visible: false});
+        this.unreadDot = dot('notch-unread-dot');
+        this.unreadDot.visible = false;
         clockBox.add_child(this.summaryClock);
         clockBox.add_child(this.unreadDot);
         this.leftWing = leftWing;
