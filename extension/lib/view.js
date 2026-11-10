@@ -518,13 +518,18 @@ export class NotchView {
         const values = this.diagnostics.values;
         const battery = this.diagnostics.battery;
         if (values) {
-            setText(this.stats.cpu.value, values.cpu.percent === null ? '…' : `${Math.round(values.cpu.percent)}%`);
+            const cpuText = values.cpu.percent !== null
+                ? `${Math.round(values.cpu.percent)}%`
+                : (values.cpu.raw === null ? '—' : '…');
+            setText(this.stats.cpu.value, cpuText);
             setText(this.stats.cpu.detail, '');
             setText(this.stats.ram.value, values.memory.percent === null ? '—' : `${Math.round(values.memory.percent)}%`);
             setText(this.stats.ram.detail, values.memory.used === null ? '' :
                 `${formatBytes(values.memory.used)} / ${formatBytes(values.memory.total)}`);
-            setText(this.stats.network.value, values.network.download === null ? '…' :
-                `↓ ${formatBytes(values.network.download, '/s')}`);
+            const netText = values.network.download !== null
+                ? `↓ ${formatBytes(values.network.download, '/s')}`
+                : (values.network.raw === null ? 'Offline' : '…');
+            setText(this.stats.network.value, netText);
             setText(this.stats.network.detail, values.network.upload === null ? '' :
                 `↑ ${formatBytes(values.network.upload, '/s')}`);
         }
@@ -789,7 +794,7 @@ export class NotchView {
         const ids = ['cpu', 'ram', 'battery', 'network'];
         for (let i = 0; i < ids.length; i += columns) {
             const row = box(false, 'notch-stat-row', 10);
-            row.x_align = Clutter.ActorAlign.CENTER;
+            row.x_align = Clutter.ActorAlign.FILL;
             for (const id of ids.slice(i, i + columns)) {
                 const card = this.statCards[id];
                 card.x_expand = true;

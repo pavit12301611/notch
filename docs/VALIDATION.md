@@ -1,5 +1,21 @@
 # Validation log
 
+## Build 22 — 2026-11-10
+
+Scope: fix System page live telemetry (UPower system D-Bus, hex/VPN route parsing, 250 ms CPU/Network warmup, `Gio.File` procfs fallback, offline state).
+
+### Executed in the development sandbox
+
+- `npm run check` (ESLint + Node unit tests) and Python unit tests (`make check-python`).
+- `bash -n` on `install.sh`, `uninstall.sh`, `scripts/bootstrap.sh`.
+- `node --check` on every extension module; schema/D-Bus XML parse.
+- `make stage PREFIX=/usr SYSCONFDIR=/etc` and `git diff --check`.
+
+### Not executed here
+
+- Live GNOME Shell 51 Wayland session checks in `docs/TESTING.md`.
+- `glib-compile-schemas` binary compilation, `desktop-file-validate`, GJS smoke test, RPM build (verified in Fedora 45 CI).
+
 ## Build 21 — 2026-11-10
 
 Scope: remove all Music / MPRIS functionality from frontend and backend.

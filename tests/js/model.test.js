@@ -63,18 +63,22 @@ test('CPU deltas exclude guest double-counting and handle first sample/reset', (
     assert.equal(first.raw.total, 100);
     const second = cpuSample('cpu  20 0 20 140 20 0 0 0 10 0', first.raw);
     assert.ok(Math.abs(second.percent - 20) < 1e-9);
+    const sevenCols = cpuSample('cpu  20 0 20 140 20 0 0', first.raw);
+    assert.ok(Math.abs(sevenCols.percent - 20) < 1e-9);
     assert.equal(cpuSample('cpu  1 0 0 1 0', first.raw).percent, null);
     assert.equal(cpuSample('garbage').percent, null);
 });
 
-test('RAM uses MemAvailable rather than MemFree', () => {
+test('RAM uses MemAvailable rather than MemFree and supports fallback', () => {
     const result = memorySample('MemTotal: 1000 kB\nMemFree: 100 kB\nMemAvailable: 400 kB\n');
     assert.equal(result.percent, 60);
     assert.equal(result.used, 600 * 1024);
+    const fallback = memorySample('MemTotal: 1000 kB\nMemFree: 100 kB\nBuffers: 100 kB\nCached: 200 KB\n');
+    assert.equal(fallback.percent, 60);
     assert.equal(memorySample('MemTotal: 0 kB').percent, null);
 });
 
-test('network rates use elapsed time, default route and reject counter resets', () => {
+test('network rates use elapsed time, hex/VPN default routes and reject counter resets', () => {
     const text = 'Inter-| Receive | Transmit\n face | bytes ...\neth0: 100 0 0 0 0 0 0 0 300 0 0 0 0 0 0 0\nlo: 999 0 0 0 0 0 0 0 999 0 0 0 0 0 0 0';
     const first = networkSample(text);
     assert.deepEqual(first.raw, {rx: 100, tx: 300, interface: 'eth0'});
@@ -83,7 +87,13 @@ test('network rates use elapsed time, default route and reject counter resets', 
     assert.equal(second.download, 100);
     assert.equal(second.upload, 150);
     assert.equal(networkSample(text, {rx: 9999, tx: 9999, interface: 'eth0'}).download, null);
+    const offline = networkSample('Inter-| Receive | Transmit\n face | bytes ...\nlo: 999 0 0 0 0 0 0 0 999 0 0 0 0 0 0 0');
+    assert.equal(offline.raw, null);
+    assert.equal(offline.download, null);
     assert.equal(defaultRouteInterface('Iface Destination Gateway Flags RefCnt Use Metric Mask\nwlan0 00000000 0100A8C0 0003 0 0 100 00000000'), 'wlan0');
+    assert.equal(defaultRouteInterface('Iface Destination Gateway Flags RefCnt Use Metric Mask\nwlp0s20f3 00000000 0100A8C0 000B 0 0 600 00000000'), 'wlp0s20f3');
+    assert.equal(defaultRouteInterface('Iface Destination Gateway Flags RefCnt Use Metric Mask\nenp3s0 00000000 0100A8C0 0013 0 0 100 00000000'), 'enp3s0');
+    assert.equal(defaultRouteInterface('Iface Destination Gateway Flags RefCnt Use Metric Mask\ntun0 00000000 00000000 0001 0 0 50 00000000'), 'tun0');
 });
 
 test('formatting is stable for missing values and boundaries', () => {
