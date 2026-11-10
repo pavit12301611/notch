@@ -6,15 +6,15 @@ GNOME Shell extensions execute with the user’s full Shell privileges. Installi
 
 ## Removed features
 
-Build 18 removes clipboard history and the file shelf completely. Notch no longer reads the system clipboard, stores copied text, accepts file drops, keeps file references, or runs a helper daemon. The installer removes the old helper binary, CLI, D-Bus service, systemd unit and Python modules from older builds.
+Build 18 removed clipboard history and the file shelf completely; build 21 removed all music and MPRIS media features. Notch no longer reads the system clipboard, stores copied text, accepts file drops, keeps file references, talks to MPRIS media players, or runs a helper daemon. The installer removes the old helper binary, CLI, D-Bus service, systemd unit and Python modules from older builds.
 
 ## Notifications
 
 Notch intercepts ordinary GNOME banners only after GNOME has applied DND, fullscreen and per-app policy. Notification bodies are rendered as plain text in the notch and remain in GNOME’s own message list. Critical notifications keep the native banner path. Routine logs do not include notification bodies.
 
-## Media and diagnostics
+## Diagnostics
 
-The Music page talks to local MPRIS players over the session bus. It does not download or decode player-supplied album art and does not write volume. System metrics are read from local procfs and UPower. There is no telemetry, update checker, account system or outbound network request in the extension.
+System metrics are read from local procfs and UPower. There is no telemetry, update checker, account system, MPRIS integration, or outbound network request in the extension.
 
 ## Session bus
 

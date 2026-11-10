@@ -22,9 +22,3 @@ export function iconGicon(name) {
     cache.set(name, gicon);
     return gicon;
 }
-
-export function setNotchIcon(widget, name) {
-    if (!widget) return;
-    widget.icon_name = null;
-    widget.gicon = iconGicon(name);
-}

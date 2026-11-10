@@ -4,10 +4,8 @@ import {clamp, notchGeometry, containsPoint, PAGE_SIZES, surfaceRadii} from '../
 import {contentLayout, headerMode, headerLayout, statColumns, availableOpenSize} from '../../extension/lib/layout.js';
 import {SpringValue, SpringGeometry, SPRING_PROFILES, easeOutCubic} from '../../extension/lib/spring.js';
 import {NotificationBridge} from '../../extension/lib/notifications.js';
-import {mediaMetadata, cpuSample, memorySample, networkSample, defaultRouteInterface,
-    formatBytes, formatTime, seekTarget, plainText, mediaErrorMessage,
-    mediaDisplayTitle, mediaDisplayArtist, visualizerLevels,
-    previewText, countNotifications, chargingStarted} from '../../extension/lib/model.js';
+import {cpuSample, memorySample, networkSample, defaultRouteInterface,
+    formatBytes, plainText, previewText, countNotifications, chargingStarted} from '../../extension/lib/model.js';
 
 const monitor = {x: 0, y: 0, width: 1920, height: 1080};
 const options = {collapsedWidth: 240, collapsedHeight: 34, expandedWidth: 720, expandedHeight: 440,
@@ -30,48 +28,6 @@ test('geometry uses logical pixels, centers and clamps to the monitor', () => {
     assert.ok(!containsPoint({x: 0, y: 0, width: 10, height: 10}, 10, 0));
 });
 
-test('MPRIS metadata tolerates malformed players and recursive variants', () => {
-    const metadata = mediaMetadata({'xesam:title': 'Song', 'xesam:artist': ['A', 'B'],
-        'mpris:length': 123456789, 'mpris:trackid': '/org/example/track/1'});
-    assert.equal(metadata.title, 'Song');
-    assert.equal(metadata.artist, 'A, B');
-    assert.equal(metadata.lengthUs, 123456789);
-    assert.equal(mediaMetadata({'xesam:artist': 'wrong', 'mpris:length': -5}).artist, 'wrong');
-    assert.equal(mediaMetadata({'mpris:length': 'bad'}).lengthUs, 0);
-    assert.equal(mediaMetadata({deepUnpack: () => ({'xesam:title': 'Wrapped'})}).title, 'Wrapped');
-    const variant = value => ({deepUnpack: () => value});
-    const nested = mediaMetadata({'xesam:title': variant('Affaaz'), 'xesam:artist': [variant('Hamza'), variant('Zain')],
-        'mpris:length': variant(200000000), 'mpris:trackid': variant('/org/mpris/track/2')});
-    assert.equal(nested.title, 'Affaaz');
-    assert.equal(nested.artist, 'Hamza, Zain');
-    assert.equal(nested.lengthUs, 200000000);
-    assert.equal(nested.trackId, '/org/mpris/track/2');
-    assert.equal(mediaDisplayTitle({names: ['brave'], status: 'Playing', identity: 'Brave', title: ''}), 'Playing in Brave');
-    assert.equal(mediaDisplayTitle({names: ['brave'], status: 'Paused', identity: 'Brave', title: ''}), 'Paused in Brave');
-    assert.equal(mediaDisplayTitle({names: [], status: 'Stopped', title: ''}), 'Nothing playing');
-    assert.equal(mediaDisplayTitle({names: ['brave'], status: 'Playing', title: 'Song'}), 'Song');
-    assert.equal(mediaDisplayArtist({names: ['brave'], identity: 'Brave', artist: ''}), 'Brave');
-    assert.equal(mediaMetadata({'mpris:trackid': 'not-an-object-path'}).trackId, '');
-    assert.equal(seekTarget(1000, 2), 1000);
-    assert.equal(seekTarget(1000, -1), 0);
-});
-
-test('closed-notch equalizer loops through bounded rhythmic levels', () => {
-    const first = visualizerLevels(0);
-    assert.equal(first.length, 3);
-    assert.deepEqual(visualizerLevels(8), first);
-    assert.deepEqual(visualizerLevels(-1), visualizerLevels(7));
-    const seen = new Set();
-    for (let step = 0; step < 8; step++) {
-        const levels = visualizerLevels(step);
-        for (const level of levels) {
-            assert.ok(level >= 0.25 && level <= 1);
-            seen.add(level);
-        }
-    }
-    assert.ok(seen.size >= 6, 'equalizer should visibly vary instead of staying static');
-});
-
 test('charging badge triggers only on a real plug-in transition', () => {
     const battery = state => ({available: true, percent: 42, state});
     assert.equal(chargingStarted(null, battery(1)), false);
@@ -86,7 +42,7 @@ test('charging badge triggers only on a real plug-in transition', () => {
 });
 
 test('header budget keeps settings and close inside the notch', () => {
-    for (const width of [194, 220, 300, 359, 360, 480, 559, 560, 600, 800]) {
+    for (const width of [164, 194, 220, 300, 359, 360, 480, 559, 560, 600, 800]) {
         for (const textScale of [0.8, 1, 1.25, 1.5, 2]) {
             const hl = headerLayout(width, textScale);
             assert.ok(hl.requiredWidth <= width,
@@ -97,7 +53,7 @@ test('header budget keeps settings and close inside the notch', () => {
     }
     assert.equal(headerLayout(600, 1).mode, 'labels');
     assert.equal(headerLayout(600, 1.25).mode, 'icons');
-    assert.equal(headerLayout(500, 0.8).mode, 'icons');
+    assert.equal(headerLayout(450, 0.8).mode, 'icons');
     assert.equal(headerLayout(300, 1).ultra, true);
 });
 
@@ -133,8 +89,6 @@ test('network rates use elapsed time, default route and reject counter resets', 
 test('formatting is stable for missing values and boundaries', () => {
     assert.equal(formatBytes(null), '—');
     assert.equal(formatBytes(1024, '/s'), '1.0 KiB/s');
-    assert.equal(formatTime(65e6), '1:05');
-    assert.equal(formatTime(-1), '0:00');
 });
 
 
@@ -153,9 +107,7 @@ test('MacBook notch attaches to the top edge and expands around the same center'
     assert.equal(open.topRadius, 19);
     assert.equal(closed.bottomRadius, 14);
     assert.equal(open.bottomRadius, 24);
-    const wings = notchGeometry(monitor, {...mac, mediaWings: true}, false);
-    assert.equal(wings.width, closed.width + 64);
-    assert.equal(wings.height, closed.height);
+    assert.equal(notchGeometry(monitor, {...mac, mediaWings: true}, false).width, closed.width);
     const hover = notchGeometry(monitor, {...mac, hovered: true}, false);
     assert.equal(hover.width, closed.width + 12);
     assert.equal(hover.height, closed.height + 4);
@@ -266,15 +218,4 @@ test('notification previews stay compact but reveal the full body on demand', ()
     assert.ok(long.text.endsWith('…'));
     assert.equal(countNotifications([{notifications: [1, 2]}, {notifications: []}, {}]), 2);
     assert.equal(countNotifications(null), 0);
-});
-
-test('media errors become short and actionable instead of raw D-Bus dumps', () => {
-    assert.equal(mediaErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NotSupported'),
-        'This player does not support that control.');
-    assert.equal(mediaErrorMessage('GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner'),
-        'The media player is not responding.');
-    assert.equal(mediaErrorMessage('Timeout was reached'), 'The media player is not responding.');
-    assert.equal(mediaErrorMessage('AccessDenied'), 'The media player blocked that command.');
-    assert.equal(mediaErrorMessage(''), 'Media command failed.');
-    assert.match(mediaErrorMessage('x'.repeat(300)), /^Media: x{160}$/);
 });

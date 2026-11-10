@@ -86,17 +86,11 @@ class LegacyBoxLayout extends Actor {
     get vertical() { return this._vertical ?? false; }
     set vertical(value) { this._vertical = !!value; }
 }
-class Slider {
-    constructor(value) { this.value = value; }
-    connect() { return 1; }
-    add_style_class_name() {}
-}
 
 class FileIcon {
     constructor(properties = {}) { Object.assign(this, properties); }
 }
 const Gio = {FileIcon, ThemedIcon: {new: name => ({themed: name})}};
-const GLib = {get_monotonic_time: () => 1_000_000};
 const St = {Icon, Label, Button, BoxLayout};
 const Clutter = {ActorAlign: {START: 0, CENTER: 1, FILL: 2, END: 3},
     Orientation: {HORIZONTAL: 0, VERTICAL: 1}};
@@ -104,10 +98,8 @@ const Pango = {EllipsizeMode: {NONE: 0, END: 3}, WrapMode: {WORD_CHAR: 2}, Align
 const stubs = new Map([
     ['gi://St', {default: St}],
     ['gi://Gio', {default: Gio}],
-    ['gi://GLib', {default: GLib}],
     ['gi://Clutter', {default: Clutter}],
     ['gi://Pango', {default: Pango}],
-    ['resource:///org/gnome/shell/ui/slider.js', {Slider}],
 ]);
 const prefix = 'notch-stub:';
 const globalKey = '__notchStContractStubs';
@@ -144,16 +136,16 @@ test('icon helper constructs a valid GNOME 51 St.Icon without icon_type', () => 
     assert.throws(() => { widget.icon_type = 0; }, /No property icon_type on StIcon/);
 });
 
-test('artwork switching keeps the loaded gicon and restores a themed fallback', () => {
-    const cover = {file: '/tmp/cover.png'};
-    const widget = widgets.sourceIcon(cover, 'audio-x-generic-symbolic', 72);
-    assert.equal(widget.gicon, cover);
+test('notification icon switching keeps the loaded gicon and restores a themed fallback', () => {
+    const appIcon = {file: '/tmp/app.png'};
+    const widget = widgets.sourceIcon(appIcon, 'preferences-system-notifications-symbolic', 28);
+    assert.equal(widget.gicon, appIcon);
     assert.equal(widget.icon_name, null);
-    widgets.setIconSource(widget, null, 'audio-x-generic-symbolic');
-    assert.equal(widget.gicon.file.name, 'audio-x-generic-symbolic.svg');
+    widgets.setIconSource(widget, null, 'preferences-system-notifications-symbolic');
+    assert.equal(widget.gicon.file.name, 'preferences-system-notifications-symbolic.svg');
     assert.equal(widget.icon_name, null);
-    widgets.setIconSource(widget, cover, 'audio-x-generic-symbolic');
-    assert.equal(widget.gicon, cover);
+    widgets.setIconSource(widget, appIcon, 'preferences-system-notifications-symbolic');
+    assert.equal(widget.gicon, appIcon);
     assert.equal(widget.fallback_gicon, null);
 });
 
@@ -195,15 +187,15 @@ test('box helper falls back to vertical on GNOME 46/47', () => {
 });
 
 test('empty states are centered text cards with title and body', () => {
-    const widget = widgets.emptyState('Nothing playing', 'Start a song to see controls.');
+    const widget = widgets.emptyState('No alerts', 'New notifications will appear here.');
     assert.equal(widget.orientation, Clutter.Orientation.VERTICAL);
     assert.equal(widget.children.length, 2);
-    assert.equal(widget.children[0].text, 'Nothing playing');
+    assert.equal(widget.children[0].text, 'No alerts');
     assert.equal(widget.children[1].clutter_text.line_wrap, true);
 });
 
 test('disabled controls lose focus and look disabled', () => {
-    const widget = widgets.button({text: 'Play', iconName: 'media-playback-start-inverse-symbolic'});
+    const widget = widgets.button({text: 'Clear', iconName: 'edit-clear-all-symbolic'});
     widgets.setSensitive(widget, false);
     assert.equal(widget.reactive, false);
     assert.equal(widget.can_focus, false);

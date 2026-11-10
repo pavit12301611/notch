@@ -5,7 +5,7 @@ Target Fedora 45 / GNOME 51 first; the same build must keep working on GNOME She
 1. Install the complete project, not just the extension directory.
 2. Run `npm ci`, `make stage`, `make check`.
 3. Add pure model tests for parsing/bounds and Python contract tests for installer/doctor behavior.
-4. Run the live checklist in `docs/TESTING.md` for changes to input, placement, media, notifications or lifecycle.
+4. Run the live checklist in `docs/TESTING.md` for changes to input, placement, notifications or lifecycle.
 5. Verify disable/re-enable leaves no timers, signal handlers, bus names, injections or actors behind.
 6. Keep user-visible errors actionable and never log notification bodies or private file paths routinely.
 7. Do not reintroduce clipboard history, a file shelf, a helper daemon or pagination. Build 18 removed them intentionally.

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### v21 — remove Music and MPRIS media support
+
+- Remove all music and MPRIS functionality from both frontend and backend:
+  - Delete `extension/lib/media.js` (`MediaController`), MPRIS D-Bus interface
+    XMLs (`org.mpris.MediaPlayer2*.xml`), and bundled media/playback SVG icons.
+  - Remove the Music tab, `buildMedia()`/`updateMedia()`, closed-notch music
+    wings and animated equalizer, `slider()` widget and media CSS rules, and
+    the `media` field from `GetState`.
+  - Remove the `closed-media` GSettings key, migration/preset writes, and
+    preferences toggle in both `prefs.js` and `notch-settings`.
+  - Remove the `MPRIS players` session-bus scan from `notch-doctor` and rename
+    the Python settings shortcut group from `Media` to `Shortcuts`.
+  - Update the header rail budget for three tabs (Home, Alerts, System),
+    desktop entry metadata, RPM spec, documentation, and tests.
+- Bump build to 21.
+
 ### v20 — Fedora 45 / GNOME Shell 51 compatibility
 
 - Add GNOME Shell 51 to `metadata.json` (shell-version 46-51). Fedora 45

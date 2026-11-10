@@ -12,7 +12,7 @@ export const LAYOUT_LIMITS = Object.freeze({
 });
 
 export function headerMode(width) {
-    // Four fixed-width tabs fit with labels at the default 640 px notch.
+    // Three fixed-width tabs fit with labels at the default 640 px notch.
     // Narrow/large-text layouts collapse to a centered icon rail.
     return width >= 560 ? 'labels' : 'icons';
 }
@@ -28,7 +28,7 @@ export function headerLayout(width, textScale = 1) {
         const headerSpacing = ultra ? 4 : 6;
         // Rail padding 3px + border 1px on each side. Tab slots are unthemed
         // fixed-size bins, so these are outer widths (St.Button padding is inside).
-        const railWidth = 4 * tabWidth + 3 * tabSpacing + 8;
+        const railWidth = 3 * tabWidth + 2 * tabSpacing + 8;
         const requiredWidth = 2 * gutter + railWidth + 2 * headerSpacing;
         return {mode, ultra, gutter, controlsWidth: gutter, tabWidth, tabSpacing,
             headerSpacing, railWidth, requiredWidth, showSettings: !ultra};

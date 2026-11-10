@@ -294,25 +294,6 @@ def inspect_bus() -> list[tuple[str, str, str]]:
                     "Not running; if files were installed/updated in this session, log out/in and enable it",
                 )
             )
-        value = bus.call_sync(
-            "org.freedesktop.DBus",
-            "/org/freedesktop/DBus",
-            "org.freedesktop.DBus",
-            "ListNames",
-            None,
-            None,
-            Gio.DBusCallFlags.NONE,
-            1000,
-            None,
-        )
-        players = [n for n in value.unpack()[0] if n.startswith("org.mpris.MediaPlayer2.")]
-        results.append(
-            (
-                "PASS" if players else "WARN",
-                "MPRIS players",
-                ", ".join(players) or "None yet; start Spotify, Rhythmbox, Firefox media or VLC",
-            )
-        )
     except (ImportError, ValueError) as exc:
         results.append(("FAIL", "Session bus", str(exc)))
     return results

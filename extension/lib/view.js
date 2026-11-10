@@ -9,16 +9,14 @@ import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension
 import {Diagnostics} from './diagnostics.js';
 import {notchGeometry, containsPoint} from './geometry.js';
 import {contentLayout, headerLayout} from './layout.js';
-import {MediaController} from './media.js';
 import {NotificationBridge} from './notifications.js';
 import {QuickActions} from './actions.js';
 import {SpringGeometry, SPRING_PROFILES, easeOutCubic, interpolateGeometry} from './spring.js';
 import {NotchSurface} from './surface.js';
-import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, setText, slider,
+import {box, button, icon, sourceIcon, emptyState, label, wrapLabel, pageBox, setText,
     setSensitive, setBoxOrientation} from './widgets.js';
-import {setIconDirectory, setNotchIcon} from './icons.js';
-import {formatBytes, formatTime, plainText, previewText, countNotifications,
-    mediaDisplayTitle, mediaDisplayArtist, visualizerLevels} from './model.js';
+import {setIconDirectory} from './icons.js';
+import {formatBytes, plainText, previewText, countNotifications} from './model.js';
 
 /** GNOME Shell 51 exposes St.ReducedMotion; older shells only have enable-animations. */
 function systemMotionEnabled() {
@@ -31,14 +29,14 @@ function systemMotionEnabled() {
 
 const TABS = [
     ['home', 'Home', 'user-home-symbolic'],
-    ['media', 'Music', 'audio-x-generic-symbolic'],
     ['notifications', 'Alerts', 'preferences-system-notifications-symbolic'],
     ['system', 'System', 'utilities-system-monitor-symbolic'],
 ];
 
 /**
- * Four-page notch: Home, Music, Alerts, System.
- * Clipboard history and the file shelf were removed in build 18.
+ * Three-page notch: Home, Alerts, System.
+ * Clipboard history and the file shelf were removed in build 18;
+ * Music/MPRIS support was removed in build 21.
  */
 export class NotchView {
     constructor(extension) {
@@ -56,8 +54,6 @@ export class NotchView {
         this.timers = new Map();
         this.springs = null;
         this.timeline = null;
-        this.visualTimer = 0;
-        this.visualStep = 0;
         this._relayoutDepth = 0;
         this._relayoutPending = null;
         this._relayoutTimes = [];
@@ -70,7 +66,6 @@ export class NotchView {
         this._expandedNotifications = new WeakSet();
         this.clockHidden = false;
         this.options = this.readOptions();
-        this.media = new MediaController(this.directory, () => this.updateMedia(), e => this.showError(e));
         this.diagnostics = new Diagnostics(this.directory, () => this.updateSystem(),
             battery => this.showChargingBadge(battery));
         this.actions = new QuickActions(this.settings, () => this.updateActions());
@@ -89,9 +84,7 @@ export class NotchView {
         this.notifications.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
         this.updateNotificationCount();
         this.settings.connectObject('changed', (_settings, key) => this.settingChanged(key), this);
-        this.media.start();
         this.diagnostics.start();
-        this.updateMedia();
         this.updateClock();
         this.selectTab('home', false);
         this.relayout('resize', true);
@@ -123,15 +116,9 @@ export class NotchView {
             panelHeight: Main.layoutManager.panelBox.height || Math.round(32 * cssScale),
             opacity: this.settings.get_double('opacity'),
             tab: this.tab,
-            mediaWings: this.settings.get_boolean('closed-media') && this.hasMediaWings(),
             hovered: this.hovered && this.mode === 'closed',
             statusExtra: this.statusBar?.visible ? 72 : 0,
         };
-    }
-
-    hasMediaWings() {
-        const state = this.media?.snapshot();
-        return !!state?.names.length && state.status !== 'Stopped';
     }
 
     monitor() {
@@ -158,33 +145,6 @@ export class NotchView {
         const closedRow = box(false, 'notch-closed-row', 8);
         closedRow.y_expand = true;
         closedRow.y_align = Clutter.ActorAlign.CENTER;
-        const leftWing = box(false, 'notch-closed-wing', 0);
-        leftWing.visible = false;
-        leftWing.y_align = Clutter.ActorAlign.CENTER;
-        leftWing.x_expand = false;
-        leftWing.x_align = Clutter.ActorAlign.CENTER;
-        leftWing.set_size(28, -1);
-        const rightWing = box(false, 'notch-closed-wing', 0);
-        rightWing.visible = false;
-        rightWing.y_align = Clutter.ActorAlign.CENTER;
-        rightWing.x_expand = false;
-        rightWing.x_align = Clutter.ActorAlign.CENTER;
-        rightWing.set_size(28, -1);
-        this.liveMusicIcon = icon('audio-x-generic-symbolic', 16);
-        this.liveMusicIcon.add_style_class_name('notch-live-music');
-        this.liveBars = box(false, 'notch-live-bars', 2);
-        this.liveBars.x_expand = false;
-        this.liveBars.x_align = Clutter.ActorAlign.CENTER;
-        this.liveBars.y_align = Clutter.ActorAlign.CENTER;
-        this.liveBars.set_size(-1, 16);
-        this.barWidgets = [0.42, 0.88, 0.58].map(level => {
-            const bar = new St.Widget({style_class: 'notch-live-bar', y_align: Clutter.ActorAlign.END});
-            bar.set_size(3, 14);
-            bar.set_pivot_point(0.5, 1);
-            bar.set_scale(1, level);
-            this.liveBars.add_child(bar);
-            return bar;
-        });
         const clockBox = box(false, 'notch-clock-box', 5);
         clockBox.x_expand = true;
         clockBox.x_align = Clutter.ActorAlign.CENTER;
@@ -192,13 +152,7 @@ export class NotchView {
         this.unreadDot = new St.Widget({style_class: 'notch-unread-dot', visible: false});
         clockBox.add_child(this.summaryClock);
         clockBox.add_child(this.unreadDot);
-        this.leftWing = leftWing;
-        this.rightWing = rightWing;
-        leftWing.add_child(this.liveMusicIcon);
-        rightWing.add_child(this.liveBars);
-        closedRow.add_child(leftWing);
         closedRow.add_child(clockBox);
-        closedRow.add_child(rightWing);
         this.pill.set_child(closedRow);
         this.pill.connect('clicked', () => {
             if (this.mode === 'peek') this.openNotifications();
@@ -272,7 +226,6 @@ export class NotchView {
         this.pageStack = new St.Widget({layout_manager: new Clutter.BinLayout(), y_expand: true});
         this.pages = {
             home: this.buildHome(),
-            media: this.buildMedia(),
             notifications: this.buildNotifications(),
             system: this.buildSystem(),
         };
@@ -338,82 +291,6 @@ export class NotchView {
         page.add_child(this.homeClock);
         page.add_child(this.homeDate);
         return page;
-    }
-
-    buildMedia() {
-        const page = pageBox('notch-media-page', 12);
-        this.mediaEmpty = emptyState('Nothing playing', 'Start a song to see controls.');
-        page.add_child(this.mediaEmpty);
-
-        this.mediaActive = box(true, 'notch-media-active', 10);
-        this.mediaActive.x_expand = true;
-        this.mediaActive.x_align = Clutter.ActorAlign.CENTER;
-        this.mediaTitle = wrapLabel('', 'notch-media-title', true);
-        this.mediaArtist = wrapLabel('', 'notch-media-artist', true);
-        this.mediaPlayer = button({text: '', iconName: 'view-more-symbolic',
-            style: 'notch-small-button notch-media-player', wrapText: true,
-            accessibleName: 'Switch media player', onClick: () => this.media.cyclePlayer()});
-        this.mediaPlayer.x_align = Clutter.ActorAlign.CENTER;
-        this.mediaActive.add_child(this.mediaTitle);
-        this.mediaActive.add_child(this.mediaArtist);
-        this.mediaActive.add_child(this.mediaPlayer);
-
-        const progress = box(false, 'notch-media-progress', 10);
-        progress.x_expand = true;
-        progress.x_align = Clutter.ActorAlign.CENTER;
-        this.mediaElapsed = label('0:00', 'notch-media-time');
-        this.mediaElapsed.set_size(44, -1);
-        this.mediaSeek = slider(0, value => this.media.seekTo(value), 'Playback position');
-        this.mediaSeek.x_expand = true;
-        this.mediaDuration = label('0:00', 'notch-media-time');
-        this.mediaDuration.set_size(44, -1);
-        progress.add_child(this.mediaElapsed);
-        progress.add_child(this.mediaSeek);
-        progress.add_child(this.mediaDuration);
-        this.mediaActive.add_child(progress);
-
-        const controls = box(false, 'notch-media-controls', 18);
-        controls.x_align = Clutter.ActorAlign.CENTER;
-        this.mediaPrevious = button({iconName: 'media-skip-backward-symbolic', style: 'notch-icon-button notch-transport',
-            accessibleName: 'Previous track', onClick: () => this.media.previous()});
-        this.mediaPlay = button({iconName: 'media-playback-start-inverse-symbolic', accessibleName: 'Play or pause',
-            style: 'notch-button notch-play notch-play-large', onClick: () => this.media.playPause()});
-        this.mediaNext = button({iconName: 'media-skip-forward-symbolic', style: 'notch-icon-button notch-transport',
-            accessibleName: 'Next track', onClick: () => this.media.next()});
-        controls.add_child(this.mediaPrevious);
-        controls.add_child(this.mediaPlay);
-        controls.add_child(this.mediaNext);
-        this.mediaActive.add_child(controls);
-        page.add_child(this.mediaActive);
-        return page;
-    }
-
-    updateMedia() {
-        if (this.dead || !this.mediaTitle) return;
-        const state = this.media.snapshot();
-        const hasPlayer = state.names.length > 0;
-        this.mediaEmpty.visible = !hasPlayer;
-        this.mediaActive.visible = hasPlayer;
-        this.updateSummary();
-        if (!hasPlayer) return;
-        const title = mediaDisplayTitle(state);
-        setText(this.mediaTitle, title);
-        this.mediaTitle.accessible_name = title;
-        setText(this.mediaArtist, mediaDisplayArtist(state));
-        setText(this.mediaElapsed, formatTime(state.positionUs));
-        setText(this.mediaDuration, formatTime(state.lengthUs));
-        this.mediaSeek._notchSet(state.lengthUs ? state.positionUs / state.lengthUs : 0);
-        setSensitive(this.mediaSeek, state.canSeek && state.lengthUs > 0);
-        setSensitive(this.mediaPrevious, state.canGoPrevious);
-        setSensitive(this.mediaNext, state.canGoNext);
-        setSensitive(this.mediaPlay, state.canControl && (state.canPlay || state.canPause));
-        setNotchIcon(this.mediaPlay._notchIcon, state.status === 'Playing' ?
-            'media-playback-pause-inverse-symbolic' : 'media-playback-start-inverse-symbolic');
-        this.mediaPlay.accessible_name = state.status === 'Playing' ? 'Pause' : 'Play';
-        this.mediaPlayer.visible = state.names.length > 1;
-        setText(this.mediaPlayer._notchLabel, state.identity);
-        this.mediaPlayer.accessible_name = `Switch media player, current ${state.identity}`;
-        setSensitive(this.mediaPlayer, state.names.length > 1);
     }
 
     buildNotifications() {
@@ -707,64 +584,9 @@ export class NotchView {
     }
 
     updateSummary() {
-        if (this.dead || !this.liveMusicIcon) return;
-        const state = this.media.snapshot();
-        const show = this.settings.get_boolean('closed-media') && state.names.length > 0 && state.status !== 'Stopped';
-        this.liveMusicIcon.visible = show;
-        this.liveBars.visible = show && state.status === 'Playing';
-        this.leftWing.visible = show;
-        this.rightWing.visible = show;
+        if (this.dead || !this.summaryClock) return;
         this.summaryClock.visible = this.settings.get_boolean('idle-clock');
         this.unreadDot.visible = countNotifications(Main.messageTray.getSources()) > 0 && this.settings.get_boolean('idle-clock');
-        this.syncVisualizer();
-        const previous = this.options.mediaWings;
-        this.options.mediaWings = this.settings.get_boolean('closed-media') && show;
-        if (previous !== this.options.mediaWings) this.relayout('resize');
-    }
-
-    visualizerActive() {
-        return this.allowed && this.mode === 'closed' && this.liveBars?.visible &&
-            this.settings.get_boolean('animations') && systemMotionEnabled();
-    }
-
-    stopVisualizer() {
-        if (this.visualTimer) GLib.source_remove(this.visualTimer);
-        this.visualTimer = 0;
-        for (const bar of this.barWidgets ?? []) {
-            bar.remove_all_transitions();
-            bar.set_scale(1, 0.62);
-        }
-    }
-
-    syncVisualizer() {
-        const active = this.visualizerActive();
-        if (active && !this.visualTimer) {
-            this.visualStep = 0;
-            const tick = () => {
-                if (this.dead) return GLib.SOURCE_REMOVE;
-                if (!this.visualizerActive()) {
-                    this.stopVisualizer();
-                    return GLib.SOURCE_REMOVE;
-                }
-                try {
-                    const levels = visualizerLevels(this.visualStep++);
-                    this.barWidgets.forEach((bar, index) => {
-                        bar.remove_all_transitions();
-                        bar.ease({scale_y: levels[index], duration: 190,
-                            mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD});
-                    });
-                } catch (e) {
-                    console.warn(`Notch: equalizer stopped after animation error: ${e.message ?? e}`);
-                    this.stopVisualizer();
-                    return GLib.SOURCE_REMOVE;
-                }
-                return GLib.SOURCE_CONTINUE;
-            };
-            tick();
-            this.visualTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 210, tick);
-        } else if (!active && this.visualTimer) {
-            this.stopVisualizer();
-        }
     }
 
     showChargingBadge(battery) {
@@ -834,7 +656,6 @@ export class NotchView {
             if (tab._notchIcon) tab._notchIcon.opacity = active ? 255 : 150;
         }
         this.diagnostics.setActive(id === 'system' && this.expanded && this.allowed);
-        this.media.setPositionActive(id === 'media' && this.expanded && this.allowed);
         if (id === 'notifications') this.updateNotifications();
         if (id === 'system') this.updateSystem();
         if (animate && this.expanded) this.relayout('resize');
@@ -859,7 +680,6 @@ export class NotchView {
             this.closedLayer.ease({opacity: 0, duration: this.motionDuration(100), mode: Clutter.AnimationMode.EASE_OUT_QUAD});
             this.selectTab(this.tab, false);
             this.relayout('open');
-            this.syncVisualizer();
         } else {
             this.mode = 'closed';
             this.peek.visible = false;
@@ -872,7 +692,6 @@ export class NotchView {
             this.closedLayer.ease({opacity: 255, duration: this.motionDuration(140), delay: this.motionDuration(60),
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD});
             this.diagnostics.setActive(false);
-            this.media.setPositionActive(false);
             this.relayout('close');
         }
         this.updateSummary();
@@ -997,7 +816,6 @@ export class NotchView {
         this._relayoutDepth++;
         try {
             this.options = {...this.options, ...this.readOptions(), tab: this.tab,
-                mediaWings: this.settings.get_boolean('closed-media') && this.hasMediaWings(),
                 hovered: this.hovered && this.mode === 'closed'};
             const rect = this.geometry(this.expanded, this.mode);
             this.layoutPages();
@@ -1165,7 +983,7 @@ export class NotchView {
             this.syncPanelClock();
             this.updateSummary();
         }
-        if (key === 'closed-media' || key === 'idle-clock') {
+        if (key === 'idle-clock') {
             this.updateClock();
             this.updateSummary();
         }
@@ -1201,7 +1019,7 @@ export class NotchView {
             this.reserve = null;
         }
         if (!this.settings.get_boolean('reserve-space') || this.options.placement === 'floating') return;
-        const rect = notchGeometry(this.monitor(), {...this.options, hovered: false, mediaWings: false}, false, 'closed');
+        const rect = notchGeometry(this.monitor(), {...this.options, hovered: false}, false, 'closed');
         this.reserve = new St.Widget({reactive: false, opacity: 0, x: rect.x, y: this.monitor().y,
             width: rect.width, height: Math.max(1, rect.y + rect.height - this.monitor().y)});
         Main.layoutManager.addChrome(this.reserve, {affectsStruts: true, trackFullscreen: false});
@@ -1229,8 +1047,6 @@ export class NotchView {
         this.notifications?.configure(this.settings.get_boolean('notifications-in-notch'), this.allowed);
         this.syncPanelClock();
         this.diagnostics.setActive(this.allowed && this.expanded && this.tab === 'system');
-        this.media.setPositionActive(this.allowed && this.expanded && this.tab === 'media');
-        this.syncVisualizer();
         if (!this.allowed) this.setExpanded(false);
     }
 
@@ -1292,16 +1108,14 @@ export class NotchView {
     state() {
         return JSON.stringify({version: '0.1.0', extensionVersion: this.extension.metadata.version,
             mode: this.mode, expanded: this.expanded, visible: this.allowed,
-            media: this.media.snapshot().identity,
             notificationCount: countNotifications(Main.messageTray.getSources()),
             activeNotification: !!this.notifications?.active});
     }
 
     destroy() {
         this.dead = true;
-        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'mediaTimer', 'peekTimer', 'statusTimer', 'chargeBadgeTimer']) this.clearTimer(name);
+        for (const name of ['hoverTimer', 'closeTimer', 'hideTimer', 'peekTimer', 'statusTimer', 'chargeBadgeTimer']) this.clearTimer(name);
         this.stopTimeline();
-        this.stopVisualizer();
         this.injections?.clear();
         this.content?.remove_all_transitions();
         this.closedLayer?.remove_all_transitions();
@@ -1328,7 +1142,6 @@ export class NotchView {
         Main.overview.disconnectObject(this);
         Main.sessionMode.disconnectObject(this);
         global.display.disconnectObject(this);
-        this.media?.destroy();
         this.diagnostics?.destroy();
         this.actions?.destroy();
         if (this.reserve) Main.layoutManager.removeChrome(this.reserve);

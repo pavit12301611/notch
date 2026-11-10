@@ -5,7 +5,6 @@ export {clamp};
  * pages are natural-height centered blocks. */
 export const PAGE_SIZES = Object.freeze({
     home: {width: 640, height: 220},
-    media: {width: 640, height: 320},
     notifications: {width: 640, height: 380},
     system: {width: 640, height: 360},
 });
@@ -47,7 +46,6 @@ export function notchGeometry(monitor, options, expanded = false, mode = null) {
         height = Math.min(panelHeight + 112 * scale, available.height);
     } else {
         width = Math.max(options.collapsedWidth ?? 185, 150) * scale;
-        if (options.mediaWings) width += 64 * scale;
         if (options.hovered && options.placement === 'panel') width += 12 * scale;
         height = options.matchPanelHeight === true ? panelHeight : (options.collapsedHeight ?? 32) * scale;
         if (options.hovered && options.placement === 'panel') height += 4 * scale;
