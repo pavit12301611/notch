@@ -22,7 +22,7 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 - [ ] `./install.sh --with-deps` completes as the desktop user.
 - [ ] After logout/login, `gnome-extensions enable notch@pavit12301611.github.io` succeeds.
-- [ ] `notch-doctor` reports build 21 loaded and installed, and no legacy helper artifacts.
+- [ ] `notch-doctor` reports build 23 loaded and installed, and no legacy helper artifacts.
 - [ ] Updating from build 17 removes `notch-helper`, `notch-shelf`, the Helper D-Bus service, `notch-helper.service` and old Python modules.
 - [ ] Custom `XDG_DATA_HOME` installs/uninstalls extension, schemas, launcher and doctor paths consistently.
 - [ ] Uninstall removes installed files but retains settings until explicitly purged.
@@ -31,7 +31,7 @@ These checks do **not** start a real GNOME Shell compositor. A headless containe
 
 - [ ] After upgrading Fedora 44 → 45, the installed build still reports `State: ACTIVE`; a pre-build-20 copy shows `OUT OF DATE` until it is reinstalled.
 - [ ] `journalctl -b _COMM=gnome-shell --no-pager | grep -E 'No property|JS ERROR'` shows no `No property vertical on StBoxLayout`; every page, the notification list and the system action row lay out vertically where intended.
-- [ ] `gnome-extensions info notch@pavit12301611.github.io` reports `Version: 21` after a logout/login.
+- [ ] `gnome-extensions info notch@pavit12301611.github.io` reports `Version: 23` after a logout/login.
 - [ ] On GNOME 51, Settings → Accessibility → Seeing → Reduce Motion makes open/close snap without leaving the notch in a partial size.
 - [ ] On a GNOME 48–50 machine the same build still opens, closes and lays out vertically through the `:vertical` fallback (or through `:orientation` on 48+).
 

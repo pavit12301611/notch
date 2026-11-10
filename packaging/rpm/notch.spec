@@ -1,6 +1,6 @@
 Name:           notch
 Version:        0.1.0
-Release:        5%{?dist}
+Release:        7%{?dist}
 Summary:        Native GNOME notch with notifications and system status
 License:        GPL-3.0-or-later
 URL:            https://github.com/pavit12301611/notch
@@ -52,6 +52,20 @@ glib-compile-schemas %{buildroot}%{_datadir}/gnome-shell/extensions/notch@pavit1
 %{_datadir}/icons/hicolor/scalable/apps/io.github.pavit12301611.Notch.svg
 
 %changelog
+* Tue Nov 10 2026 Notch contributors <noreply@github.com> - 0.1.0-7
+- Restore notch visibility after exiting GNOME Activities Overview by listening
+  to Main.overview 'hidden' in addition to 'hiding' and reading visibleTarget
+  in syncVisibility().
+- Fix PyGObject GLib.Variant construction in notch-doctor for Shell registration.
+- Build 23.
+
+* Tue Nov 10 2026 Notch contributors <noreply@github.com> - 0.1.0-6
+- Fix System page live telemetry: connect UPower DisplayDevice on Gio.DBus.system,
+  parse hex /proc/net/route flags (including VPN/point-to-point default routes),
+  add fast 250ms initial CPU/Network delta warmup and Gio.File procfs fallback,
+  and display Offline instead of a permanent ellipsis when no NIC is active.
+- Build 22.
+
 * Tue Nov 10 2026 Notch contributors <noreply@github.com> - 0.1.0-5
 - Remove all music and MPRIS media functionality from both extension frontend
   and Python companion/backend: Music tab, MPRIS D-Bus client/interfaces, closed

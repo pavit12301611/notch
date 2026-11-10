@@ -518,13 +518,18 @@ export class NotchView {
         const values = this.diagnostics.values;
         const battery = this.diagnostics.battery;
         if (values) {
-            setText(this.stats.cpu.value, values.cpu.percent === null ? '…' : `${Math.round(values.cpu.percent)}%`);
+            const cpuText = values.cpu.percent !== null
+                ? `${Math.round(values.cpu.percent)}%`
+                : (values.cpu.raw === null ? '—' : '…');
+            setText(this.stats.cpu.value, cpuText);
             setText(this.stats.cpu.detail, '');
             setText(this.stats.ram.value, values.memory.percent === null ? '—' : `${Math.round(values.memory.percent)}%`);
             setText(this.stats.ram.detail, values.memory.used === null ? '' :
                 `${formatBytes(values.memory.used)} / ${formatBytes(values.memory.total)}`);
-            setText(this.stats.network.value, values.network.download === null ? '…' :
-                `↓ ${formatBytes(values.network.download, '/s')}`);
+            const netText = values.network.download !== null
+                ? `↓ ${formatBytes(values.network.download, '/s')}`
+                : (values.network.raw === null ? 'Offline' : '…');
+            setText(this.stats.network.value, netText);
             setText(this.stats.network.detail, values.network.upload === null ? '' :
                 `↑ ${formatBytes(values.network.upload, '/s')}`);
         }
@@ -663,6 +668,7 @@ export class NotchView {
 
     setExpanded(expanded) {
         if (this.dead) return;
+        if (expanded && !this.allowed) return;
         this.clearTimer('hoverTimer');
         this.clearTimer('closeTimer');
         if (expanded) {
@@ -789,7 +795,7 @@ export class NotchView {
         const ids = ['cpu', 'ram', 'battery', 'network'];
         for (let i = 0; i < ids.length; i += columns) {
             const row = box(false, 'notch-stat-row', 10);
-            row.x_align = Clutter.ActorAlign.CENTER;
+            row.x_align = Clutter.ActorAlign.FILL;
             for (const id of ids.slice(i, i + columns)) {
                 const card = this.statCards[id];
                 card.x_expand = true;
@@ -938,7 +944,8 @@ export class NotchView {
     connectEnvironment() {
         Main.layoutManager.connectObject('monitors-changed', () => this.relayout('resize', true), this);
         Main.overview.connectObject('showing', () => this.syncVisibility(),
-            'hiding', () => this.syncVisibility(), this);
+            'hiding', () => this.syncVisibility(),
+            'hidden', () => this.syncVisibility(), this);
         Main.sessionMode.connectObject('updated', () => this.syncVisibility(), this);
         global.display.connectObject('in-fullscreen-changed', () => this.syncVisibility(), this);
         this.stagePress = global.stage.connect('captured-event', (_stage, event) => {
@@ -1029,10 +1036,12 @@ export class NotchView {
     syncVisibility() {
         const monitor = this.monitor();
         const locked = !!this.locked || !!Main.sessionMode.isLocked || !!Main.sessionMode.isGreeter;
+        const inOverview = Boolean(Main.overview.visibleTarget ?? Main.overview.visible);
         this.allowed = !locked &&
             !(this.settings.get_boolean('hide-on-fullscreen') &&
+              Number.isInteger(monitor.index) &&
               global.display.get_monitor_in_fullscreen(monitor.index)) &&
-            !(this.settings.get_boolean('hide-in-overview') && Main.overview.visible);
+            !(this.settings.get_boolean('hide-in-overview') && inOverview);
         this.actor.visible = this.allowed;
         this.actor.reactive = this.allowed;
         if (!this.allowed && this.chargeBadge) {
@@ -1106,10 +1115,18 @@ export class NotchView {
     }
 
     state() {
-        return JSON.stringify({version: '0.1.0', extensionVersion: this.extension.metadata.version,
-            mode: this.mode, expanded: this.expanded, visible: this.allowed,
+        return JSON.stringify({
+            version: '0.1.0',
+            extensionVersion: this.extension.metadata.version,
+            mode: this.mode,
+            tab: this.tab,
+            expanded: this.expanded,
+            visible: this.allowed,
+            diagnosticsReady: !!this.diagnostics?.values,
+            batteryAvailable: !!this.diagnostics?.battery?.available,
             notificationCount: countNotifications(Main.messageTray.getSources()),
-            activeNotification: !!this.notifications?.active});
+            activeNotification: !!this.notifications?.active,
+        });
     }
 
     destroy() {

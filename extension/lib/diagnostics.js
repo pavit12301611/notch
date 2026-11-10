@@ -5,9 +5,18 @@ import {newProxy, errorMessage} from './dbus.js';
 
 function read(path) {
     try {
+        const [ok, contents] = Gio.File.new_for_path(path).load_contents(null);
+        if (ok) return new TextDecoder().decode(contents);
+    } catch (e) {
+        console.debug(`Notch: failed to read ${path} via Gio: ${errorMessage(e)}`);
+    }
+    try {
         const [ok, contents] = GLib.file_get_contents(path);
-        return ok ? new TextDecoder().decode(contents) : '';
-    } catch { return ''; }
+        if (ok) return new TextDecoder().decode(contents);
+    } catch (e) {
+        console.debug(`Notch: failed to read ${path} via GLib: ${errorMessage(e)}`);
+    }
+    return '';
 }
 
 /** No worker process and no sampling while the System page is hidden. */
@@ -20,6 +29,7 @@ export class Diagnostics {
         this.cancellable = new Gio.Cancellable();
         this.dead = false;
         this.timer = 0;
+        this.warmupTimer = 0;
         this.previousCpu = null;
         this.previousNetwork = null;
         this.previousTime = 0;
@@ -29,7 +39,8 @@ export class Diagnostics {
     async start() {
         try {
             this.proxy = await newProxy(this.directory, 'org.freedesktop.UPower.Device.xml',
-                'org.freedesktop.UPower', '/org/freedesktop/UPower/devices/DisplayDevice', this.cancellable);
+                'org.freedesktop.UPower', '/org/freedesktop/UPower/devices/DisplayDevice',
+                this.cancellable, Gio.DBusProxyFlags.NONE, Gio.DBus.system);
             if (this.dead) return;
             this.proxy.connectObject('g-properties-changed', () => this.updateBattery(), this);
             this.updateBattery();
@@ -51,21 +62,34 @@ export class Diagnostics {
     }
 
     setActive(active) {
-        if (active && !this.timer) {
+        if (active && !this.timer && !this.dead) {
             this.previousCpu = null;
             this.previousNetwork = null;
+            this.previousTime = 0;
             this.sample();
-            this.timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
-                this.sample();
+            this.warmupTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
+                this.warmupTimer = 0;
+                if (!this.dead && this.timer) this.sample();
+                return GLib.SOURCE_REMOVE;
+            });
+            this.timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+                if (!this.dead) this.sample();
                 return GLib.SOURCE_CONTINUE;
             });
-        } else if (!active && this.timer) {
-            GLib.source_remove(this.timer);
-            this.timer = 0;
+        } else if (!active) {
+            if (this.warmupTimer) {
+                GLib.source_remove(this.warmupTimer);
+                this.warmupTimer = 0;
+            }
+            if (this.timer) {
+                GLib.source_remove(this.timer);
+                this.timer = 0;
+            }
         }
     }
 
     sample() {
+        if (this.dead) return;
         const now = GLib.get_monotonic_time();
         const elapsed = this.previousTime ? (now - this.previousTime) / 1e6 : 1;
         const cpu = cpuSample(read('/proc/stat'), this.previousCpu);

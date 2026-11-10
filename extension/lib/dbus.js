@@ -11,10 +11,11 @@ export function interfaceXml(directory, filename) {
 }
 
 /** A cancellable, never-auto-starting proxy for an already-running service. */
-export function newProxy(directory, filename, name, path, cancellable, flags = Gio.DBusProxyFlags.NONE) {
+export function newProxy(directory, filename, name, path, cancellable,
+    flags = Gio.DBusProxyFlags.NONE, bus = Gio.DBus.session) {
     const info = Gio.DBusInterfaceInfo.new_for_xml(interfaceXml(directory, filename));
     return new Promise((resolve, reject) => {
-        Gio.DBusProxy.new(Gio.DBus.session, flags, info, name, path, info.name,
+        Gio.DBusProxy.new(bus, flags, info, name, path, info.name,
             cancellable, (source, result) => {
                 try { resolve(Gio.DBusProxy.new_finish(result)); } catch (e) { reject(e); }
             });

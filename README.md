@@ -6,9 +6,13 @@ A Cyclop-inspired, expandable **MacBook-style top-edge notch** for **Fedora 45 W
 
 > Status: working source, tests and packaging recipes. The repository was developed in a non-GNOME Linux sandbox. **A live Fedora 45/GNOME 51 session is still required for the acceptance checklist in [docs/TESTING.md](docs/TESTING.md). Do not interpret static checks as a live desktop certification.** See [docs/VALIDATION.md](docs/VALIDATION.md) for the exact local checks.
 
-## What changed in build 21
+## What changed in build 23
 
-- **Removed Music / MPRIS completely (frontend and backend).** Removed the Music tab, MPRIS D-Bus client (`media.js`) and XML interfaces, closed-notch music wings and equalizer, playback/slider widgets, bundled media SVG icons, the `closed-media` schema/preferences key, and the `notch-doctor` MPRIS check. The notch now has three focused pages: **Home**, **Alerts**, and **System**.
+- **Fixed notch visibility after GNOME Activities Overview (`Main.overview`).** GNOME 51 starts in Overview and emits `hiding` before `Main.overview.visible` becomes `false`. Listening to `Main.overview` `'hidden'` in addition to `'hiding'` and checking `Main.overview.visibleTarget ?? Main.overview.visible` ensures the notch reappears immediately after leaving Overview so `allowed` / `visible` and System diagnostics activate properly. Also fixed `GLib.Variant("(s)", ...)` in `notch-doctor` for PyGObject 3.58.
+
+Build 22 fixed System telemetry (UPower `DisplayDevice` on `Gio.DBus.system`, hex/VPN `/proc/net/route` parsing, 250 ms CPU/Network warmup, `Gio.File` `/proc` fallback, `MemFree+Buffers+Cached` fallback, and `Offline` state).
+
+Build 21 removed Music / MPRIS completely (frontend and backend). Removed the Music tab, MPRIS D-Bus client (`media.js`) and XML interfaces, closed-notch music wings and equalizer, playback/slider widgets, bundled media SVG icons, the `closed-media` schema/preferences key, and the `notch-doctor` MPRIS check. The notch now has three focused pages: **Home**, **Alerts**, and **System**.
 
 Build 20 added **Fedora 45 / GNOME Shell 51 support** (`:orientation` on `St.BoxLayout` with `:vertical` fallback for Shell 46/47, `St.ReducedMotion.REDUCE` support, and Shell 46–51 metadata).
 
@@ -69,7 +73,7 @@ Run this in your Fedora desktop terminal (as your normal user, **not** with `sud
 curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/main/scripts/bootstrap.sh | bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. By default `bootstrap.sh` tracks `main` (build 21). To target a specific tag, branch, or commit SHA, set `NOTCH_REF=<ref>` on the `bash` side of the pipe, not only on `curl`.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. By default `bootstrap.sh` tracks `main` (build 23 once merged). To target a specific tag, branch, or commit SHA, set `NOTCH_REF=<ref>` on the `bash` side of the pipe, not only on `curl`.
 
 If you prefer to inspect the bootstrap before running it:
 

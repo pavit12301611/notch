@@ -12,7 +12,7 @@ export function cpuSample(text, previous = null) {
     // user nice system idle iowait irq softirq steal guest guest_nice.
     // guest time is already included in user/nice: never count it twice.
     const values = line.trim().split(/\s+/).slice(1, 9).map(Number);
-    if (values.length !== 8 || values.some(n => !Number.isFinite(n) || n < 0))
+    if (values.length < 7 || values.some(n => !Number.isFinite(n) || n < 0))
         return {percent: null, raw: null};
     const total = values.reduce((a, b) => a + b, 0);
     const idle = values[3] + values[4];
@@ -24,10 +24,14 @@ export function cpuSample(text, previous = null) {
 
 export function memorySample(text) {
     const values = {};
-    for (const match of text.matchAll(/^([A-Za-z()]+):\s+(\d+)\s+kB/gm))
+    for (const match of text.matchAll(/^([A-Za-z0-9_()]+):\s+(\d+)\s+kB/gmi))
         values[match[1]] = Number(match[2]) * 1024;
     const total = values.MemTotal;
-    const available = values.MemAvailable;
+    const available = Number.isFinite(values.MemAvailable)
+        ? values.MemAvailable
+        : (Number.isFinite(values.MemFree)
+            ? values.MemFree + (values.Buffers ?? 0) + (values.Cached ?? 0)
+            : NaN);
     if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(available))
         return {percent: null, used: null, total: null};
     const used = Math.max(0, total - available);
@@ -37,8 +41,7 @@ export function memorySample(text) {
 export function networkSample(text, previous = null, elapsedSeconds = 1, defaultInterface = '') {
     let rx = 0;
     let tx = 0;
-    let found = false;
-    let selected = '';
+    const names = [];
     for (const line of text.split('\n').slice(2)) {
         const parts = line.trim().split(/[\s:]+/);
         if (parts.length < 17) continue;
@@ -50,10 +53,10 @@ export function networkSample(text, previous = null, elapsedSeconds = 1, default
         if (!Number.isFinite(receive) || !Number.isFinite(transmit)) continue;
         rx += receive;
         tx += transmit;
-        selected = defaultInterface || name;
-        found = true;
+        names.push(name);
     }
-    const raw = found ? {rx, tx, interface: selected} : null;
+    const selected = defaultInterface || names.sort().join(',');
+    const raw = names.length > 0 ? {rx, tx, interface: selected} : null;
     let download = null;
     let upload = null;
     if (raw && previous?.interface === selected && elapsedSeconds > 0 &&
@@ -65,12 +68,18 @@ export function networkSample(text, previous = null, elapsedSeconds = 1, default
 }
 
 export function defaultRouteInterface(text) {
+    let fallback = '';
     for (const line of text.split('\n').slice(1)) {
         const p = line.trim().split(/\s+/);
-        if (p.length >= 8 && p[1] === '00000000' && (Number(p[3]) & 2))
-            return p[0];
+        if (p.length < 8 || p[1] !== '00000000') continue;
+        const flags = parseInt(p[3], 16);
+        if (!Number.isFinite(flags)) continue;
+        // Prefer a default gateway route (RTF_GATEWAY = 0x2); fall back to
+        // point-to-point / VPN default routes (RTF_UP = 0x1, zero netmask).
+        if (flags & 2) return p[0];
+        if (!fallback && p[7] === '00000000' && (flags & 1)) fallback = p[0];
     }
-    return '';
+    return fallback;
 }
 
 export function formatBytes(bytes, suffix = '') {

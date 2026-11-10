@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### v23 — fix Overview exit visibility and `notch-doctor` Variant call
+
+- Connect `Main.overview` `'hidden'` signal in addition to `'showing'` and
+  `'hiding'`, and inspect `Main.overview.visibleTarget ?? Main.overview.visible`
+  in `syncVisibility()`, so the notch becomes visible (`allowed = true`) right
+  after exiting the GNOME 51 login/Activities Overview instead of staying
+  `visible: false` (which also blocked `Diagnostics.setActive(true)`).
+- Guard `setExpanded(true)` when `!this.allowed` and expose `tab`,
+  `diagnosticsReady`, and `batteryAvailable` in `GetState`.
+- Fix `GLib.Variant("(s)", (UUID,))` in `notch-doctor` (PyGObject 3.58 has no
+  `GLib.Variant.new`).
+- Bump build to 23.
+
+### v22 — fix System telemetry (CPU, Memory, Battery, Network)
+
+- Connect `org.freedesktop.UPower` (`DisplayDevice`) proxy on `Gio.DBus.system`
+  instead of `Gio.DBus.session`, restoring laptop battery percentage, state,
+  and plug-in charging cue.
+- Parse `/proc/net/route` hex `Flags` with `parseInt(..., 16)` (fixes flags such
+  as `000B` and `0013`) and fall back to point-to-point / VPN zero-netmask
+  default routes (`RTF_UP`).
+- Use `Gio.File.load_contents` with `GLib.file_get_contents` fallback for `/proc`
+  reads, add a 250 ms initial CPU/Network delta warmup + 1000 ms interval
+  (`GLib.timeout_add`) instead of coalesced `timeout_add_seconds(1)`, add
+  `MemFree + Buffers + Cached` fallback when `MemAvailable` is absent, and
+  display `Offline` instead of a permanent ellipsis when no non-virtual network
+  interface is up.
+- Bump build to 22.
+
 ### v21 — remove Music and MPRIS media support
 
 - Remove all music and MPRIS functionality from both frontend and backend:
