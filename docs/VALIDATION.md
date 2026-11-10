@@ -1,5 +1,22 @@
 # Validation log
 
+## Build 21 — 2026-11-10
+
+Scope: remove all Music / MPRIS functionality from frontend and backend.
+
+### Executed in the development sandbox
+
+- `npm run check` (ESLint + Node unit tests) and Python unit tests (`make check-python`).
+- `bash -n` on `install.sh`, `uninstall.sh`, `scripts/bootstrap.sh`.
+- `node --check` on every extension module; schema/D-Bus XML parse.
+- `make stage PREFIX=/usr SYSCONFDIR=/etc` and `make install` / `make uninstall` with `DESTDIR` staging.
+- `git diff --check`.
+
+### Not executed here
+
+- Live GNOME Shell 51 Wayland session checks in `docs/TESTING.md`.
+- `glib-compile-schemas` binary compilation, `desktop-file-validate`, GJS smoke test, RPM build (run in Fedora 45 CI).
+
 ## Build 20 — 2026-11-06
 
 Scope: Fedora 45 / GNOME Shell 51 compatibility; no design changes.

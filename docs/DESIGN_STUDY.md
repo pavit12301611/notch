@@ -19,9 +19,7 @@ Pinned references inspected on 2026-10-30:
   rectangle or a floating Dynamic Island. The flare is drawn with Cairo; the body
   uses St CSS bottom radii.
 - **Closed state:** match the GNOME panel height by default, base width 185
-  logical px, centered idle clock. While music plays, small music/equalizer
-  indicator wings grow from the sides without increasing height. Hover adds a
-  restrained 12×4 px affordance.
+  logical px, centered idle clock. Hover adds a restrained 12×4 px affordance.
 - **Opening:** top edge stays pinned; width/height/radii move together with a
   damped spring. Open pages size to their content instead of forcing every
   page into one large utility window.
@@ -32,9 +30,9 @@ Pinned references inspected on 2026-10-30:
   native actions; they remain in GNOME's notification history. Critical
   notifications keep the native banner path. Opening the full Alerts page is an
   explicit click, not an automatic full-window interruption.
-- **Four pages only:** Home, Music, Alerts, System. Clipboard history and the file
-  shelf were removed in build 18; no drop target, helper daemon or pagination
-  remains.
+- **Three pages only:** Home, Alerts, System. Clipboard history and the file
+  shelf were removed in build 18, and Music/MPRIS was removed in build 21; no
+  drop target, helper daemon, media player or pagination remains.
 - **Hierarchy and depth:** primary values/titles are large; labels and secondary
   details are smaller and muted. Layered dark cards, subtle borders and inset
   highlights separate content from the black notch body. Decorative headings,

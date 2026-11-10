@@ -1,12 +1,10 @@
 /* Run inside dbus-run-session on Fedora. Does not pretend to test GNOME Shell UI. */
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import {cpuSample, mediaErrorMessage, countNotifications, chargingStarted} from '../extension/lib/model.js';
+import {cpuSample, countNotifications, chargingStarted} from '../extension/lib/model.js';
 import {headerLayout} from '../extension/lib/layout.js';
 import {notchGeometry} from '../extension/lib/geometry.js';
 
-if (mediaErrorMessage('NotSupported') !== 'This player does not support that control.')
-    throw new Error('GJS media error smoke test failed');
 if (countNotifications([{notifications: [1, 2]}, {}]) !== 2)
     throw new Error('GJS notification count smoke test failed');
 if (cpuSample('cpu 1 0 1 8 0 0 0 0').raw.total !== 10)
@@ -20,13 +18,14 @@ if (directory) {
     const source = Gio.SettingsSchemaSource.new_from_directory(directory,
         Gio.SettingsSchemaSource.get_default(), false);
     const schema = source.lookup('io.github.pavit12301611.Notch', true);
-    if (!schema || schema.has_key('clipboard-enabled') || schema.has_key('clipboard-limit'))
-        throw new Error('Removed clipboard schema keys are still present');
+    if (!schema || schema.has_key('clipboard-enabled') || schema.has_key('clipboard-limit') ||
+        schema.has_key('closed-media'))
+        throw new Error('Removed schema keys are still present');
     for (const key of ['replace-panel-clock', 'idle-clock', 'notifications-in-notch', 'auto-open-notifications']) {
-        if (!schema.has_key(key) || !schema.get_default_value(key).get_boolean())
+        if (!schema.has_key(key) || !schema.get_key(key).get_default_value().deepUnpack())
             throw new Error(`MacBook default check failed: ${key}`);
     }
-    if (schema.get_default_value('placement').get_string() !== 'panel')
+    if (schema.get_key('placement').get_default_value().deepUnpack() !== 'panel')
         throw new Error('MacBook placement default check failed');
 }
 if (!chargingStarted({available: true, state: 2}, {available: true, state: 1}))

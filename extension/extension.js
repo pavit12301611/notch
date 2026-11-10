@@ -39,7 +39,6 @@ export default class NotchExtension extends Extension {
             this.settings.set_double('notch-scale', 1.0);
             this.settings.set_boolean('match-panel-height', true);
             this.settings.set_boolean('adaptive-corners', true);
-            this.settings.set_boolean('closed-media', true);
             this.settings.set_string('animation-profile', 'mac-spring');
             this.settings.set_int('open-animation-ms', 420);
             this.settings.set_int('close-animation-ms', 450);

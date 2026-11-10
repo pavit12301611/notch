@@ -73,7 +73,6 @@ export default class NotchPreferences extends ExtensionPreferences {
             settings.set_double('notch-scale', 1.0);
             settings.set_boolean('match-panel-height', true);
             settings.set_boolean('adaptive-corners', true);
-            settings.set_boolean('closed-media', true);
             settings.set_string('animation-profile', 'mac-spring');
             settings.set_double('opacity', 1.0);
             settings.set_boolean('replace-panel-clock', true);
@@ -140,7 +139,6 @@ export default class NotchPreferences extends ExtensionPreferences {
         addSwitch(macbook, 'notifications-in-notch', 'Show notifications in the notch');
         addSwitch(macbook, 'auto-open-notifications', 'Compact notification peeks');
         addSpin(macbook, 'peek-duration-ms', 'Peek duration (ms)', 2000, 15000, 500);
-        addSwitch(macbook, 'closed-media', 'Closed music wings');
         const profileValues = ['mac-spring', 'smooth'];
         const profileModel = new Gtk.StringList();
         ['Mac spring', 'Smooth easing'].forEach(s => profileModel.append(s));

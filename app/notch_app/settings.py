@@ -191,7 +191,6 @@ class SettingsApplication(Adw.Application):
         self.settings.set_double("notch-scale", 1.0)
         self.settings.set_boolean("match-panel-height", True)
         self.settings.set_boolean("adaptive-corners", True)
-        self.settings.set_boolean("closed-media", True)
         self.settings.set_string("animation-profile", "mac-spring")
         self.settings.set_double("opacity", 1.0)
         self.settings.set_boolean("replace-panel-clock", True)
@@ -215,7 +214,6 @@ class SettingsApplication(Adw.Application):
         self.switch(macbook, "notifications-in-notch", "Show notifications in the notch")
         self.switch(macbook, "auto-open-notifications", "Compact notification peeks")
         self.spin(macbook, "peek-duration-ms", "Peek duration", 2000, 15000, 500, "Milliseconds")
-        self.switch(macbook, "closed-media", "Closed music wings")
         profile = Adw.ComboRow(
             title="Motion profile", model=Gtk.StringList.new(["Mac spring", "Smooth easing"])
         )
@@ -251,7 +249,7 @@ class SettingsApplication(Adw.Application):
             0,
             60000,
             500,
-            "Milliseconds; 0 disables. Pointer activity and slider grabs postpone hiding.",
+            "Milliseconds; 0 disables. Pointer activity postpones hiding.",
         )
         self.switch(
             behavior,
@@ -273,11 +271,11 @@ class SettingsApplication(Adw.Application):
         self.switch(actions, "show-dnd", "Do Not Disturb")
         self.switch(actions, "show-night-light", "Night Light")
         self.switch(actions, "show-dark-mode", "Dark Mode")
-        media = self.group(page, "Media")
+        shortcuts = self.group(page, "Shortcuts")
         shortcut = Adw.ActionRow(
             title="Keyboard shortcut", subtitle="Super + ` (the key above Tab on US keyboards)"
         )
-        media.add(shortcut)
+        shortcuts.add(shortcut)
         return page
 
     def about_page(self):
