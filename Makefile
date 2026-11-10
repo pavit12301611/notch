@@ -89,7 +89,13 @@ test: check-python
 
 dist:
 	mkdir -p dist
-	git ls-files -co --exclude-standard | tar --transform='s,^,notch-$(VERSION)/,' -czf dist/notch-$(VERSION).tar.gz -T -
+	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
+	  git ls-files -co --exclude-standard | tar --transform='s,^,notch-$(VERSION)/,' -czf dist/notch-$(VERSION).tar.gz -T -; \
+	else \
+	  tar --exclude-vcs --exclude='./dist' --exclude='./node_modules' --exclude='./.generated' \
+	      --exclude='__pycache__' --exclude='*.pyc' --exclude='./.venv' \
+	      --transform='s,^\.,notch-$(VERSION),' -czf dist/notch-$(VERSION).tar.gz .; \
+	fi
 
 rpm: dist
 	mkdir -p dist/rpmbuild/{BUILD,RPMS,SOURCES,SRPMS,SPECS}
