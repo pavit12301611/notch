@@ -35,6 +35,7 @@ make stage PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir}
 
 %install
 %make_install PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} SYSTEMDUSERDIR=%{buildroot}%{_userunitdir}
+rm -f %{buildroot}%{_datadir}/gnome-shell/.notch@pavit12301611.github.io.install.lock
 desktop-file-validate %{buildroot}%{_datadir}/applications/io.github.pavit12301611.Notch.desktop
 # The shared schema directory is compiled by Fedora's glib2 file trigger.
 glib-compile-schemas %{buildroot}%{_datadir}/gnome-shell/extensions/notch@pavit12301611.github.io/schemas
