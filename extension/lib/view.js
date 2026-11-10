@@ -149,9 +149,7 @@ export class NotchView {
         clockBox.x_expand = true;
         clockBox.x_align = Clutter.ActorAlign.CENTER;
         this.summaryClock = label('', 'notch-summary-clock');
-        this.unreadDot = new St.Widget({style_class: 'notch-unread-dot', visible: false});
         clockBox.add_child(this.summaryClock);
-        clockBox.add_child(this.unreadDot);
         closedRow.add_child(clockBox);
         this.pill.set_child(closedRow);
         this.pill.connect('clicked', () => {
@@ -423,7 +421,6 @@ export class NotchView {
         const count = countNotifications(Main.messageTray.getSources());
         setText(this.notificationCount, String(count));
         this.notificationCount.visible = count > 0;
-        this.unreadDot.visible = count > 0 && this.settings.get_boolean('idle-clock');
         setSensitive(this.notificationClear, count > 0);
         const tab = this.tabButtons.get('notifications');
         if (tab) tab.accessible_name = count ? `Alerts, ${count} notifications` : 'Alerts';
@@ -591,7 +588,6 @@ export class NotchView {
     updateSummary() {
         if (this.dead || !this.summaryClock) return;
         this.summaryClock.visible = this.settings.get_boolean('idle-clock');
-        this.unreadDot.visible = countNotifications(Main.messageTray.getSources()) > 0 && this.settings.get_boolean('idle-clock');
     }
 
     showChargingBadge(battery) {
