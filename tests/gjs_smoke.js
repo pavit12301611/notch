@@ -42,15 +42,18 @@ if (!memOk || !memText.includes('MemTotal:'))
     throw new Error(`GLib.file_get_contents(/proc/meminfo) failed: ok=${memOk} len=${memText.length}`);
 
 let diagUpdates = 0;
-const diag = new Diagnostics(Gio.File.new_for_path('extension'), () => { diagUpdates++; });
+const loop = GLib.MainLoop.new(null, false);
+const diag = new Diagnostics(Gio.File.new_for_path('extension'), () => {
+    diagUpdates++;
+    if (diagUpdates >= 2 && loop.is_running()) loop.quit();
+});
 diag.setActive(true);
 if (!diag.values?.memory || diag.values.memory.percent === null)
     throw new Error(`Diagnostics immediate memory sample failed: ${JSON.stringify(diag.values)}`);
 if (!diag.values?.cpu?.raw)
     throw new Error(`Diagnostics immediate cpu raw sample failed: ${JSON.stringify(diag.values)}`);
-const loop = GLib.MainLoop.new(null, false);
-GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1150, () => {
-    loop.quit();
+GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2500, () => {
+    if (loop.is_running()) loop.quit();
     return GLib.SOURCE_REMOVE;
 });
 loop.run();
