@@ -22,7 +22,6 @@
 .notch-closed-row { spacing: 8px; }
 .notch-clock-box { spacing: 5px; }
 .notch-summary-clock { font-size: 1em; font-weight: 600; color: #f5f5f7; }
-.notch-unread-dot { width: 5px; height: 5px; border-radius: 3px; background-color: #f5f5f7; }
 .notch-charge-badge { spacing: 6px; }
 .notch-charge-label { color: #30d158; font-size: 0.95em; font-weight: 600; }
 

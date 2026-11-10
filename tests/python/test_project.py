@@ -147,6 +147,13 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("new NotchSurface", view)
         self.assertIn("SpringGeometry", view)
 
+    def test_collapsed_clock_has_no_unread_indicator(self):
+        view = (ROOT / "extension/lib/view.js").read_text()
+        css = (ROOT / "extension/stylesheet.css").read_text()
+        self.assertNotIn("unreadDot", view)
+        self.assertNotIn("notch-unread-dot", css)
+        self.assertIn("setText(this.notificationCount, String(count))", view)
+
     def test_design_spacing_and_symbolic_icons(self):
         layout = (ROOT / "extension/lib/layout.js").read_text()
         self.assertIn("paddingX: 20", layout)
