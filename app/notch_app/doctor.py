@@ -216,7 +216,7 @@ def inspect_shell_registration() -> list[tuple[str, str, str]]:
             "/org/gnome/Shell/Extensions",
             "org.gnome.Shell.Extensions",
             "GetExtensionInfo",
-            GLib.Variant.new("(s)", (UUID,)),
+            GLib.Variant("(s)", (UUID,)),
             None,
             Gio.DBusCallFlags.NO_AUTO_START,
             1500,

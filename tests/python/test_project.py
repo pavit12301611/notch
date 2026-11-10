@@ -16,7 +16,7 @@ class ProjectTests(unittest.TestCase):
         metadata = json.loads((ROOT / "extension/metadata.json").read_text())
         self.assertEqual(metadata["uuid"], UUID)
         self.assertEqual(metadata["settings-schema"], APP_ID)
-        self.assertEqual(metadata["version"], 22)
+        self.assertEqual(metadata["version"], 23)
         self.assertIn("51", metadata["shell-version"])
         self.assertIn("46", metadata["shell-version"])
         schema = ET.parse(ROOT / "extension/schemas" / f"{APP_ID}.gschema.xml").getroot()
@@ -201,6 +201,7 @@ class ProjectTests(unittest.TestCase):
         for name in ("doctor.py", "settings.py"):
             source = (ROOT / "app/notch_app" / name).read_text()
             self.assertNotIn("deepUnpack", source)
+            self.assertNotIn("GLib.Variant.new", source)
             self.assertIn(".unpack()", source)
 
     def test_adaptive_view_has_three_pages_and_only_alerts_scrolls(self):
@@ -273,6 +274,8 @@ class ProjectTests(unittest.TestCase):
         self.assertIn("chargingStarted", diagnostics)
         self.assertIn("Gio.DBus.system", diagnostics)
         self.assertIn("parseInt(p[3], 16)", (ROOT / "extension/lib/model.js").read_text())
+        self.assertIn("'hidden'", view)
+        self.assertIn("visibleTarget", view)
         self.assertIn("showChargingBadge", view)
         self.assertIn("chargeBadgeTimer", view)
         self.assertIn("this.setTimer('chargeBadgeTimer', 1640", view)

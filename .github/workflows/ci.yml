@@ -24,7 +24,9 @@ jobs:
       - name: GJS/GLib smoke test (not a live Shell test)
         run: GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" dbus-run-session -- gjs -m tests/gjs_smoke.js
       - name: Doctor with staged schema
-        run: GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" PYTHONPATH=app python3 -m notch_app.doctor --offline
+        run: |
+          GSETTINGS_SCHEMA_DIR="$PWD/.generated/schemas" PYTHONPATH=app python3 -m notch_app.doctor --offline
+          PYTHONPATH=app python3 -c 'import gi; gi.require_version("GLib", "2.0"); from gi.repository import GLib; from notch_app.config import UUID; assert GLib.Variant("(s)", (UUID,)).unpack() == (UUID,)'
       - run: make rpm
       - uses: actions/upload-artifact@v4
         with:

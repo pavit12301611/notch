@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### v23 — fix Overview exit visibility and `notch-doctor` Variant call
+
+- Connect `Main.overview` `'hidden'` signal in addition to `'showing'` and
+  `'hiding'`, and inspect `Main.overview.visibleTarget ?? Main.overview.visible`
+  in `syncVisibility()`, so the notch becomes visible (`allowed = true`) right
+  after exiting the GNOME 51 login/Activities Overview instead of staying
+  `visible: false` (which also blocked `Diagnostics.setActive(true)`).
+- Guard `setExpanded(true)` when `!this.allowed` and expose `tab`,
+  `diagnosticsReady`, and `batteryAvailable` in `GetState`.
+- Fix `GLib.Variant("(s)", (UUID,))` in `notch-doctor` (PyGObject 3.58 has no
+  `GLib.Variant.new`).
+- Bump build to 23.
+
 ### v22 — fix System telemetry (CPU, Memory, Battery, Network)
 
 - Connect `org.freedesktop.UPower` (`DisplayDevice`) proxy on `Gio.DBus.system`

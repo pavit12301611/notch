@@ -668,6 +668,7 @@ export class NotchView {
 
     setExpanded(expanded) {
         if (this.dead) return;
+        if (expanded && !this.allowed) return;
         this.clearTimer('hoverTimer');
         this.clearTimer('closeTimer');
         if (expanded) {
@@ -943,7 +944,8 @@ export class NotchView {
     connectEnvironment() {
         Main.layoutManager.connectObject('monitors-changed', () => this.relayout('resize', true), this);
         Main.overview.connectObject('showing', () => this.syncVisibility(),
-            'hiding', () => this.syncVisibility(), this);
+            'hiding', () => this.syncVisibility(),
+            'hidden', () => this.syncVisibility(), this);
         Main.sessionMode.connectObject('updated', () => this.syncVisibility(), this);
         global.display.connectObject('in-fullscreen-changed', () => this.syncVisibility(), this);
         this.stagePress = global.stage.connect('captured-event', (_stage, event) => {
@@ -1034,10 +1036,12 @@ export class NotchView {
     syncVisibility() {
         const monitor = this.monitor();
         const locked = !!this.locked || !!Main.sessionMode.isLocked || !!Main.sessionMode.isGreeter;
+        const inOverview = Boolean(Main.overview.visibleTarget ?? Main.overview.visible);
         this.allowed = !locked &&
             !(this.settings.get_boolean('hide-on-fullscreen') &&
+              Number.isInteger(monitor.index) &&
               global.display.get_monitor_in_fullscreen(monitor.index)) &&
-            !(this.settings.get_boolean('hide-in-overview') && Main.overview.visible);
+            !(this.settings.get_boolean('hide-in-overview') && inOverview);
         this.actor.visible = this.allowed;
         this.actor.reactive = this.allowed;
         if (!this.allowed && this.chargeBadge) {
@@ -1111,10 +1115,18 @@ export class NotchView {
     }
 
     state() {
-        return JSON.stringify({version: '0.1.0', extensionVersion: this.extension.metadata.version,
-            mode: this.mode, expanded: this.expanded, visible: this.allowed,
+        return JSON.stringify({
+            version: '0.1.0',
+            extensionVersion: this.extension.metadata.version,
+            mode: this.mode,
+            tab: this.tab,
+            expanded: this.expanded,
+            visible: this.allowed,
+            diagnosticsReady: !!this.diagnostics?.values,
+            batteryAvailable: !!this.diagnostics?.battery?.available,
             notificationCount: countNotifications(Main.messageTray.getSources()),
-            activeNotification: !!this.notifications?.active});
+            activeNotification: !!this.notifications?.active,
+        });
     }
 
     destroy() {
