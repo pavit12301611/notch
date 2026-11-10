@@ -66,17 +66,17 @@ Closed notch: idle time sits where the GNOME clock used to be. Plugging in the c
 Run this in your Fedora desktop terminal (as your normal user, **not** with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/39d4b422-notch/scripts/bootstrap.sh | NOTCH_REF=arena/39d4b422-notch bash -s -- --with-deps
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/main/scripts/bootstrap.sh | bash -s -- --with-deps
 ```
 
-This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. The command tracks the `arena/39d4b422-notch` branch (build 21). `NOTCH_REF` must be set on the `bash` side of the pipe, not only on `curl`. For a reproducible install, set it to a full commit SHA. After this branch is merged into `main`, the same command can use `main` on both sides.
+This downloads the complete source snapshot over HTTPS, installs Fedora dependencies, and installs Notch for your user. The dependency step prompts for your sudo password in the terminal. Temporary download files are removed afterwards. By default `bootstrap.sh` tracks `main` (build 21). To target a specific tag, branch, or commit SHA, set `NOTCH_REF=<ref>` on the `bash` side of the pipe, not only on `curl`.
 
 If you prefer to inspect the bootstrap before running it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/39d4b422-notch/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/main/scripts/bootstrap.sh -o /tmp/notch-bootstrap.sh
 less /tmp/notch-bootstrap.sh
-NOTCH_REF=arena/39d4b422-notch bash /tmp/notch-bootstrap.sh --with-deps
+bash /tmp/notch-bootstrap.sh --with-deps
 ```
 
 ### From a local checkout
@@ -136,7 +136,7 @@ The spec installs the extension, schema, settings app, doctor and desktop entry.
 The extension is the same package; only the Shell compatibility range changed. After `dnf system-upgrade`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/arena/39d4b422-notch/scripts/bootstrap.sh | NOTCH_REF=arena/39d4b422-notch bash -s --
+curl -fsSL https://raw.githubusercontent.com/pavit12301611/notch/refs/heads/main/scripts/bootstrap.sh | bash -s --
 ```
 
 Then log out and back in. `gnome-extensions info notch@pavit12301611.github.io` should report `State: ACTIVE`, not `OUT OF DATE`. Your existing Notch settings (GSettings/dconf) are retained.
